@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>伤害计算器 - 游戏风格界面</title>
+    <link rel="stylesheet" href="game-styled.css">
+    <!-- MathJax LaTeX渲染库 -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+            }
+        };
+    </script>
+      <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      <!-- Chart.js 图表库 -->
+      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* 调整表格行高 */
+        .table-container table th,
+        .table-container table td {
+            height: 38px;
+            padding: 4px;
+        }
+
+        /* 调整表头宽度 */
+        .table-container table th:first-child,
+        .table-container table td:first-child {
+            width: 80px;
+            min-width: 80px;
+        }
+        
+        /* 调整技能选择下拉框宽度 */
+        .table-container table th:nth-child(2),
+        .table-container table td:nth-child(2) {
+            width: 120px;
+            min-width: 120px;
+        }
+
+
+        /* 调整数据列宽度 */
+        .table-container table th:nth-child(n+3),
+        .table-container table td:nth-child(n+3) {
+            width: 60px;
+            min-width: 60px;
+        }
+        
+        /* 标签页内容的动画效果 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+    </style>
+    </head>
+<body>
+    <div class="container">
+        <!-- 标签页 -->
+          <div class="tabs" style="text-align: left;">
+                <button class="tab-button active" data-tab="basic-info">基础信息</button>
+                <button class="tab-button" data-tab="rotation">排轴界面</button>
+                <button class="tab-button" data-tab="damage-stats">伤害统计</button>
+                <button class="tab-button" data-tab="skill-buff-data">技能增益表</button>
+                <button class="tab-button" data-tab="calculation-process">计算过程</button>
+          </div>
+        
+        <!-- 基础信息标签页内容 -->
+        <div id="basic-info" class="tab-content active">
+            <h2>基础信息</h2>
+            
+            <!-- 攻击属性面板 -->
+            <div class="panel-container" style="display: flex; gap: 20px;">
+                <div class="panel-section" style="width: 33.33%;">
+                    <h3>战斗属性</h3>
+                    <div class="input-group" style="gap: 2px;">
+                        <!-- 外功攻击 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label>外功攻击:</label>
+                            <div class="input-pair">
+                                <input type="number" id="external-attack-min" value="1334" min="0" placeholder="最小值">
+                                <span>-</span>
+                                <input type="number" id="external-attack-max" value="2900" min="0" placeholder="最大值">
+                            </div>
+                        </div>
+                        
+                        <!-- 精准率 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="precision-rate">精准率(%):</label>
+                            <input type="number" id="precision-rate" value="100.0" min="0" max="98.2" step="0.1">
+                        </div>
+                        
+                        <!-- 会心率 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="critical-rate">会心率(%):</label>
+                            <input type="number" id="critical-rate" value="68.3" min="0" max="100" step="0.1">
+                        </div>
+                        
+                        <!-- 会意率 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="intent-rate">会意率(%):</label>
+                            <input type="number" id="intent-rate" value="17.6" min="0" max="100" step="0.1">
+                        </div>
+                        
+                        <!-- 直接会心率 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="direct-critical-rate">直接会心率(%):</label>
+                            <input type="number" id="direct-critical-rate" value="4.6" min="0" step="0.1">
+                        </div>
+                        
+                        <!-- 直接会意率 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="direct-intent-rate">直接会意率(%):</label>
+                            <input type="number" id="direct-intent-rate" value="0.0" min="0" step="0.1">
+                        </div>
+                        
+                        <!-- 鸣金攻击 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label>鸣金攻击:</label>
+                            <div class="input-pair">
+                                <input type="number" id="ring-metal-attack-min" value="69" min="0" placeholder="最小值">
+                                <span>-</span>
+                                <input type="number" id="ring-metal-attack-max" value="69" min="0" placeholder="最大值">
+                            </div>
+                        </div>
+                        
+                        <!-- 裂石攻击 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label>裂石攻击:</label>
+                            <div class="input-pair">
+                                <input type="number" id="break-rock-attack-min" value="69" min="0" placeholder="最小值">
+                                <span>-</span>
+                                <input type="number" id="break-rock-attack-max" value="69" min="0" placeholder="最大值">
+                            </div>
+                        </div>
+                        
+                        <!-- 牵丝攻击 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label>牵丝攻击:</label>
+                            <div class="input-pair">
+                                <input type="number" id="pull-silk-attack-min" value="35" min="0" placeholder="最小值">
+                                <span>-</span>
+                                <input type="number" id="pull-silk-attack-max" value="35" min="0" placeholder="最大值">
+                            </div>
+                        </div>
+                        
+                        <!-- 破竹攻击 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label>破竹攻击:</label>
+                            <div class="input-pair">
+                                <input type="number" id="break-bamboo-attack-min" value="196" min="0" placeholder="最小值">
+                                <span>-</span>
+                                <input type="number" id="break-bamboo-attack-max" value="355" min="0" placeholder="最大值">
+                            </div>
+                        </div>
+                        
+                        <!-- 会心伤害加成 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="critical-damage-bonus">会心伤害加成(%):</label>
+                            <input type="number" id="critical-damage-bonus" value="57.90" min="0" step="0.01">
+                        </div>
+                        
+                        <!-- 会意伤害加成 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="intent-damage-bonus">会意伤害加成(%):</label>
+                            <input type="number" id="intent-damage-bonus" value="35.00" min="0" step="0.01">
+                        </div>
+                        
+                        <!-- 外功穿透 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="external-penetration">外功穿透:</label>
+                            <input type="number" id="external-penetration" value="34.4" min="0" max="100" step="0.1">
+                        </div>
+                        
+                        <!-- 属攻穿透 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="elemental-penetration">属攻穿透:</label>
+                            <input type="number" id="elemental-penetration" value="14" min="0">
+                        </div>
+                        
+                        <!-- 外功伤害加成 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="external-damage-bonus">外功伤害加成(%):</label>
+                            <input type="number" id="external-damage-bonus" value="0.00" min="0" step="0.01">
+                        </div>
+                        
+                        <!-- 属攻伤害加成 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="elemental-damage-bonus">属攻伤害加成(%):</label>
+                            <input type="number" id="elemental-damage-bonus" value="4.00" min="0" step="0.01">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 伤害增益面板 -->
+                <div class="panel-section" style="width: 33.33%;">
+                    <h3>伤害增益</h3>
+                    <div class="input-group" style="gap: 2px;">
+                        
+                        <!-- 装备增伤 -->
+                        <h4>装备增伤</h4>
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="rope-dart-bonus">绳镖武学增伤(%):</label>
+                            <input type="number" id="rope-dart-bonus" value="0.00" min="0" step="0.01">
+                        </div>
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="dual-blades-bonus">双刀武学增伤(%):</label>
+                            <input type="number" id="dual-blades-bonus" value="0.00" min="0" step="0.01">
+                        </div>
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="all-martial-bonus">全武学增伤(%):</label>
+                            <input type="number" id="all-martial-bonus" value="0.00" min="0" step="0.01">
+                        </div>
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="boss-unit-bonus">首领单位增伤(%):</label>
+                            <input type="number" id="boss-unit-bonus" value="5.00" min="0" step="0.01">
+                        </div>
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="light-strike-bonus">强效轻击增伤(%):</label>
+                            <input type="number" id="light-strike-bonus" value="0.00" min="0" step="0.01">
+                        </div>
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="mouse-bonus">鼠鼠定音增伤(%):</label>
+                            <input type="number" id="mouse-bonus" value="19.4" min="0" step="0.01">
+                        </div>
+                        
+                        <!-- 其他增伤 -->
+                        <h4 style="margin: 10px 0 5px 0;">其他增伤</h4>
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="equipment-set">装备套装:</label>
+                            <select id="equipment-set" class="select-input">
+                                <option value="无" selected>无</option>
+                                <option value="飞隼">飞隼</option>
+                                <option value="燕归">燕归</option>
+                                <option value="新燕归">新燕归</option>
+                                <option value="时雨">时雨</option>
+                                <option value="浣花">浣花</option>
+                                <option value="岳山">岳山</option>
+                            </select>
+                        </div>
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="food-buff">食物增益:</label>
+                            <select id="food-buff" class="select-input">
+                                <option value="无">无</option>
+                                <option value="山参肉丸子">山参肉丸子</option>
+                            </select>
+                        </div>
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="talisman">符帖:</label>
+                            <select id="talisman" class="select-input">
+                                <option value="无">无</option>
+                                <option value="会心帖">会心</option>
+                                <option value="会意帖">会意</option>
+                                <option value="奇术帖">奇术</option>
+                                <option value="承欢帖">承欢</option>
+                            </select>
+                        </div>
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="crafting-bonus">天工:</label>
+                            <select id="crafting-bonus" class="select-input">
+                                <option value="无">无</option>
+                                <option value="天工火">火</option>
+                                <option value="天工毒">毒</option>
+                            </select>
+                        </div>
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="boss-talent-bonus">BOSS天赋(%):</label>
+                            <input type="number" id="boss-talent-bonus" value="0.00" min="0" step="0.01">
+                        </div>
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="boss-defense">BOSS防御:</label>
+                            <input type="number" id="boss-defense" value="350" min="0">
+                        </div>
+                        
+                        <div class="input-row" style="padding: 2px 0;">
+                            <button id="save-panel-btn" class="save-button">保存</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 计算模块 -->
+                <div class="panel-section" style="width: 33.33%;">
+                    <h3>计算</h3>
+                    <!-- 当前内容为空 -->
+                </div>
+            </div>
+            
+        </div>
+        
+        <!-- 排轴界面标签页内容 -->
+        <div id="rotation" class="tab-content">
+            <h2>排轴界面</h2>
+            
+            <!-- 整合的边框容器 -->
+            <div class="rotation-main-container">
+                <div class="rotation-controls">
+                    <!-- 四个主要操作按钮 -->
+                    <div class="rotation-actions">
+                        <button id="clear-rotation-btn">清空排轴</button>
+                        <button id="save-rotation-btn">保存排轴</button>
+                        <button id="import-rotation-btn">导入排轴</button>
+                        <button id="simulation-btn">模拟计算</button>
+                    </div>
+                    
+                    <!-- 配置管理和伤害表格的水平布局容器 -->
+                    <div class="controls-and-stats-container">
+                        <!-- 排轴配置管理控件 -->
+                        <div class="rotation-config-management">
+                            <div class="config-section">
+                                <label for="saved-rotation-configs">已保存的配置：</label>
+                                <select id="saved-rotation-configs">
+                                    <option value="">选择已保存的排轴配置</option>
+                                </select>
+                                <button id="delete-rotation-config-btn">删除配置</button>
+                            </div>
+                        </div>
+                        
+                        <!-- 伤害表格 -->
+                        <div class="damage-stats-table-container">
+                            <select id="damage-mode-select">
+                                <option value="none" selected>无</option>
+                                <option value="yishui">易水</option>
+                                <option value="duanshi">断石</option>
+                            </select>
+                            <table id="damage-stats-table" class="damage-stats-table">
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>伤害</th>
+                                        <th>DPS</th>
+                                        <th>毕业率</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="row-label">毕业</td>
+                                        <td id="graduation-damage">-</td>
+                                        <td id="graduation-dps">-</td>
+                                        <td id="graduation-rate">-</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="row-label">期望</td>
+                                        <td id="expected-damage">-</td>
+                                        <td id="expected-dps">-</td>
+                                        <td id="expected-rate">-</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="row-label">模拟</td>
+                                        <td id="simulation-damage">-</td>
+                                        <td id="simulation-dps">-</td>
+                                        <td id="simulation-rate">-</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- 隐藏的文件输入元素用于导入功能 -->
+                    <input type="file" id="rotation-file-input" accept=".json" style="display: none;">
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table id="rotation-table">
+                    <thead>
+                        <tr>
+                            <th>序号</th>
+                            <th>技能名称</th>
+                            <th>BUFF名称</th>
+                            <th>次数</th>
+                            <th>伤害</th>
+                            <th id="set-layer-header">
+                                <select id="set-layer-header-select" style="width: 120px; text-align: center; background: transparent; border: 1px solid #ccc; padding: 2px;">
+                                    <option value="">选择套装层数</option>
+                                </select>
+                            </th>
+                            <th>符帖</th>
+                            <th>易水歌</th>
+                            <th>所恨年年</th>
+                            <th>气竭</th>
+                            <th>奶伞</th>
+                            <th>易伤</th>
+                            <th>外功会心</th>
+                            <th>外功会意</th>
+                            <th>外功白字</th>
+                            <th>外功擦伤</th>
+                            <th>破竹会心</th>
+                            <th>破竹会意</th>
+                            <th>破竹白字</th>
+                            <th>破竹擦伤</th>
+                            <th>外属会心</th>
+                            <th>外属会意</th>
+                            <th>外属白字</th>
+                            <th>外属擦伤</th>
+                            <th>生效会心</th>
+                            <th>生效会意</th>
+                            <th>生效白字</th>
+                            <th>生效擦伤</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- 排轴数据将通过JavaScript动态加载 -->
+                    </tbody>
+                </table>
+                <button id="add-row-btn" class="add-row-btn">添加行</button>
+            </div>
+            
+
+        </div>
+        
+        <!-- 伤害统计标签页内容 -->
+        <div id="damage-stats" class="tab-content">
+            <h2>伤害统计</h2>
+            
+            <div class="stats-container">
+                <!-- 图表1和图表2的水平并排布局 -->
+                <div class="charts-row">
+                    <!-- 图表1：伤害类型统计 -->
+                    <div class="chart-section">
+                        <h3>伤害类型分布</h3>
+                        <div class="chart-container">
+                            <canvas id="damageTypeChart" width="400" height="300"></canvas>
+                        </div>
+                        <div class="chart-legend" id="damageTypeLegend"></div>
+                    </div>
+
+                    <!-- 图表2：会心类型统计 -->
+                    <div class="chart-section">
+                        <h3>会心类型分布</h3>
+                        <div class="chart-container">
+                            <canvas id="critTypeChart" width="400" height="300"></canvas>
+                        </div>
+                        <div class="chart-legend" id="critTypeLegend"></div>
+                    </div>
+                </div>
+
+                <!-- 图表3和图表4的水平并排布局 -->
+                <div class="charts-row">
+                    <!-- 图表3：技能伤害统计（饼状图） -->
+                    <div class="chart-section">
+                        <h3>技能伤害分布</h3>
+                        <div class="chart-container">
+                            <canvas id="skillDamageChart" width="400" height="300"></canvas>
+                        </div>
+                        <div class="chart-legend" id="skillDamageLegend"></div>
+                    </div>
+
+                    <!-- 图表4：状态伤害分布（饼状图） -->
+                    <div class="chart-section">
+                        <h3>状态伤害分布</h3>
+                        <div class="chart-container">
+                            <canvas id="statusDamageChart" width="400" height="300"></canvas>
+                        </div>
+                        <div class="chart-legend" id="statusDamageLegend"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 技能增益表标签页内容 -->
+        <div id="skill-buff-data" class="tab-content">
+            
+            <div class="data-section">
+                <h3>技能倍率表</h3>
+                <div class="table-container">
+                    <table id="skill-rates-table">
+                        <thead>
+                        <tr>
+                            <th>技能名称</th>
+                                <th>外功倍率</th>
+                                <th>固定外功</th>
+                                <th>破竹倍率</th>
+                                <th>固定破竹</th>
+                                <th>外属倍率</th>
+                                <th>Hit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- 技能倍率数据将通过JavaScript动态加载 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="data-section">
+                <h3>增益效果表</h3>
+                <div class="table-container">
+                    <table id="buff-data-table">
+                        <thead>
+                            <tr>
+                                <th>技能名称</th>
+                                <th>通用增伤</th>
+                                <th>会心增伤</th>
+                                <th>外功穿透</th>
+                                <th>额外会心率</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- BUFF增伤数据将通过JavaScript动态加载 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 计算过程标签页内容 -->
+        <div id="calculation-process" class="tab-content">
+            <h2>计算过程</h2>
+            
+            <div class="formula-section">
+                <h3>伤害计算公式</h3>
+                <div class="formula-container">
+                    <p>总伤害计算公式如下：</p>
+                    <div class="latex-formula">
+                        $$\begin{matrix}
+                        \left[{\left[(外功攻击-有效BOSS防御)×外功倍率+固定外功\right]\left(1+\frac{外穿}{200}\right)\left(1+通用增伤\%\right)\left(1+外攻伤害加成\%\right)\left(1+会心增伤\%/会意增伤\%\right)}\right. \\
+                        +{\left(破竹攻击×外功倍率+固定破竹\right)\left(1+\frac{属穿}{200}\right)\left(1+通用增伤\%\right)\left(1+属攻伤害加成\%\right)×1.5×\left(1+会心增伤\%/会意增伤\%\right)} \\
+                        +\left.{(外属攻击)×外功倍率×\left(1+通用增伤\%\right)\left(1+会心增伤\%/会意增伤\%\right)}\right] ×定音增伤(\%)\\
+                        \end{matrix}$$
+                    </div>
+                </div>
+                
+                <div class="formula-explanation">
+                    <h4>公式说明：</h4>
+                    <ul>
+                        <li><strong>外功部分</strong>：基础外功伤害计算，包含外功攻击、BOSS防御、外功倍率等</li>
+                        <li><strong>破竹部分</strong>：破竹伤害计算，包含破竹攻击、属穿、1.5倍系数等</li>
+                        <li><strong>外属部分</strong>：外属伤害计算，包含外属攻击、外属穿等</li>
+                        <li><strong>定音增伤</strong>：最终伤害的全局增伤系数</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="three-rates-section">
+                <h3>三率计算</h3>
+                <div class="rates-table-container">
+                    <table class="rates-table">
+                        <thead>
+                            <tr>
+                                <th rowspan="2">条件</th>
+                                <th colspan="2">精准率=100%</th>
+                                <th colspan="2">精准率&lt;100%</th>
+                            </tr>
+                            <tr>
+                                <th>会心+会意&lt;100%</th>
+                                <th>会心+会意&gt;100%</th>
+                                <th>会心+会意&lt;100%</th>
+                                <th>会心+会意&gt;100%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="rate-type">会意率</td>
+                                <td class="formula-cell">面板会意率</td>
+                                <td class="formula-cell">面板会意率</td>
+                                <td class="formula-cell">面板会意率</td>
+                                <td class="formula-cell">面板会意率</td>
+                            </tr>
+                            <tr>
+                                <td class="rate-type">会心率</td>
+                                <td class="formula-cell">面板会心率</td>
+                                <td class="formula-cell">1 - 面板会意率</td>
+                                <td class="formula-cell">精准率 × 面板会心率</td>
+                                <td class="formula-cell">精准率 × (1 - 面板会意率)</td>
+                            </tr>
+                            <tr>
+                                <td class="rate-type">擦伤率</td>
+                                <td class="formula-cell">0</td>
+                                <td class="formula-cell">0</td>
+                                <td class="formula-cell">(1 - 精准率) × (1 - 面板会意率)</td>
+                                <td class="formula-cell">(1 - 精准率) × (1 - 面板会意率)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="rates-explanation">
+                    <h4>三率计算说明：</h4>
+                    <ul>
+                        <li><strong>会意率</strong>：在所有情况下都等于面板会意率</li>
+                        <li><strong>会心率</strong>：根据精准率和会心+会意的总和进行不同计算</li>
+                        <li><strong>擦伤率</strong>：仅在精准率小于100%时存在，与精准率和会意率相关</li>
+                        <li><strong>精准率</strong>：影响会心率和擦伤率的计算</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+
+    </div>
+    
+    <script src="script.js"></script>
+    </body>
+</html>
