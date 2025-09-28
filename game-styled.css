@@ -1734,17 +1734,13 @@ tr:hover td {
 }
 
 .rates-table th {
-    background: linear-gradient(135deg, var(--border-primary), var(--accent));
+    background: linear-gradient(135deg, #059669, #047857);
     color: white;
     font-weight: 600;
     padding: 12px 8px;
     text-align: center;
     border: 1px solid var(--border-secondary);
     font-size: 14px;
-}
-
-.rates-table th:first-child {
-    background: linear-gradient(135deg, #059669, #047857);
 }
 
 .rates-table td {

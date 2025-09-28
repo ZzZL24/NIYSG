@@ -12,10 +12,12 @@ const skillRatesData = [
     { name: "白刀A3", externalRate: 0.5772, fixedExternal: 161, breakBambooRate: 0.5772, fixedBreakBamboo: 87, externalElementRate: 0.5772, hit: 2 },
     { name: "白刀A4", externalRate: 0.5082, fixedExternal: 142, breakBambooRate: 0.5082, fixedBreakBamboo: 77, externalElementRate: 0.5082, hit: 2 },
     { name: "红刀A1", externalRate: 0.6472, fixedExternal: 180, breakBambooRate: 0.6472, fixedBreakBamboo: 98, externalElementRate: 0.6472, hit: 2 },
-    { name: "红刀A2(1/2)", externalRate: 0.9012, fixedExternal: 250, breakBambooRate: 0.9012, fixedBreakBamboo: 136, externalElementRate: 0.9012, hit: 1 },
+    { name: "红刀A2", externalRate: 0.9012, fixedExternal: 250, breakBambooRate: 0.9012, fixedBreakBamboo: 136, externalElementRate: 0.9012, hit: 2 },
+    { name: "红刀A2(1/2)", externalRate: 0.4506, fixedExternal: 120, breakBambooRate: 0.4506, fixedBreakBamboo: 68, externalElementRate: 0.4506, hit: 1 },
     { name: "红刀A3", externalRate: 1.4455, fixedExternal: 401, breakBambooRate: 1.4455, fixedBreakBamboo: 218, externalElementRate: 1.4455, hit: 8 },
-    { name: "红刀A4(5/7)", externalRate: 1.7358, fixedExternal: 702, breakBambooRate: 1.7358, fixedBreakBamboo: 382, externalElementRate: 1.7358, hit: 5 },
-    { name: "红刀A5", externalRate: 2.5342, fixedExternal: 586, breakBambooRate: 2.5342, fixedBreakBamboo: 327, externalElementRate: 2.5342, hit: 5 },
+    { name: "红刀A4", externalRate: 1.7358, fixedExternal: 481, breakBambooRate: 1.7358, fixedBreakBamboo: 262, externalElementRate: 1.7358, hit: 7 },
+    { name: "红刀A4(5/7)", externalRate: 1.215, fixedExternal: 336.7, breakBambooRate: 1.215, fixedBreakBamboo: 183.4, externalElementRate: 1.215, hit: 5 },
+    { name: "红刀A5", externalRate: 2.5342, fixedExternal: 702, breakBambooRate: 2.5342, fixedBreakBamboo: 382, externalElementRate: 2.5342, hit: 5 },
     { name: "痴障", externalRate: 1.3548, fixedExternal: 376, breakBambooRate: 1.3548, fixedBreakBamboo: 205, externalElementRate: 1.3548, hit: 6 },
     { name: "十字斩", externalRate: 3.3028, fixedExternal: 914, breakBambooRate: 3.3028, fixedBreakBamboo: 498, externalElementRate: 3.3028, hit: 8 },
     { name: "横斩", externalRate: 2.6351, fixedExternal: 730, breakBambooRate: 2.6351, fixedBreakBamboo: 398, externalElementRate: 2.6351, hit: 7 },
@@ -567,6 +569,9 @@ function getTalismanOptions(selectedValue) {
 }
 
 
+// 全局变量：极乐泣血计算模式
+let jileCalculationMode = 'auto'; // 'auto' 或 'manual'
+
 // 计算极乐泣血的次数和层数
 function calculateJileQixueTimes(rotationData) {
     const jileIndices = [];
@@ -581,6 +586,11 @@ function calculateJileQixueTimes(rotationData) {
     
     // 如果没有极乐泣血，直接返回
     if (jileIndices.length === 0) {
+        return rotationData;
+    }
+    
+    // 如果是手动模式，不自动计算，直接返回
+    if (jileCalculationMode === 'manual') {
         return rotationData;
     }
     
@@ -710,13 +720,13 @@ function updateRotationTable() {
             }
             
             // 双刀武学增伤：适用于白刀技能A1至A4、红刀技能A1至A5以及痴障技能
-            const dualBladesSkills = ["白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2(1/2)", "红刀A3", "红刀A4(5/7)", "红刀A5", "痴障"];
+            const dualBladesSkills = ["白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2", "红刀A2(1/2)", "红刀A3", "红刀A4", "红刀A4(5/7)", "红刀A5", "痴障"];
             if (dualBladesSkills.includes(skill.name)) {
                 generalBonus += panelData.dualBladesBonus;
             }
             
             // 全武学增伤：适用于绳镖武学和双刀武学增伤的所有技能
-            const allMartialSkills = ["鼠鼠生威", "牵绳引刃", "白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2(1/2)", "红刀A3", "红刀A4(5/7)", "红刀A5", "痴障"];
+            const allMartialSkills = ["鼠鼠生威", "牵绳引刃", "白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2", "红刀A2(1/2)", "红刀A3", "红刀A4", "红刀A4(5/7)", "红刀A5", "痴障"];
             if (allMartialSkills.includes(skill.name)) {
                 generalBonus += panelData.allMartialBonus;
             }
@@ -781,7 +791,7 @@ function updateRotationTable() {
             const mouseGeneralBonus = skill.name === "鼠鼠生威" ? (1 + panelData.mouseBonus / 100) * 1.3 : 1;
             
             // 强效轻击增伤：仅适用于红刀A1-A5技能，独立计算
-            const redBladeSkills = ["红刀A1", "红刀A2(1/2)", "红刀A3", "红刀A4(5/7)", "红刀A5"];
+            const redBladeSkills = ["红刀A1", "红刀A2", "红刀A2(1/2)", "红刀A3", "红刀A4", "红刀A4(5/7)", "红刀A5"];
             const lightStrikeBonus = redBladeSkills.includes(skill.name) ? (1 + panelData.lightStrikeBonus / 100) : 1;
             
             // 红刀A1-A5属攻穿透+10：仅适用于红刀A1-A5技能
@@ -877,7 +887,7 @@ function updateRotationTable() {
             let extraExternalDamageBonus = 0;
             
             // 燕归套的外功增伤归类为额外外功伤害加成
-            const yanguiSkills = ["白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2(1/2)", "红刀A3", "红刀A4(5/7)", "红刀A5", "鼠鼠生威"];
+            const yanguiSkills = ["白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2", "红刀A2(1/2)", "红刀A3", "红刀A4", "红刀A4(5/7)", "红刀A5", "鼠鼠生威"];
             if (panelData.equipmentSet === '燕归' && skill.setLayer && skill.setLayer !== '无' && yanguiSkills.includes(skill.name)) {
                 switch(skill.setLayer) {
                     case '10%外功增伤':
@@ -1071,7 +1081,7 @@ function updateRotationTable() {
             }
             
             // 计算有效BOSS防御值（考虑技能减防和所恨年年减防）
-            const bladeSkills = ["白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2(1/2)", "红刀A3", "红刀A4(5/7)", "红刀A5"];
+            const bladeSkills = ["白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2", "红刀A2(1/2)", "红刀A3", "红刀A4", "红刀A4(5/7)", "红刀A5"];
             let effectiveBossDefense = panelData.bossDefense;
             
             // 先应用技能的10%减防
@@ -1247,7 +1257,7 @@ function updateRotationTable() {
                 </select>
             </td>
             <td>
-                <input type="number" class="table-times-input" data-index="${index}" value="${(skill.times || 1).toFixed(2)}" min="0" step="1" style="width: 60px; text-align: center;">
+                <input type="number" class="table-times-input" data-index="${index}" value="${(skill.times || 1).toFixed(2)}" min="0" step="1" style="width: 60px; text-align: center;" ${skill.name === "极乐泣血" && jileCalculationMode === 'auto' ? 'readonly' : ''}>
             </td>
             <td>${damageData.totalDamage}</td>
             <td>
@@ -2487,6 +2497,46 @@ function initDamageModeSelect() {
     
     // 初始化自选模式配置按钮
     initCustomModeConfig();
+    
+    // 初始化极乐泣血计算模式选择
+    initJileCalculationMode();
+}
+
+// 初始化极乐泣血计算模式选择
+function initJileCalculationMode() {
+    const jileManualToggle = document.getElementById('jile-manual-mode-toggle');
+    if (!jileManualToggle) return;
+    
+    // 监听复选框变化
+    jileManualToggle.addEventListener('change', function(e) {
+        const isManual = e.target.checked;
+        
+        // 更新全局变量
+        jileCalculationMode = isManual ? 'manual' : 'auto';
+        
+        // 更新排轴表格以反映模式变化
+        updateRotationTable();
+        
+        // 显示模式切换提示
+        showJileModeNotification(jileCalculationMode);
+    });
+}
+
+// 显示极乐泣血模式切换通知
+function showJileModeNotification(mode) {
+    const notification = document.getElementById('page-notification');
+    const message = document.querySelector('.notification-message');
+    
+    if (notification && message) {
+        const modeText = mode === 'auto' ? '自动计算' : '手动输入';
+        message.textContent = `极乐泣血模式已切换为：${modeText}`;
+        notification.style.display = 'block';
+        
+        // 3秒后隐藏通知
+        setTimeout(() => {
+            notification.style.display = 'none';
+        }, 3000);
+    }
 }
 
 // 初始化自选模式配置
@@ -3048,6 +3098,11 @@ function initSaveRotationButton() {
                 savedConfigs[existingIndex] = saveData;
                 console.log(`覆盖了现有配置: ${configName.trim()}`);
             } else {
+                // 检查配置数量限制（最多10个）
+                if (savedConfigs.length >= 10) {
+                    showNotification('配置数量已达上限（10个），无法保存新配置！请先删除其他配置或覆盖现有配置。', 'warning');
+                    return;
+                }
                 savedConfigs.push(saveData);
                 console.log(`创建了新配置: ${configName.trim()}`);
             }
@@ -3058,6 +3113,9 @@ function initSaveRotationButton() {
             
             // 更新配置下拉列表
             updateRotationConfigSelect();
+            
+            // 更新保存按钮显示
+            updateSaveButtonDisplay();
             
             // 导出JSON文件
             const jsonString = JSON.stringify(saveData, null, 2);
@@ -3138,6 +3196,11 @@ function initImportRotationButton() {
                     savedConfigs[existingIndex] = importData;
                     console.log(`覆盖了现有配置: ${importData.name}`);
                 } else {
+                    // 检查配置数量限制（最多10个）
+                    if (savedConfigs.length >= 10) {
+                        showNotification('配置数量已达上限（10个），无法导入新配置！请先删除其他配置或覆盖现有配置。', 'warning');
+                        return;
+                    }
                     savedConfigs.push(importData);
                     console.log(`导入了新配置: ${importData.name}`);
                 }
@@ -3147,6 +3210,9 @@ function initImportRotationButton() {
                 
                 // 更新配置下拉列表
                 updateRotationConfigSelect();
+                
+                // 更新保存按钮显示
+                updateSaveButtonDisplay();
                 
                 // 自动加载导入的排轴配置
                 loadRotationConfig(importData);
@@ -3468,6 +3534,9 @@ function initRotationConfigManagement() {
     // 初始化配置下拉列表
     updateRotationConfigSelect();
     
+    // 初始化保存按钮显示
+    updateSaveButtonDisplay();
+    
     // 初始化下拉选择框的自动加载功能
     const configSelect = document.getElementById('saved-rotation-configs');
     if (configSelect) {
@@ -3530,6 +3599,9 @@ function initRotationConfigManagement() {
                 // 更新配置下拉列表
                 updateRotationConfigSelect();
                 
+                // 更新保存按钮显示
+                updateSaveButtonDisplay();
+                
                 showNotification('配置删除成功！', 'success');
                 
             } catch (error) {
@@ -3564,6 +3636,32 @@ function loadRotationConfig(config) {
     }
 }
 
+// 更新保存按钮显示（显示配置数量）
+function updateSaveButtonDisplay() {
+    const saveButton = document.getElementById('save-rotation-btn');
+    if (!saveButton) return;
+    
+    try {
+        // 获取已保存的配置列表
+        let savedConfigs = JSON.parse(localStorage.getItem('rotationConfigs') || '[]');
+        const validConfigs = savedConfigs.filter(config => config && config.name);
+        const configCount = validConfigs.length;
+        const maxConfigs = 10;
+        const remainingSlots = maxConfigs - configCount;
+        
+        // 更新按钮文本
+        if (remainingSlots > 0) {
+            saveButton.textContent = `保存排轴 (${configCount}/${maxConfigs})`;
+            saveButton.style.opacity = '1';
+        } else {
+            saveButton.textContent = `保存排轴 (已满)`;
+            saveButton.style.opacity = '0.7';
+        }
+    } catch (error) {
+        console.error('更新保存按钮显示时发生错误：', error);
+    }
+}
+
 // 更新排轴配置下拉列表
 function updateRotationConfigSelect() {
     const configSelect = document.getElementById('saved-rotation-configs');
@@ -3583,11 +3681,14 @@ function updateRotationConfigSelect() {
         }
         
         // 清空并重新填充下拉框
-        configSelect.innerHTML = '<option value="">选择已保存的排轴配置</option>';
+        const validConfigs = savedConfigs.filter(config => config && config.name);
+        const configCount = validConfigs.length;
+        const maxConfigs = 10;
+        
+        configSelect.innerHTML = `<option value="">选择已保存的排轴配置 (${configCount}/${maxConfigs})</option>`;
         
         // 过滤掉无效配置，按配置名称排序
-        savedConfigs
-            .filter(config => config && config.name) // 过滤掉无效配置
+        validConfigs
             .sort((a, b) => a.name.localeCompare(b.name)) // 按配置名称排序
             .forEach(config => {
                 const option = document.createElement('option');
@@ -3668,19 +3769,19 @@ function calculateDamage(skill) {
     }
     
     // 双刀武学增伤
-    const dualBladesSkills = ["白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2(1/2)", "红刀A3", "红刀A4(5/7)", "红刀A5", "痴障"];
+    const dualBladesSkills = ["白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2", "红刀A2(1/2)", "红刀A3", "红刀A4", "红刀A4(5/7)", "红刀A5", "痴障"];
     if (dualBladesSkills.includes(skill.name)) {
         generalBonus += panelData.dualBladesBonus;
     }
     
     // 全武学增伤
-    const allMartialSkills = ["鼠鼠生威", "牵绳引刃", "白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2(1/2)", "红刀A3", "红刀A4(5/7)", "红刀A5", "痴障"];
+    const allMartialSkills = ["鼠鼠生威", "牵绳引刃", "白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2", "红刀A2(1/2)", "红刀A3", "红刀A4", "红刀A4(5/7)", "红刀A5", "痴障"];
     if (allMartialSkills.includes(skill.name)) {
         generalBonus += panelData.allMartialBonus;
     }
     
     // 红刀A1-A5属攻穿透+10：仅适用于红刀A1-A5技能
-    const redBladeSkills = ["红刀A1", "红刀A2(1/2)", "红刀A3", "红刀A4(5/7)", "红刀A5"];
+    const redBladeSkills = ["红刀A1", "红刀A2", "红刀A2(1/2)", "红刀A3", "红刀A4", "红刀A4(5/7)", "红刀A5"];
     const redBladeElementalPenetration = redBladeSkills.includes(skill.name) ? 10 : 0;
     
     // 首领单位增伤
@@ -4454,7 +4555,7 @@ function getSkillActualDamage(skillName) {
 
         // 技能名称合并映射函数
         function mergeSkillName(originalSkillName) {
-            if (originalSkillName.match(/^红刀A[1-5]/) || originalSkillName === '红刀A4(5/7)') {
+            if (originalSkillName.match(/^红刀A[1-5]/) || originalSkillName === '红刀A2(1/2)' || originalSkillName === '红刀A4(5/7)') {
                 return '红刀';
             }
             if (originalSkillName.match(/^白刀A[1-4]/)) {
@@ -4510,7 +4611,7 @@ function updateSkillDamageChart() {
     // 技能名称合并映射函数
     function mergeSkillName(skillName) {
         // 红刀A1-A5合并为"红刀"
-        if (skillName.match(/^红刀A[1-5]/) || skillName === '红刀A4(5/7)') {
+        if (skillName.match(/^红刀A[1-5]/) || skillName === '红刀A2(1/2)' || skillName === '红刀A4(5/7)') {
             return '红刀';
         }
         // 白刀A1-A4合并为"白刀"
@@ -4748,7 +4849,7 @@ function updateElementalStatsFromBreakBamboo() {
     const niyuBonus = (niyuCheckbox && niyuCheckbox.checked) ? 6 : 0;
     
     // 计算最终属攻穿透：破竹攻击加成 + 泥鱼心法加成 + 技能特殊加成（红刀A1-A5+10）
-    const redBladeSkills = ["红刀A1", "红刀A2(1/2)", "红刀A3", "红刀A4(5/7)", "红刀A5"];
+    const redBladeSkills = ["红刀A1", "红刀A2", "红刀A2(1/2)", "红刀A3", "红刀A4", "红刀A4(5/7)", "红刀A5"];
     const skillBonus = 0; // 这里需要根据当前技能判断，暂时设为0
     const finalElementalPenetration = elementalPenetrationFromBreakBamboo + niyuBonus + skillBonus;
     

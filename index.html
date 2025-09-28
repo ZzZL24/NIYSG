@@ -115,6 +115,7 @@
             border-color: #007bff;
         }
         
+        
         /* 右侧自选模式配置区域 */
         .custom-mode-config {
             display: none;
@@ -761,6 +762,7 @@
                                 </select>
                             </div>
                             
+                            
                             <!-- 右侧：自选模式配置区域 -->
                             <div id="custom-mode-config" class="custom-mode-config">
                                 <div class="custom-config-content">
@@ -832,12 +834,13 @@
                                 <p><strong>期望计算：</strong>基于理论概率计算的平均伤害值，使用伤害公式直接计算各种情况下的期望伤害。</p>
                                 <p><strong>模拟计算：</strong>通过随机数模拟实际战斗过程。即攻击值=random[min,max],概率判定=random(0,1)掉落在生效权重区间的结果。</p>                               
                                 <h4>极乐泣血</h4>
-                                <p>层数=Hit*0.15，期望3.5层累计一次刺伤</p>
+                                <p><strong>自动计算（默认）：</strong>层数=Hit*0.15，期望3.5层累计一次刺伤，次数自动计算</p>
+                                <p><strong>手动输入：</strong>勾选"极乐手动"复选框后，可以自由修改极乐泣血的次数</p>
                                 <h4>其他技能</h4>
-                                <li>红刀A4(5/7)：七段伤害丢了两段，鉴于红刀A3前面7段倍率与第8段不一样，痴障Q前面5段与第6段不一样，所以红刀A4的倍率大概是5/7.143</li>
-                                <li>箫音千浪(炸后)：不知为啥炸前与炸后的落笛倍率不一样，只有炸前的符合官方面板参数</li>
+                                <li>红刀A2(1/2),红刀A4(5/7)；丢部分伤害</li>
+                                <li>箫音千浪(炸后)：炸前与炸后的落笛倍率不一样，炸前的符合官方面板参数</li>
                                 <h4>页面</h4>
-                                <p>代码都是AI生成堆叠的，所以模拟计算参数较多时，会非常卡顿，请耐心使用~</p>
+                                <p>代码都是AI自动生成堆叠的，所以模拟计算参数较多时会非常卡顿，请耐心使用~</p>
                             </div>
                         </div>
                     </div>
@@ -847,12 +850,21 @@
                 <input type="file" id="rotation-file-input" accept=".json" style="display: none;">
             </div>
             
-            <!-- 联动模式控制 -->
+            <!-- 联动模式和极乐泣血模式控制 -->
             <div class="cascade-control-container" style="margin: 10px 0; padding: 8px; background: #f5f5f5; border-radius: 4px; border: 1px solid #ddd;">
-                <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #333;">
-                    <input type="checkbox" id="cascade-mode-toggle" checked style="transform: scale(1.1);">
-                    <span>联动模式：启用后，选择某个位置的下拉框时，该位置以下的所有相同类型下拉框将自动同步选择相同内容</span>
-                </label>
+                <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+                    <!-- 联动模式复选框 -->
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #333;">
+                        <input type="checkbox" id="cascade-mode-toggle" checked style="transform: scale(1.1);">
+                        <span>联动模式：启用后，选择某个位置的下拉框时，该位置以下的所有相同类型下拉框将自动同步选择相同内容</span>
+                    </label>
+                    
+                    <!-- 极乐泣血手动模式复选框 -->
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #333;">
+                        <input type="checkbox" id="jile-manual-mode-toggle" style="transform: scale(1.1);">
+                        <span>极乐手动：勾选后可以手动修改极乐泣血的次数，不勾选则自动计算</span>
+                    </label>
+                </div>
             </div>
             
             <div class="table-container">
@@ -1129,9 +1141,9 @@
                         <div class="input-row" style="padding: 2px 0;">
                             <label>叠音:</label>
                             <div class="input-pair">
-                                <input type="number" id="diy-quick-external-min" value="216" min="0" step="0.1" readonly>
+                                <input type="number" id="diy-quick-external-min" value="216" min="0" step="0.1">
                                 <span>-</span>
-                                <input type="number" id="diy-quick-external-max" value="432" min="0" step="0.1" readonly>
+                                <input type="number" id="diy-quick-external-max" value="432" min="0" step="0.1">
                             </div>
                         </div>
                         
@@ -1139,9 +1151,9 @@
                         <div class="input-row" style="padding: 2px 0;">
                             <label>装备基础:</label>
                             <div class="input-pair">
-                                <input type="number" id="diy-equipment-basic-min" value="216" min="0" step="0.1" readonly>
+                                <input type="number" id="diy-equipment-basic-min" value="216" min="0" step="0.1">
                                 <span>-</span>
-                                <input type="number" id="diy-equipment-basic-max" value="431" min="0" step="0.1" readonly>
+                                <input type="number" id="diy-equipment-basic-max" value="431" min="0" step="0.1">
                             </div>
                         </div>
                         
@@ -1386,11 +1398,13 @@
                 <div class="formula-container">
                     <p>总伤害计算公式如下：</p>
                     <div class="latex-formula">
-                        $$\begin{matrix}
-                        \left[{\left[(外功攻击-有效BOSS防御)×外功倍率+固定外功\right]\left(1+\frac{外穿}{200}\right)\left(1+通用增伤\%\right)\left(1+外攻伤害加成\%\right)\left(1+会心增伤\%/会意增伤\%\right)}\right. \\
-                        +{\left(破竹攻击×外功倍率+固定破竹\right)\left(1+\frac{属穿}{200}\right)\left(1+通用增伤\%\right)\left(1+属攻伤害加成\%\right)×1.5×\left(1+会心增伤\%/会意增伤\%\right)} \\
-                        +\left.{(外属攻击)×外功倍率×\left(1+通用增伤\%\right)\left(1+会心增伤\%/会意增伤\%\right)}\right] ×定音增伤(\%)\\
-                        \end{matrix}$$
+                        $$\begin{aligned}
+                        伤害 = \Bigg\{
+                        & \Big[ (\text{外功攻击} - \text{有效BOSS防御}) \times \text{外功倍率} + \text{固定外功} \Big] \times \left(1 + \frac{\text{外穿}}{200}\right) \times (1 + \text{通用增伤}\%) \times (1 + \text{外攻伤害加成}\%) \times (1 + \text{会心(意)增伤}\%) \\
+                        &+ \Big( \text{破竹攻击} \times \text{外功倍率} + \text{固定破竹} \Big) \times \left(1 + \frac{\text{属穿}}{200}\right) \times (1 + \text{通用增伤}\%) \times (1 + \text{属攻伤害加成}\%) \times 1.5 \times (1 + \text{会心(意)增伤}\%) \\
+                        &+ \Big( \text{外属攻击} \times \text{外功倍率} \Big) \times (1 + \text{通用增伤}\%) \times (1 + \text{会心(意)增伤}\%)
+                        \Bigg\} \times \text{定音增伤}(\%)
+                        \end{aligned}$$
                     </div>
                 </div>
             </div>
