@@ -14,14 +14,18 @@
                 processEscapes: true,
                 processEnvironments: true
             },
+            chtml: {
+                fontURL: 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2'
+            },
             options: {
                 skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
             }
         };
     </script>
-      <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-      <!-- Chart.js 图表库 -->
-      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+      <!-- MathJax 数学公式渲染库（CDN） -->
+      <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"></script>
+      <!-- Chart.js 图表库（CDN） -->
+      <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <style>
         /* 调整表格行高 */
         .table-container table th,
@@ -58,17 +62,430 @@
             to { opacity: 1; transform: translateY(0); }
         }
         
+        /* 伤害控制区域整体布局 */
+        .damage-controls-container {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 20px;
+            margin-top: 15px;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        /* 左侧模式选择器 */
+        .damage-mode-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        
+        .mode-select-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #495057;
+            white-space: nowrap;
+        }
+        
+        .mode-select {
+            padding: 6px 12px;
+            border: 2px solid #ced4da;
+            border-radius: 6px;
+            background: white;
+            font-size: 14px;
+            color: #495057;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 100px;
+        }
+        
+        .mode-select:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+        
+        .mode-select:hover {
+            border-color: #007bff;
+        }
+        
+        /* 右侧自选模式配置区域 */
+        .custom-mode-config {
+            display: none;
+            flex: 1;
+            opacity: 0;
+            transform: translateX(-10px);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .custom-mode-config.show {
+            display: block;
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .custom-config-content {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .config-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 120px;
+        }
+        
+        .config-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .config-icon {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .config-input {
+            padding: 8px 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            background: white;
+            font-size: 14px;
+            color: #495057;
+            transition: all 0.3s ease;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .config-input:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+            transform: translateY(-1px);
+        }
+        
+        .config-input:hover {
+            border-color: #007bff;
+        }
+        
+        .graduation-input {
+            background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);
+        }
+        
+        .t-value-input {
+            background: linear-gradient(135deg, #f0f8ff 0%, #ffffff 100%);
+        }
+        
+        .apply-custom-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 16px;
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            min-width: 120px;
+            justify-content: center;
+        }
+        
+        .apply-custom-btn:hover {
+            background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 123, 255, 0.4);
+        }
+        
+        .apply-custom-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+        }
+        
+        .btn-icon {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .damage-controls-container {
+                flex-direction: column;
+                align-items: stretch;
+                justify-content: flex-start;
+                gap: 12px;
+                margin-top: 10px;
+            }
+            
+            .damage-mode-selector {
+                justify-content: center;
+            }
+            
+            .custom-config-content {
+                justify-content: center;
+            }
+            
+            .config-item {
+                min-width: 100px;
+            }
+        }
+        
+        /* 左侧控制区域样式调整 */
+        .rotation-controls-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .rotation-config-row {
+            margin-bottom: 0;
+        }
+        
+        /* 蓝白色主题表格样式 */
+        .damage-stats-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'Microsoft YaHei', 'SimSun', sans-serif;
+            font-size: 14px;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+            border: 2px solid #3b82f6;
+        }
+        
+        .damage-stats-table th {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: #ffffff;
+            font-weight: 700;
+            padding: 12px 8px;
+            text-align: center;
+            border-bottom: 2px solid #1e40af;
+            font-size: 14px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+        
+        .damage-stats-table td {
+            padding: 12px 8px;
+            text-align: center;
+            border-bottom: 1px solid #dbeafe;
+            background: #ffffff;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1e40af;
+            transition: background-color 0.3s ease;
+        }
+        
+        .damage-stats-table td:hover {
+            background: #f0f9ff;
+        }
+        
+        .damage-stats-table .row-label {
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+            color: #ffffff;
+            font-weight: 700;
+            text-align: center;
+            border-right: 2px solid #1e40af;
+            font-size: 14px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+        
+        .damage-stats-table td:not(.row-label) {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-weight: 600;
+            color: #1e40af;
+            font-size: 14px;
+            background: #ffffff;
+        }
+        
+        .damage-stats-table td:not(.row-label):hover {
+            background: #f0f9ff;
+            color: #1d4ed8;
+        }
+        
+        /* 表格容器样式 */
+        .damage-stats-section {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-radius: 8px;
+            padding: 16px;
+            border: 2px solid #3b82f6;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+            flex: 1;
+            margin: 0 10px;
+        }
+        
+        /* 说明文本框样式 */
+        .explanation-section {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-radius: 8px;
+            padding: 16px;
+            border: 2px solid #3b82f6;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .explanation-section h3 {
+            margin: 0 0 12px 0;
+            color: #1e40af;
+            font-size: 16px;
+            font-weight: 700;
+            text-align: center;
+        }
+        
+        .explanation-content {
+            height: 100%;
+        }
+        
+        .explanation-text {
+            width: 100%;
+            height: 200px;
+            padding: 12px;
+            border: 2px solid #dbeafe;
+            border-radius: 6px;
+            background: #ffffff;
+            font-family: 'Microsoft YaHei', 'SimSun', sans-serif;
+            font-size: 13px;
+            color: #1e40af;
+            line-height: 1.5;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+        
+        .explanation-text h4 {
+            margin: 0 0 8px 0;
+            color: #1e40af;
+            font-size: 14px;
+            font-weight: 700;
+            border-bottom: 1px solid #dbeafe;
+            padding-bottom: 4px;
+        }
+        
+        .explanation-text p {
+            margin: 6px 0;
+            color: #374151;
+            font-size: 12px;
+        }
+        
+        .explanation-text ul {
+            margin: 6px 0;
+            padding-left: 16px;
+        }
+        
+        .explanation-text li {
+            margin: 3px 0;
+            color: #374151;
+            font-size: 12px;
+        }
+        
+        .explanation-text strong {
+            color: #1e40af;
+            font-weight: 700;
+        }
+        
+        /* 三列布局样式 */
+        .rotation-layout-container {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+        
+        .rotation-controls-section {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .rotation-layout-container {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .damage-stats-section,
+            .explanation-section {
+                margin: 0;
+                min-width: auto;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .damage-stats-table {
+                font-size: 12px;
+            }
+            
+            .damage-stats-table th,
+            .damage-stats-table td {
+                padding: 8px 6px;
+                font-size: 12px;
+            }
+            
+            .explanation-text {
+                height: 150px;
+                font-size: 11px;
+            }
+            
+            .explanation-text h4 {
+                font-size: 12px;
+            }
+            
+            .explanation-text p,
+            .explanation-text li {
+                font-size: 10px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .damage-stats-table {
+                font-size: 10px;
+            }
+            
+            .damage-stats-table th,
+            .damage-stats-table td {
+                padding: 6px 4px;
+                font-size: 10px;
+            }
+        }
+        
     </style>
     </head>
 <body>
+    <!-- 页面通知组件 -->
+    <div id="page-notification" class="page-notification" style="display: none;">
+        <div class="notification-content">
+            <span class="notification-icon">✓</span>
+            <span class="notification-message"></span>
+        </div>
+    </div>
+
     <div class="container">
         <!-- 标签页 -->
           <div class="tabs" style="text-align: left;">
                 <button class="tab-button active" data-tab="basic-info">基础信息</button>
                 <button class="tab-button" data-tab="rotation">排轴界面</button>
                 <button class="tab-button" data-tab="damage-stats">伤害统计</button>
+                <button class="tab-button" data-tab="trait-diy">词条DIY</button>
                 <button class="tab-button" data-tab="skill-buff-data">技能增益表</button>
-                <button class="tab-button" data-tab="calculation-process">计算过程</button>
           </div>
         
         <!-- 基础信息标签页内容 -->
@@ -163,13 +580,13 @@
                         <!-- 会心伤害加成 -->
                         <div class="input-row" style="padding: 2px 0;">
                             <label for="critical-damage-bonus">会心伤害加成(%):</label>
-                            <input type="number" id="critical-damage-bonus" value="57.90" min="0" step="0.01">
+                            <input type="number" id="critical-damage-bonus" value="57.9" min="0" step="0.1">
                         </div>
                         
                         <!-- 会意伤害加成 -->
                         <div class="input-row" style="padding: 2px 0;">
                             <label for="intent-damage-bonus">会意伤害加成(%):</label>
-                            <input type="number" id="intent-damage-bonus" value="35.00" min="0" step="0.01">
+                            <input type="number" id="intent-damage-bonus" value="35.0" min="0" step="0.1">
                         </div>
                         
                         <!-- 外功穿透 -->
@@ -187,13 +604,13 @@
                         <!-- 外功伤害加成 -->
                         <div class="input-row" style="padding: 2px 0;">
                             <label for="external-damage-bonus">外功伤害加成(%):</label>
-                            <input type="number" id="external-damage-bonus" value="0.00" min="0" step="0.01">
+                            <input type="number" id="external-damage-bonus" value="0.0" min="0" step="0.1">
                         </div>
                         
                         <!-- 属攻伤害加成 -->
                         <div class="input-row" style="padding: 2px 0;">
                             <label for="elemental-damage-bonus">属攻伤害加成(%):</label>
-                            <input type="number" id="elemental-damage-bonus" value="4.00" min="0" step="0.01">
+                            <input type="number" id="elemental-damage-bonus" value="4.0" min="0" step="0.1">
                         </div>
                     </div>
                 </div>
@@ -207,34 +624,42 @@
                         <h4>装备增伤</h4>
                         <div class="input-row" style="padding: 2px 0;">
                             <label for="rope-dart-bonus">绳镖武学增伤(%):</label>
-                            <input type="number" id="rope-dart-bonus" value="0.00" min="0" step="0.01">
+                            <input type="number" id="rope-dart-bonus" value="0.0" min="0" step="0.1">
                         </div>
                         <div class="input-row" style="padding: 2px 0;">
                             <label for="dual-blades-bonus">双刀武学增伤(%):</label>
-                            <input type="number" id="dual-blades-bonus" value="0.00" min="0" step="0.01">
+                            <input type="number" id="dual-blades-bonus" value="0.0" min="0" step="0.1">
                         </div>
                         <div class="input-row" style="padding: 2px 0;">
                             <label for="all-martial-bonus">全武学增伤(%):</label>
-                            <input type="number" id="all-martial-bonus" value="0.00" min="0" step="0.01">
+                            <input type="number" id="all-martial-bonus" value="0.0" min="0" step="0.1">
                         </div>
                         <div class="input-row" style="padding: 2px 0;">
                             <label for="boss-unit-bonus">首领单位增伤(%):</label>
-                            <input type="number" id="boss-unit-bonus" value="5.00" min="0" step="0.01">
+                            <input type="number" id="boss-unit-bonus" value="5.0" min="0" step="0.1">
                         </div>
                         <div class="input-row" style="padding: 2px 0;">
                             <label for="light-strike-bonus">强效轻击增伤(%):</label>
-                            <input type="number" id="light-strike-bonus" value="0.00" min="0" step="0.01">
+                            <input type="number" id="light-strike-bonus" value="0.0" min="0" step="0.1">
                         </div>
                         <div class="input-row" style="padding: 2px 0;">
                             <label for="mouse-bonus">鼠鼠定音增伤(%):</label>
-                            <input type="number" id="mouse-bonus" value="19.4" min="0" step="0.01">
+                            <input type="number" id="mouse-bonus" value="19.4" min="0" step="0.1">
                         </div>
                         
                         <!-- 其他增伤 -->
                         <h4 style="margin: 10px 0 5px 0;">其他增伤</h4>
                         <div class="input-row" style="padding: 2px 0;">
-                            <label for="equipment-set">装备套装:</label>
-                            <select id="equipment-set" class="select-input">
+                            <label for="boss-talent-bonus">BOSS天赋(%):</label>
+                            <input type="number" id="boss-talent-bonus" value="0.0" min="0" step="0.1">
+                        </div>
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="boss-defense">BOSS防御:</label>
+                            <input type="number" id="boss-defense" value="350" min="0">
+                        </div>
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="equipment-set">套装装备:</label>
+                            <select id="equipment-set" class="select-input enhanced-select">
                                 <option value="无" selected>无</option>
                                 <option value="飞隼">飞隼</option>
                                 <option value="燕归">燕归</option>
@@ -246,14 +671,14 @@
                         </div>
                         <div class="input-row" style="padding: 2px 0;">
                             <label for="food-buff">食物增益:</label>
-                            <select id="food-buff" class="select-input">
+                            <select id="food-buff" class="select-input enhanced-select">
                                 <option value="无">无</option>
-                                <option value="山参肉丸子">山参肉丸子</option>
+                                <option value="涮鱼">涮鱼</option>
                             </select>
                         </div>
                         <div class="input-row" style="padding: 2px 0;">
                             <label for="talisman">符帖:</label>
-                            <select id="talisman" class="select-input">
+                            <select id="talisman" class="select-input enhanced-select">
                                 <option value="无">无</option>
                                 <option value="会心帖">会心</option>
                                 <option value="会意帖">会意</option>
@@ -263,23 +688,22 @@
                         </div>
                         <div class="input-row" style="padding: 2px 0;">
                             <label for="crafting-bonus">天工:</label>
-                            <select id="crafting-bonus" class="select-input">
+                            <select id="crafting-bonus" class="select-input enhanced-select">
                                 <option value="无">无</option>
                                 <option value="天工火">火</option>
                                 <option value="天工毒">毒</option>
                             </select>
                         </div>
-                        <div class="input-row" style="padding: 2px 0;">
-                            <label for="boss-talent-bonus">BOSS天赋(%):</label>
-                            <input type="number" id="boss-talent-bonus" value="0.00" min="0" step="0.01">
-                        </div>
-                        <div class="input-row" style="padding: 2px 0;">
-                            <label for="boss-defense">BOSS防御:</label>
-                            <input type="number" id="boss-defense" value="350" min="0">
-                        </div>
                         
-                        <div class="input-row" style="padding: 2px 0;">
-                            <button id="save-panel-btn" class="save-button">保存</button>
+                        <!-- 计算按钮移动到天工模块下方，平铺样式 -->
+                        <div class="input-row" style="padding: 10px 0; text-align: center;">
+                            <button id="save-panel-btn" class="save-button-flat">
+                                <span class="button-text">计算</span>
+                                <span class="keyboard-hint">
+                                    <span class="keyboard-icon">⌨</span>
+                                    <span class="keyboard-text">空格</span>
+                                </span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -297,73 +721,138 @@
         <div id="rotation" class="tab-content">
             <h2>排轴界面</h2>
             
-            <!-- 整合的边框容器 -->
+            <!-- 优化后的排轴控制区域 -->
             <div class="rotation-main-container">
-                <div class="rotation-controls">
-                    <!-- 四个主要操作按钮 -->
-                    <div class="rotation-actions">
-                        <button id="clear-rotation-btn">清空排轴</button>
-                        <button id="save-rotation-btn">保存排轴</button>
-                        <button id="import-rotation-btn">导入排轴</button>
-                        <button id="simulation-btn">模拟计算</button>
-                    </div>
-                    
-                    <!-- 配置管理和伤害表格的水平布局容器 -->
-                    <div class="controls-and-stats-container">
-                        <!-- 排轴配置管理控件 -->
-                        <div class="rotation-config-management">
+                <!-- 功能区域、表格和说明的三列布局 -->
+                <div class="rotation-layout-container">
+                    <!-- 左侧功能区域 -->
+                    <div class="rotation-controls-section">
+                        <!-- 第一行：四个主要操作按钮 -->
+                        <div class="rotation-actions-container">
+                            <div class="rotation-actions-row">
+                                <button id="clear-rotation-btn" class="action-btn clear-btn">清空排轴</button>
+                                <button id="save-rotation-btn" class="action-btn save-btn">保存排轴</button>
+                                <button id="import-rotation-btn" class="action-btn import-btn">导入排轴</button>
+                                <button id="simulation-btn" class="action-btn simulation-btn">模拟<br>计算</button>
+                            </div>
+                        </div>
+                        
+                        <!-- 第二行：配置管理 -->
+                        <div class="rotation-config-row">
                             <div class="config-section">
                                 <label for="saved-rotation-configs">已保存的配置：</label>
                                 <select id="saved-rotation-configs">
                                     <option value="">选择已保存的排轴配置</option>
                                 </select>
-                                <button id="delete-rotation-config-btn">删除配置</button>
+                                <button id="delete-rotation-config-btn" class="delete-config-btn">删除配置</button>
                             </div>
                         </div>
                         
-                        <!-- 伤害表格 -->
-                        <div class="damage-stats-table-container">
-                            <select id="damage-mode-select">
-                                <option value="none" selected>无</option>
-                                <option value="yishui">易水</option>
-                                <option value="duanshi">断石</option>
-                            </select>
-                            <table id="damage-stats-table" class="damage-stats-table">
-                                <thead>
-                                    <tr>
-                                        <th></th>
-                                        <th>伤害</th>
-                                        <th>DPS</th>
-                                        <th>毕业率</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td class="row-label">毕业</td>
-                                        <td id="graduation-damage">-</td>
-                                        <td id="graduation-dps">-</td>
-                                        <td id="graduation-rate">-</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="row-label">期望</td>
-                                        <td id="expected-damage">-</td>
-                                        <td id="expected-dps">-</td>
-                                        <td id="expected-rate">-</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="row-label">模拟</td>
-                                        <td id="simulation-damage">-</td>
-                                        <td id="simulation-dps">-</td>
-                                        <td id="simulation-rate">-</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <!-- 第三行：伤害模式选择和控制区域 -->
+                        <div class="damage-controls-container">
+                            <!-- 左侧：模式选择下拉框 -->
+                            <div class="damage-mode-selector">
+                                <label for="damage-mode-select" class="mode-select-label">轴:</label>
+                                <select id="damage-mode-select" class="mode-select">
+                                    <option value="none" selected>无</option>
+                                    <option value="yishui">易水</option>
+                                    <option value="duanshi">断石</option>
+                                    <option value="custom">自选</option>
+                                </select>
+                            </div>
+                            
+                            <!-- 右侧：自选模式配置区域 -->
+                            <div id="custom-mode-config" class="custom-mode-config">
+                                <div class="custom-config-content">
+                                    <div class="config-item">
+                                        <label for="custom-graduation-damage" class="config-label">
+                                            <i class="config-icon">🎯</i>
+                                            毕业伤害
+                                        </label>
+                                        <input type="number" id="custom-graduation-damage" value="2000000" min="0" step="1000" class="config-input graduation-input">
+                                    </div>
+                                    
+                                    <div class="config-item">
+                                        <label for="custom-t-value" class="config-label">
+                                            <i class="config-icon">⏱️</i>
+                                            时间
+                                        </label>
+                                        <input type="number" id="custom-t-value" value="60" min="1" max="200" step="1" class="config-input t-value-input">
+                                    </div>
+                                    
+                                    <button id="apply-custom-config" class="apply-custom-btn">
+                                        <i class="btn-icon">✓</i>
+                                        应用配置
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
-                    <!-- 隐藏的文件输入元素用于导入功能 -->
-                    <input type="file" id="rotation-file-input" accept=".json" style="display: none;">
+                    <!-- 中间伤害表格 -->
+                    <div class="damage-stats-section">
+                        <table id="damage-stats-table" class="damage-stats-table enhanced-table">
+                            <thead>
+                                <tr>
+                                    <th class="table-header"></th>
+                                    <th class="table-header">伤害</th>
+                                    <th class="table-header">DPS</th>
+                                    <th class="table-header">毕业率</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="table-row">
+                                    <td class="row-label">毕业</td>
+                                    <td id="graduation-damage" class="data-cell">-</td>
+                                    <td id="graduation-dps" class="data-cell">-</td>
+                                    <td id="graduation-rate" class="data-cell">-</td>
+                                </tr>
+                                <tr class="table-row">
+                                    <td class="row-label">期望</td>
+                                    <td id="expected-damage" class="data-cell">-</td>
+                                    <td id="expected-dps" class="data-cell">-</td>
+                                    <td id="expected-rate" class="data-cell">-</td>
+                                </tr>
+                                <tr class="table-row">
+                                    <td class="row-label">模拟</td>
+                                    <td id="simulation-damage" class="data-cell">-</td>
+                                    <td id="simulation-dps" class="data-cell">-</td>
+                                    <td id="simulation-rate" class="data-cell">-</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- 右侧说明文本框 -->
+                    <div class="explanation-section">
+                        <h3>说明(仅供参考)</h3>
+                        <div class="explanation-content">
+                            <div class="explanation-text">
+                                <h4>计算</h4>
+                                <p><strong>期望计算：</strong>基于理论概率计算的平均伤害值，使用伤害公式直接计算各种情况下的期望伤害。</p>
+                                <p><strong>模拟计算：</strong>通过随机数模拟实际战斗过程。即攻击值=random[min,max],概率判定=random(0,1)掉落在生效权重区间的结果。</p>                               
+                                <h4>极乐泣血</h4>
+                                <p>层数=Hit*0.15，期望3.5层累计一次刺伤</p>
+                                <h4>其他技能</h4>
+                                <li>红刀A4(5/7)：七段伤害丢了两段，鉴于红刀A3前面7段倍率与第8段不一样，痴障Q前面5段与第6段不一样，所以红刀A4的倍率大概是5/7.143</li>
+                                <li>箫音千浪(炸后)：不知为啥炸前与炸后的落笛倍率不一样，只有炸前的符合官方面板参数</li>
+                                <h4>页面</h4>
+                                <p>代码都是AI生成堆叠的，所以模拟计算参数较多时，会非常卡顿，请耐心使用~</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+                
+                <!-- 隐藏的文件输入元素用于导入功能 -->
+                <input type="file" id="rotation-file-input" accept=".json" style="display: none;">
+            </div>
+            
+            <!-- 联动模式控制 -->
+            <div class="cascade-control-container" style="margin: 10px 0; padding: 8px; background: #f5f5f5; border-radius: 4px; border: 1px solid #ddd;">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #333;">
+                    <input type="checkbox" id="cascade-mode-toggle" checked style="transform: scale(1.1);">
+                    <span>联动模式：启用后，选择某个位置的下拉框时，该位置以下的所有相同类型下拉框将自动同步选择相同内容</span>
+                </label>
             </div>
             
             <div class="table-container">
@@ -377,7 +866,14 @@
                             <th>伤害</th>
                             <th id="set-layer-header">
                                 <select id="set-layer-header-select" style="width: 120px; text-align: center; background: transparent; border: 1px solid #ccc; padding: 2px;">
-                                    <option value="">选择套装层数</option>
+                                    <option value="">选择套装</option>
+                                    <option value="无">无</option>
+                                    <option value="飞隼">飞隼</option>
+                                    <option value="燕归">燕归</option>
+                                    <option value="新燕归">新燕归</option>
+                                    <option value="时雨">时雨</option>
+                                    <option value="浣花">浣花</option>
+                                    <option value="岳山">岳山</option>
                                 </select>
                             </th>
                             <th>符帖</th>
@@ -422,18 +918,18 @@
             <div class="stats-container">
                 <!-- 图表1和图表2的水平并排布局 -->
                 <div class="charts-row">
-                    <!-- 图表1：伤害类型统计 -->
+                    <!-- 图表1：伤害分布 -->
                     <div class="chart-section">
-                        <h3>伤害类型分布</h3>
+                        <h3>伤害分布</h3>
                         <div class="chart-container">
                             <canvas id="damageTypeChart" width="400" height="300"></canvas>
                         </div>
                         <div class="chart-legend" id="damageTypeLegend"></div>
                     </div>
 
-                    <!-- 图表2：会心类型统计 -->
+                    <!-- 图表2：暴击分布 -->
                     <div class="chart-section">
-                        <h3>会心类型分布</h3>
+                        <h3>暴击分布</h3>
                         <div class="chart-container">
                             <canvas id="critTypeChart" width="400" height="300"></canvas>
                         </div>
@@ -443,18 +939,18 @@
 
                 <!-- 图表3和图表4的水平并排布局 -->
                 <div class="charts-row">
-                    <!-- 图表3：技能伤害统计（饼状图） -->
+                    <!-- 图表3：技能统计（饼状图） -->
                     <div class="chart-section">
-                        <h3>技能伤害分布</h3>
+                        <h3>技能分布</h3>
                         <div class="chart-container">
                             <canvas id="skillDamageChart" width="400" height="300"></canvas>
                         </div>
                         <div class="chart-legend" id="skillDamageLegend"></div>
                     </div>
 
-                    <!-- 图表4：状态伤害分布（饼状图） -->
+                    <!-- 图表4：状态分布（饼状图） -->
                     <div class="chart-section">
-                        <h3>状态伤害分布</h3>
+                        <h3>状态分布</h3>
                         <div class="chart-container">
                             <canvas id="statusDamageChart" width="400" height="300"></canvas>
                         </div>
@@ -464,55 +960,426 @@
             </div>
         </div>
         
-        <!-- 技能增益表标签页内容 -->
-        <div id="skill-buff-data" class="tab-content">
+        <!-- 词条DIY标签页内容 -->
+        <div id="trait-diy" class="tab-content">
+            <h2>词条DIY</h2>
             
-            <div class="data-section">
-                <h3>技能倍率表</h3>
-                <div class="table-container">
-                    <table id="skill-rates-table">
-                        <thead>
-                        <tr>
-                            <th>技能名称</th>
-                                <th>外功倍率</th>
-                                <th>固定外功</th>
-                                <th>破竹倍率</th>
-                                <th>固定破竹</th>
-                                <th>外属倍率</th>
-                                <th>Hit</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- 技能倍率数据将通过JavaScript动态加载 -->
-                        </tbody>
-                    </table>
+            <!-- 攻击属性面板 -->
+            <div class="panel-container" style="display: flex; gap: 20px;">
+                <div class="panel-section" style="width: 33.33%;">
+                    <h3>战斗属性</h3>
+                    <div class="input-group" style="gap: 2px;">
+                        <!-- 外功攻击 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label>外功攻击:</label>
+                            <div class="input-pair">
+                                <input type="number" id="diy-external-attack-min" value="616" min="0" step="0.1" placeholder="最小值" readonly>
+                                <span>-</span>
+                                <input type="number" id="diy-external-attack-max" value="1024" min="0" step="0.1" placeholder="最大值" readonly>
+                            </div>
+                        </div>
+                        
+                        <!-- 精准率 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="diy-precision-rate">精准率(%):</label>
+                            <input type="number" id="diy-precision-rate" value="86.3" min="0" max="100" step="0.1" readonly>
+                        </div>
+                        
+                        <!-- 会心率 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="diy-critical-rate">会心率(%):</label>
+                            <input type="number" id="diy-critical-rate" value="24.4" min="0" max="80" step="0.1" readonly>
+                        </div>
+                        
+                        <!-- 会意率 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="diy-intent-rate">会意率(%):</label>
+                            <input type="number" id="diy-intent-rate" value="10.8" min="0" max="100" step="0.1" readonly>
+                        </div>
+                        
+                        <!-- 直接会心率 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="diy-direct-critical-rate">直接会心率(%):</label>
+                            <input type="number" id="diy-direct-critical-rate" value="0.0" min="0" step="0.1" readonly>
+                        </div>
+                        
+                        <!-- 直接会意率 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="diy-direct-intent-rate">直接会意率(%):</label>
+                            <input type="number" id="diy-direct-intent-rate" value="0.0" min="0" step="0.1" readonly>
+                        </div>
+                        
+                        <!-- 鸣金攻击 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label>鸣金攻击:</label>
+                            <div class="input-pair">
+                                <input type="number" id="diy-ring-metal-attack-min" value="0" min="0" step="0.1" placeholder="最小值" readonly>
+                                <span>-</span>
+                                <input type="number" id="diy-ring-metal-attack-max" value="0" min="0" step="0.1" placeholder="最大值" readonly>
+                            </div>
+                        </div>
+                        
+                        <!-- 裂石攻击 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label>裂石攻击:</label>
+                            <div class="input-pair">
+                                <input type="number" id="diy-break-rock-attack-min" value="0" min="0" step="0.1" placeholder="最小值" readonly>
+                                <span>-</span>
+                                <input type="number" id="diy-break-rock-attack-max" value="0" min="0" step="0.1" placeholder="最大值" readonly>
+                            </div>
+                        </div>
+                        
+                        <!-- 牵丝攻击 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label>牵丝攻击:</label>
+                            <div class="input-pair">
+                                <input type="number" id="diy-pull-silk-attack-min" value="0" min="0" step="0.1" placeholder="最小值" readonly>
+                                <span>-</span>
+                                <input type="number" id="diy-pull-silk-attack-max" value="0" min="0" step="0.1" placeholder="最大值" readonly>
+                            </div>
+                        </div>
+                        
+                        <!-- 破竹攻击 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label>破竹攻击:</label>
+                            <div class="input-pair">
+                                <input type="number" id="diy-break-bamboo-attack-min" value="160" min="0" step="0.1" placeholder="最小值" readonly>
+                                <span>-</span>
+                                <input type="number" id="diy-break-bamboo-attack-max" value="320" min="0" step="0.1" placeholder="最大值" readonly>
+                            </div>
+                        </div>
+                        
+                        <!-- 会心伤害加成 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="diy-critical-damage-bonus">会心伤害加成(%):</label>
+                            <input type="number" id="diy-critical-damage-bonus" value="50.0" min="0" step="0.1" readonly>
+                        </div>
+                        
+                        <!-- 会意伤害加成 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="diy-intent-damage-bonus">会意伤害加成(%):</label>
+                            <input type="number" id="diy-intent-damage-bonus" value="35.0" min="0" step="0.1" readonly>
+                        </div>
+                        
+                        <!-- 外功穿透 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="diy-external-penetration">外功穿透:</label>
+                            <input type="number" id="diy-external-penetration" value="44" min="0" max="100" step="0.1" readonly>
+                        </div>
+                        
+                        <!-- 属攻穿透 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="diy-elemental-penetration">属攻穿透:</label>
+                            <input type="number" id="diy-elemental-penetration" value="13.2" min="0" step="0.1" readonly>
+                        </div>
+                        
+                        <!-- 外功伤害加成 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="diy-external-damage-bonus">外功伤害加成(%):</label>
+                            <input type="number" id="diy-external-damage-bonus" value="0.0" min="0" step="0.1" readonly>
+                        </div>
+                        
+                        <!-- 属攻伤害加成 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="diy-elemental-damage-bonus">属攻伤害加成(%):</label>
+                            <input type="number" id="diy-elemental-damage-bonus" value="6.6" min="0" step="0.1" readonly>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 伤害增益面板 -->
+                <div class="panel-section" style="width: 33.33%;">
+                    <h3>伤害增益</h3>
+                    <div class="input-group" style="gap: 2px;">
+                        
+                        <!-- 装备增伤 -->
+                        <h4>装备增伤</h4>
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="diy-rope-dart-bonus">绳镖武学增伤(%):</label>
+                            <input type="number" id="diy-rope-dart-bonus" value="0.0" min="0" step="0.1">
+                        </div>
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="diy-dual-blades-bonus">双刀武学增伤(%):</label>
+                            <input type="number" id="diy-dual-blades-bonus" value="0.0" min="0" step="0.1">
+                        </div>
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="diy-all-martial-bonus">全武学增伤(%):</label>
+                            <input type="number" id="diy-all-martial-bonus" value="0.0" min="0" step="0.1">
+                        </div>
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="diy-boss-unit-bonus">首领单位增伤(%):</label>
+                            <input type="number" id="diy-boss-unit-bonus" value="0.0" min="0" step="0.1">
+                        </div>
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="diy-light-strike-bonus">强效轻击增伤(%):</label>
+                            <input type="number" id="diy-light-strike-bonus" value="0.0" min="0" step="0.1">
+                        </div>
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="diy-mouse-bonus">鼠鼠定音增伤(%):</label>
+                            <input type="number" id="diy-mouse-bonus" value="24.0" min="0" step="0.1">
+                        </div>
+                        
+                        <!-- DIY操作按钮区域 -->
+                        <div class="diy-buttons-container" style="margin: 10px 0;">
+                            <button id="diy-import-to-basic-btn" class="diy-button">导入</button>
+                        </div>
+
+                        
+                        <!-- 叠音 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label>叠音:</label>
+                            <div class="input-pair">
+                                <input type="number" id="diy-quick-external-min" value="216" min="0" step="0.1" readonly>
+                                <span>-</span>
+                                <input type="number" id="diy-quick-external-max" value="432" min="0" step="0.1" readonly>
+                            </div>
+                        </div>
+                        
+                        <!-- 装备基础 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label>装备基础:</label>
+                            <div class="input-pair">
+                                <input type="number" id="diy-equipment-basic-min" value="216" min="0" step="0.1" readonly>
+                                <span>-</span>
+                                <input type="number" id="diy-equipment-basic-max" value="431" min="0" step="0.1" readonly>
+                            </div>
+                        </div>
+                        
+                        <!-- 武库、装备、弓箭 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="diy-wuku-select">武库:</label>
+                            <select id="diy-wuku-select" class="select-input" style="width: 80px; margin-right: 10px;">
+                                <option value="无" selected>无</option>
+                                <option value="通用">通用</option>
+                                <option value="破竹">破竹</option>
+                            </select>
+                            <label for="diy-equipment-select" style="margin-left: 10px;">装备:</label>
+                            <select id="diy-equipment-select" class="select-input" style="width: 80px; margin-right: 10px;">
+                                <option value="无" selected>无</option>
+                                <option value="飞隼">飞隼</option>
+                                <option value="燕归">燕归</option>
+                                <option value="时雨">时雨</option>
+                                <option value="浣花">浣花</option>
+                                <option value="岳山">岳山</option>
+                            </select>
+                            <label for="diy-bow-select" style="margin-left: 10px;">弓箭:</label>
+                            <select id="diy-bow-select" class="select-input" style="width: 80px;">
+                                <option value="无" selected>无</option>
+                                <option value="精准">精准</option>
+                                <option value="会心">会心</option>
+                                <option value="会意">会意</option>
+                            </select>
+                        </div>
+                        
+                        <!-- 心法选择 -->
+                        <h4>心法选择</h4>
+                        <!-- 第一行：忘川、泥鱼 -->
+                        <div class="input-row" style="padding: 4px 0; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center; flex: 1; margin-right: 20px;">
+                                <label style="margin-right: 8px; min-width: 40px;">忘川:</label>
+                                <input type="checkbox" id="diy-wangchuan">
+                            </div>
+                            <div style="display: flex; align-items: center; flex: 1;">
+                                <label style="margin-right: 8px; min-width: 40px;">泥鱼:</label>
+                                <input type="checkbox" id="diy-niyu">
+                            </div>
+                        </div>
+                        
+                        <!-- 第二行：易水、断石 -->
+                        <div class="input-row" style="padding: 4px 0; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center; flex: 1; margin-right: 20px;">
+                                <label style="margin-right: 8px; min-width: 40px;">易水:</label>
+                                <input type="checkbox" id="diy-yishui">
+                            </div>
+                            <div style="display: flex; align-items: center; flex: 1;">
+                                <label style="margin-right: 8px; min-width: 40px;">断石:</label>
+                                <input type="checkbox" id="diy-duanshi">
+                            </div>
+                        </div>
+                        
+                        <!-- 第三行：极乐、征人 -->
+                        <div class="input-row" style="padding: 4px 0; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center; flex: 1; margin-right: 20px;">
+                                <label style="margin-right: 8px; min-width: 40px;">极乐:</label>
+                                <input type="checkbox" id="diy-jile">
+                            </div>
+                            <div style="display: flex; align-items: center; flex: 1;">
+                                <label style="margin-right: 8px; min-width: 40px;">征人:</label>
+                                <input type="checkbox" id="diy-zhengren">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- DIY模块 -->
+                <div class="panel-section" style="width: 33.33%;">
+                    <h3>DIY40 <span id="diy-count-display" style="color: #3b82f6; font-weight: 600;">(0)</span></h3>
+                    <div class="input-group" style="gap: 2px;">
+                        
+                        <!-- 大外 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label>大外:</label>
+                            <div class="input-pair" style="display: flex; align-items: center; justify-content: flex-start; width: 100%;">
+                                <input type="number" id="diy-dawai-display" class="integer-input" placeholder="" min="0" step="1" style="width: 60px; margin-right: 5px;">
+                                <span style="margin-right: 5px;">-</span>
+                                <input type="number" id="diy-dawai-calculated" placeholder="" min="0" step="0.1" style="width: 65px;">
+                            </div>
+                        </div>
+                        
+                        <!-- 小外 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label>小外:</label>
+                            <div class="input-pair" style="display: flex; align-items: center; justify-content: flex-start; width: 100%;">
+                                <input type="number" id="diy-xiaowai-display" class="integer-input" placeholder="" min="0" step="1" style="width: 60px; margin-right: 5px;">
+                                <span style="margin-right: 5px;">-</span>  
+                                <input type="number" id="diy-xiaowai-calculated" placeholder="" min="0" step="0.1" style="width: 65px;">
+                            </div>
+                        </div>
+                        
+                        <!-- 大破 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label>大破:</label>
+                            <div class="input-pair" style="display: flex; align-items: center; justify-content: flex-start; width: 100%;">
+                                <input type="number" id="diy-dapo-display" class="integer-input" placeholder="" min="0" step="1" style="width: 60px; margin-right: 5px;">
+                                <span style="margin-right: 5px;">-</span>
+                                <input type="number" id="diy-dapo-calculated" placeholder="" min="0" step="0.1" style="width: 65px;">
+                            </div>
+                        </div>
+                        
+                        <!-- 小破 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label>小破:</label>
+                            <div class="input-pair" style="display: flex; align-items: center; justify-content: flex-start; width: 100%;">
+                                <input type="number" id="diy-xiaopo-display" class="integer-input" placeholder="" min="0" step="1" style="width: 60px; margin-right: 5px;">
+                                <span style="margin-right: 5px;">-</span>
+                                <input type="number" id="diy-xiaopo-calculated" placeholder="" min="0" step="0.1" style="width: 65px;">
+                            </div>
+                        </div>
+                        
+                        <!-- 小裂 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label>小裂:</label>
+                            <div class="input-pair" style="display: flex; align-items: center; justify-content: flex-start; width: 100%;">
+                                <input type="number" id="diy-xiaolie-display" class="integer-input" placeholder="" min="0" step="1" style="width: 60px; margin-right: 5px;">
+                                <span style="margin-right: 5px;">-</span>
+                                <input type="number" id="diy-xiaolie-calculated" placeholder="" min="0" step="0.1" style="width: 65px;">
+                            </div>
+                        </div>
+                        
+                        <!-- 精准 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label>精准:</label>
+                            <div class="input-pair" style="display: flex; align-items: center; justify-content: flex-start; width: 100%;">
+                                <input type="number" id="diy-precision-display" class="integer-input" placeholder="" min="0" step="1" style="width: 60px; margin-right: 5px;">
+                                <span style="margin-right: 5px;">-</span>
+                                <input type="number" id="diy-precision-calculated" placeholder="" min="0" step="0.1" style="width: 65px;">
+                            </div>
+                        </div>
+                        
+                        <!-- 会心 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label>会心:</label>
+                            <div class="input-pair" style="display: flex; align-items: center; justify-content: flex-start; width: 100%;">
+                                <input type="number" id="diy-crit-display" class="integer-input" placeholder="" min="0" step="1" style="width: 60px; margin-right: 5px;">
+                                <span style="margin-right: 5px;">-</span>
+                                <input type="number" id="diy-crit-calculated" placeholder="" min="0" step="0.1" style="width: 65px;">
+                            </div>
+                        </div>
+                        
+                        <!-- 会意 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label>会意:</label>
+                            <div class="input-pair" style="display: flex; align-items: center; justify-content: flex-start; width: 100%;">
+                                <input type="number" id="diy-intent-display" class="integer-input" placeholder="" min="0" step="1" style="width: 60px; margin-right: 5px;">
+                                <span style="margin-right: 5px;">-</span>
+                                <input type="number" id="diy-intent-calculated" placeholder="" min="0" step="0.1" style="width: 65px;">
+                            </div>
+                        </div>
+                        
+                        <!-- 敏 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label>敏:</label>
+                            <div class="input-pair" style="display: flex; align-items: center; justify-content: flex-start; width: 100%;">
+                                <input type="number" id="diy-min-display" class="integer-input" placeholder="" min="0" step="1" style="width: 60px; margin-right: 5px;">
+                                <span style="margin-right: 5px;">-</span>
+                                <input type="number" id="diy-min-calculated-1" placeholder="" min="0" step="0.1" style="width: 65px; margin-right: 5px;">
+                                <span style="margin-right: 5px;">-</span>
+                                <input type="number" id="diy-min-calculated-2" placeholder="" readonly style="width: 65px; margin-right: 5px;">
+                                <span style="margin-right: 5px;">+</span>
+                                <input type="number" id="diy-min-calculated-3" placeholder="" readonly style="width: 65px;">
+                            </div>
+                        </div>
+                        
+                        <!-- 劲 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label>劲:</label>
+                            <div class="input-pair" style="display: flex; align-items: center; justify-content: flex-start; width: 100%;">
+                                <input type="number" id="diy-jin-display" class="integer-input" placeholder="" min="0" step="1" style="width: 60px; margin-right: 5px;">
+                                <span style="margin-right: 5px;">-</span>
+                                <input type="number" id="diy-jin-calculated-1" placeholder="" min="0" step="0.1" style="width: 65px; margin-right: 5px;">
+                                <span style="margin-right: 5px;">-</span>
+                                <input type="number" id="diy-jin-calculated-2" placeholder="" readonly style="width: 65px; margin-right: 5px;">
+                                <span style="margin-right: 5px;">+</span>
+                                <input type="number" id="diy-jin-calculated-3" placeholder="" readonly style="width: 65px;">
+                            </div>
+                        </div>
+                        
+                        <!-- 势 -->
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label>势:</label>
+                            <div class="input-pair" style="display: flex; align-items: center; justify-content: flex-start; width: 100%;">
+                                <input type="number" id="diy-shi-display" class="integer-input" placeholder="" min="0" step="1" style="width: 60px; margin-right: 5px;">
+                                <span style="margin-right: 5px;">-</span>
+                                <input type="number" id="diy-shi-calculated-1" placeholder="" min="0" step="0.1" style="width: 65px; margin-right: 5px;">
+                                <span style="margin-right: 5px;">-</span>
+                                <input type="number" id="diy-shi-calculated-2" placeholder="" readonly style="width: 65px; margin-right: 5px;">
+                                <span style="margin-right: 5px;">+</span>
+                                <input type="number" id="diy-shi-calculated-3" placeholder="" readonly style="width: 65px;">
+                            </div>
+                        </div>
+                        
+                        <!-- 四个模块分两行布局 -->
+                        <!-- 第一行：绳镖武学和首领单位 -->
+                        <div class="input-row" style="padding: 4px 0; display: flex; justify-content: space-between; align-items: center;">
+                            <!-- 绳镖武学 -->
+                            <div style="display: flex; align-items: center; flex: 1; margin-right: 20px;">
+                                <label style="margin-right: 8px; min-width: 60px;">绳镖武学:</label>
+                                <input type="checkbox" id="diy-rope-dart-martial">
+                            </div>
+                            
+                            <!-- 首领单位（两个复选框） -->
+                            <div style="display: flex; align-items: center; flex: 1;">
+                                <label style="margin-right: 8px; min-width: 60px;">首领单位:</label>
+                                <input type="checkbox" id="diy-boss-unit-1" style="margin-right: 15px;">
+                                <input type="checkbox" id="diy-boss-unit-2">
+                            </div>
+                        </div>
+                        
+                        <!-- 第二行：双刀武学和全武学 -->
+                        <div class="input-row" style="padding: 4px 0; display: flex; justify-content: space-between; align-items: center;">
+                            <!-- 双刀武学 -->
+                            <div style="display: flex; align-items: center; flex: 1; margin-right: 20px;">
+                                <label style="margin-right: 8px; min-width: 60px;">双刀武学:</label>
+                                <input type="checkbox" id="diy-dual-blade-martial">
+                            </div>
+                            
+                            <!-- 全武学（两个复选框） -->
+                            <div style="display: flex; align-items: center; flex: 1;">
+                                <label style="margin-right: 8px; min-width: 60px;">全武学:</label>
+                                <input type="checkbox" id="diy-all-martial-1" style="margin-right: 15px;">
+                                <input type="checkbox" id="diy-all-martial-2">
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             
-            <div class="data-section">
-                <h3>增益效果表</h3>
-                <div class="table-container">
-                    <table id="buff-data-table">
-                        <thead>
-                            <tr>
-                                <th>技能名称</th>
-                                <th>通用增伤</th>
-                                <th>会心增伤</th>
-                                <th>外功穿透</th>
-                                <th>额外会心率</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- BUFF增伤数据将通过JavaScript动态加载 -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+
+            
         </div>
         
-        <!-- 计算过程标签页内容 -->
-        <div id="calculation-process" class="tab-content">
-            <h2>计算过程</h2>
+        <!-- 技能增益表标签页内容 -->
+        <div id="skill-buff-data" class="tab-content">
             
             <div class="formula-section">
                 <h3>伤害计算公式</h3>
@@ -525,16 +1392,6 @@
                         +\left.{(外属攻击)×外功倍率×\left(1+通用增伤\%\right)\left(1+会心增伤\%/会意增伤\%\right)}\right] ×定音增伤(\%)\\
                         \end{matrix}$$
                     </div>
-                </div>
-                
-                <div class="formula-explanation">
-                    <h4>公式说明：</h4>
-                    <ul>
-                        <li><strong>外功部分</strong>：基础外功伤害计算，包含外功攻击、BOSS防御、外功倍率等</li>
-                        <li><strong>破竹部分</strong>：破竹伤害计算，包含破竹攻击、属穿、1.5倍系数等</li>
-                        <li><strong>外属部分</strong>：外属伤害计算，包含外属攻击、外属穿等</li>
-                        <li><strong>定音增伤</strong>：最终伤害的全局增伤系数</li>
-                    </ul>
                 </div>
             </div>
             
@@ -580,18 +1437,51 @@
                         </tbody>
                     </table>
                 </div>
-                
-                <div class="rates-explanation">
-                    <h4>三率计算说明：</h4>
-                    <ul>
-                        <li><strong>会意率</strong>：在所有情况下都等于面板会意率</li>
-                        <li><strong>会心率</strong>：根据精准率和会心+会意的总和进行不同计算</li>
-                        <li><strong>擦伤率</strong>：仅在精准率小于100%时存在，与精准率和会意率相关</li>
-                        <li><strong>精准率</strong>：影响会心率和擦伤率的计算</li>
-                    </ul>
+            </div>
+            
+            <div class="data-section">
+                <h3>技能倍率表</h3>
+                <div class="table-container">
+                    <table id="skill-rates-table">
+                        <thead>
+                        <tr>
+                            <th>技能名称</th>
+                                <th>外功倍率</th>
+                                <th>固定外功</th>
+                                <th>破竹倍率</th>
+                                <th>固定破竹</th>
+                                <th>外属倍率</th>
+                                <th>Hit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- 技能倍率数据将通过JavaScript动态加载 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="data-section">
+                <h3>增益效果表</h3>
+                <div class="table-container">
+                    <table id="buff-data-table">
+                        <thead>
+                            <tr>
+                                <th>技能名称</th>
+                                <th>通用增伤</th>
+                                <th>会心增伤</th>
+                                <th>外功穿透</th>
+                                <th>额外会心率</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- BUFF增伤数据将通过JavaScript动态加载 -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
+        
         
 
     </div>
