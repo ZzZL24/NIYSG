@@ -68,34 +68,34 @@ const buffData = [
 
 // 存储面板数据
 let panelData = {
-    externalAttack: { min: 1334, max: 2900 },
-    breakBambooAttack: { min: 196, max: 388 },
-    ringMetalAttack: { min: 69, max: 69 },
-    breakRockAttack: { min: 69, max: 69 },  // 修正：若最小值大于最大值，则将最大值调整为与最小值相等
-    pullSilkAttack: { min: 35, max: 35 },  // 修正：若最小值大于最大值，则将最大值调整为与最小值相等
-    precisionRate: 98.2,
-    criticalRate: 68.3,
-    intentRate: 17.6,
+    externalAttack: { min: 1299, max: 3690 },
+    breakBambooAttack: { min: 365, max: 655 },
+    ringMetalAttack: { min: 0, max: 0 },
+    breakRockAttack: { min: 0, max: 0 },  // 修正：若最小值大于最大值，则将最大值调整为与最小值相等
+    pullSilkAttack: { min: 0, max: 0 },  // 修正：若最小值大于最大值，则将最大值调整为与最小值相等
+    precisionRate: 98.8,
+    criticalRate: 70.9,
+    intentRate: 15.8,
     directCriticalRate: 4.6,
     directIntentRate: 0.0,
     criticalDamageBonus: 57.9,
     intentDamageBonus: 35.0,
     externalDamageBonus: 0.0,
-    elementalDamageBonus: 4.0,
-    externalPenetration: 34.4,
-    elementalPenetration: 14,
+    elementalDamageBonus: 9,
+    externalPenetration: 44,
+    elementalPenetration: 28,
     // 装备增伤
-    ropeDartBonus: 0.0,
+    ropeDartBonus: 6.4,
     dualBladesBonus: 0.0,
-    allMartialBonus: 0.0,
-    bossUnitBonus: 5.0,
+    allMartialBonus: 6.4,
+    bossUnitBonus: 6.4,
     lightStrikeBonus: 0.0,
-    mouseBonus: 19.4,
+    mouseBonus: 24.0,
     // 其他增伤
-    equipmentSet: '无',
-    foodBuff: '无',
-    talisman: '无帖',
-    craftingBonus: '无',
+    equipmentSet: '飞隼',
+    foodBuff: '涮鱼',
+    talisman: '会心帖',
+    craftingBonus: '天工火',
     bossTalentBonus: 0.0,
     // Boss防御
     bossDefense: 350
