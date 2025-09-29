@@ -22,7 +22,7 @@ const skillRatesData = [
     { name: "十字斩", externalRate: 3.3028, fixedExternal: 914, breakBambooRate: 3.3028, fixedBreakBamboo: 498, externalElementRate: 3.3028, hit: 8 },
     { name: "横斩", externalRate: 2.6351, fixedExternal: 730, breakBambooRate: 2.6351, fixedBreakBamboo: 398, externalElementRate: 2.6351, hit: 7 },
     { name: "牵绳引刃", externalRate: 0.0621, fixedExternal: 17, breakBambooRate: 0.0621, fixedBreakBamboo: 9, externalElementRate: 0.0621, hit: 1 },
-    { name: "鼠鼠生威", externalRate: 0.3489, fixedExternal: 0, breakBambooRate: 0.3489, fixedBreakBamboo: 0, externalElementRate: 0.3489, hit: 1 },
+    { name: "鼠鼠生威", externalRate: 0.3490, fixedExternal: 0, breakBambooRate: 0.3490, fixedBreakBamboo: 0, externalElementRate: 0.3490, hit: 1 },
     { name: "骑龙回马一段", externalRate: 3.1951, fixedExternal: 432, breakBambooRate: 3.1951, fixedBreakBamboo: 0, externalElementRate: 3.1951, hit: 1 },
     { name: "骑龙回马二段", externalRate: 3.9051, fixedExternal: 528, breakBambooRate: 3.9051, fixedBreakBamboo: 0, externalElementRate: 3.9051, hit: 1 },
     { name: "箫声千浪炸", externalRate: 3.897, fixedExternal: 800, breakBambooRate: 3.897, fixedBreakBamboo: 0, externalElementRate: 3.897, hit: 1 },
@@ -282,55 +282,6 @@ function showConfirmDialog(message, title = '确认操作') {
 }
 
 // 页面加载完成后执行
-// 初始化攻击输入框验证功能
-function initAttackInputValidation() {
-    // 定义需要验证的攻击输入框对
-    const attackInputPairs = [
-        { minId: 'ring-metal-attack-min', maxId: 'ring-metal-attack-max', name: '鸣金攻击' },
-        { minId: 'pull-silk-attack-min', maxId: 'pull-silk-attack-max', name: '牵丝攻击' },
-        { minId: 'break-rock-attack-min', maxId: 'break-rock-attack-max', name: '裂石攻击' },
-        { minId: 'break-bamboo-attack-min', maxId: 'break-bamboo-attack-max', name: '破竹攻击' }
-    ];
-    
-    attackInputPairs.forEach(pair => {
-        const minInput = document.getElementById(pair.minId);
-        const maxInput = document.getElementById(pair.maxId);
-        
-        if (minInput && maxInput) {
-            // 为最小值输入框添加验证
-            minInput.addEventListener('input', function() {
-                const minValue = parseFloat(this.value) || 0;
-                const maxValue = parseFloat(maxInput.value) || 0;
-                
-                if (minValue > maxValue) {
-                    // 1秒后自动调整最大值
-                    setTimeout(() => {
-                        maxInput.value = minValue;
-                        console.log(`${pair.name}最大值已自动调整为最小值: ${minValue}`);
-                    }, 1000);
-                }
-            });
-            
-            // 为最大值输入框添加验证
-            maxInput.addEventListener('input', function() {
-                const minValue = parseFloat(minInput.value) || 0;
-                const maxValue = parseFloat(this.value) || 0;
-                
-                if (minValue > maxValue) {
-                    // 1秒后自动调整最大值
-                    setTimeout(() => {
-                        this.value = minValue;
-                        console.log(`${pair.name}最大值已自动调整为最小值: ${minValue}`);
-                    }, 1000);
-                }
-            });
-            
-            console.log(`已为${pair.name}输入框添加验证功能`);
-        } else {
-            console.warn(`未找到${pair.name}输入框: ${pair.minId} 或 ${pair.maxId}`);
-        }
-    });
-}
 
 document.addEventListener('DOMContentLoaded', function() {
     // 初始化标签页切换
@@ -350,9 +301,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 初始化清空排轴按钮
     initClearRotationButton();
-    
-    // 初始化攻击输入框验证功能
-    initAttackInputValidation();
     
     // 初始化保存排轴按钮
     initSaveRotationButton();
@@ -558,7 +506,7 @@ function getSetOptions(equipmentSet, selectedValue) {
 
 // 根据符帖类型生成对应的选项
 function getTalismanOptions(selectedValue) {
-    const talismanOptions = ['无帖', '会心帖', '会意帖', '奇术帖', '承欢帖'];
+    const talismanOptions = ['无帖', '会心帖', '会意帖', '奇术帖', '承欢帖', '真气会心帖', '真气会意帖', '真气属攻帖'];
     let options = '';
     
     talismanOptions.forEach(option => {
@@ -708,6 +656,7 @@ function updateRotationTable() {
             const externalPenetration = skill.buffName && skill.buffName !== '无' ? skill.externalPenetration : 0;
             const extraCriticalRate = skill.buffName && skill.buffName !== '无' ? skill.extraCriticalRate : 0;
             let talismanIntentBonus = 0; // 用于存储会意帖的增伤
+            let talismanElementalDamageBonus = 0; // 用于存储真气属攻帖的属攻伤害加成
             
             // 绳镖武学增伤：仅对"鼠鼠生威"和"牵绳引刃"两个技能生效
             if (skill.name === "鼠鼠生威" || skill.name === "牵绳引刃") {
@@ -768,6 +717,15 @@ function updateRotationTable() {
                         break;
                     case '承欢帖':
                         generalBonus += 20; // 20%通用增伤
+                        break;
+                    case '真气会心帖':
+                        criticalBonus += 10; // 10%会心增伤
+                        break;
+                    case '真气会意帖':
+                        talismanIntentBonus += 10; // 10%会意增伤
+                        break;
+                    case '真气属攻帖':
+                        talismanElementalDamageBonus += 15; // 15%属攻伤害加成，仅对破竹伤害生效
                         break;
                     default:
                         break;
@@ -1143,23 +1101,23 @@ function updateRotationTable() {
             // 计算破竹会心伤害
             const breakBambooCriticalDamage = (avgBreakBambooAttack * skill.breakBambooRate + skill.fixedBreakBamboo) * 
                                              (1 + (panelData.elementalPenetration + redBladeElementalPenetration) / 200) * effectiveCriticalRate * 
-                                             (1 + (panelData.criticalDamageBonus + criticalBonus) / 100) * 1.5 * (1 + (panelData.elementalDamageBonus + newYanguiBreakBambooBonus) / 100) * 
+                                             (1 + (panelData.criticalDamageBonus + criticalBonus) / 100) * 1.5 * (1 + (panelData.elementalDamageBonus + newYanguiBreakBambooBonus + talismanElementalDamageBonus) / 100) * 
                                              (1 + generalBonus / 100) * mouseGeneralBonus * lightStrikeBonus;
             
             // 计算破竹会意伤害
             const breakBambooIntentDamage = (panelData.breakBambooAttack.max * skill.breakBambooRate + skill.fixedBreakBamboo) * 
                                             (1 + (panelData.elementalPenetration + redBladeElementalPenetration) / 200) * effectiveIntentRate * 
-                                            (1 + (panelData.intentDamageBonus + talismanIntentBonus) / 100) * 1.5 * (1 + (panelData.elementalDamageBonus + newYanguiBreakBambooBonus) / 100) * 
+                                            (1 + (panelData.intentDamageBonus + talismanIntentBonus) / 100) * 1.5 * (1 + (panelData.elementalDamageBonus + newYanguiBreakBambooBonus + talismanElementalDamageBonus) / 100) * 
                                             (1 + generalBonus / 100) * mouseGeneralBonus * lightStrikeBonus;
             
             // 计算破竹白字伤害
             const breakBambooWhiteTextDamage = (avgBreakBambooAttack * skill.breakBambooRate + skill.fixedBreakBamboo) * 
-                                               (1 + (panelData.elementalPenetration + redBladeElementalPenetration) / 200) * whiteTextRate * 1.5 * (1 + (panelData.elementalDamageBonus + newYanguiBreakBambooBonus) / 100) * 
+                                               (1 + (panelData.elementalPenetration + redBladeElementalPenetration) / 200) * whiteTextRate * 1.5 * (1 + (panelData.elementalDamageBonus + newYanguiBreakBambooBonus + talismanElementalDamageBonus) / 100) * 
                                                (1 + generalBonus / 100) * mouseGeneralBonus * lightStrikeBonus;
             
             // 计算破竹擦伤伤害
             const breakBambooGrazeDamage = (panelData.breakBambooAttack.min * skill.breakBambooRate + skill.fixedBreakBamboo) * 
-                                          (1 + (panelData.elementalPenetration + redBladeElementalPenetration) / 200) * grazeRate * 1.5 * (1 + (panelData.elementalDamageBonus + newYanguiBreakBambooBonus) / 100) * 
+                                          (1 + (panelData.elementalPenetration + redBladeElementalPenetration) / 200) * grazeRate * 1.5 * (1 + (panelData.elementalDamageBonus + newYanguiBreakBambooBonus + talismanElementalDamageBonus) / 100) * 
                                           (1 + generalBonus / 100) * mouseGeneralBonus * lightStrikeBonus;
             
             // 计算外属会心伤害
@@ -2814,7 +2772,7 @@ function updateDamageStatsDisplay(graduationDamage, expectedDamage, simulationDa
         const customGraduationDamage = document.getElementById('custom-graduation-damage');
         fixedGraduationDamage = customGraduationDamage ? parseFloat(customGraduationDamage.value) || 2000000 : 2000000;
     } else {
-        fixedGraduationDamage = 3118668; // 易水模式：毕业伤害为3118668
+        fixedGraduationDamage = 3017306; // 易水模式：毕业伤害为3017306
     }
     
     // 当选择"无"时，除了期望伤害和模拟伤害，其余单元格显示为"-"
@@ -2839,7 +2797,7 @@ function updateDamageStatsDisplay(graduationDamage, expectedDamage, simulationDa
     }
     
     // 计算并更新DPS
-    // 毕业DPS = 3118668 / T
+    // 毕业DPS = 3017306 / T
     const graduationDpsElement = document.getElementById('graduation-dps');
     if (graduationDpsElement) {
         graduationDpsElement.textContent = isNoneMode ? '-' : (fixedGraduationDamage / T).toFixed(2);
@@ -2864,7 +2822,7 @@ function updateDamageStatsDisplay(graduationDamage, expectedDamage, simulationDa
         graduationRateElement.textContent = isNoneMode ? '-' : '100.00%';
     }
     
-    // 期望毕业率 = 期望伤害 / 3118668
+    // 期望毕业率 = 期望伤害 / 3017306
     const expectedRateElement = document.getElementById('expected-rate');
     if (expectedRateElement) {
         if (isNoneMode) {
@@ -2877,7 +2835,7 @@ function updateDamageStatsDisplay(graduationDamage, expectedDamage, simulationDa
         }
     }
     
-    // 模拟毕业率 = 模拟伤害 / 3118668
+    // 模拟毕业率 = 模拟伤害 / 3017306
     const simulationRateElement = document.getElementById('simulation-rate');
     if (simulationRateElement) {
         if (isNoneMode) {
@@ -2966,30 +2924,6 @@ function updatePanelDataFromInputs() {
         // 注意：山参肉丸子效果将在伤害计算时处理，不修改输入框值
         // 这样可以保持输入框的独立性，用户手动输入的值不会被自动修改
         
-        // 应用规则：若最小攻击值大于最大攻击值，则将最大攻击值调整为与最小攻击值相等
-        if (panelData.ringMetalAttack.min > panelData.ringMetalAttack.max) {
-            panelData.ringMetalAttack.max = panelData.ringMetalAttack.min;
-        }
-        if (panelData.breakRockAttack.min > panelData.breakRockAttack.max) {
-            panelData.breakRockAttack.max = panelData.breakRockAttack.min;
-        }
-        if (panelData.pullSilkAttack.min > panelData.pullSilkAttack.max) {
-            panelData.pullSilkAttack.max = panelData.pullSilkAttack.min;
-        }
-        if (panelData.breakBambooAttack.min > panelData.breakBambooAttack.max) {
-            panelData.breakBambooAttack.max = panelData.breakBambooAttack.min;
-        }
-        
-        // 同步更新输入框的值（当最大值被自动调整时）
-        try {
-            document.getElementById('external-attack-max').value = panelData.externalAttack.max;
-            document.getElementById('ring-metal-attack-max').value = panelData.ringMetalAttack.max;
-            document.getElementById('break-rock-attack-max').value = panelData.breakRockAttack.max;
-            document.getElementById('pull-silk-attack-max').value = panelData.pullSilkAttack.max;
-            document.getElementById('break-bamboo-attack-max').value = panelData.breakBambooAttack.max;
-        } catch (e) {
-            console.error('同步更新输入框值时发生错误:', e);
-        }
     } catch (error) {
         console.error('更新panelData时发生错误:', error);
     }
@@ -6207,28 +6141,33 @@ function updateBreakRockAttackFromAllSources() {
     try {
         const xiaolieCalculated = document.getElementById('diy-xiaolie-calculated');
         const breakRockMinInput = document.getElementById('diy-break-rock-attack-min');
+        const breakRockMaxInput = document.getElementById('diy-break-rock-attack-max');
         
-        if (!breakRockMinInput) {
+        if (!breakRockMinInput || !breakRockMaxInput) {
             console.error('找不到裂石攻击输入元素！');
             return;
         }
         
         // 获取基础值
         const baseBreakRockMinValue = 0; // 裂石攻击基础最小值
+        const baseBreakRockMaxValue = 0; // 裂石攻击基础最大值
         
         // 获取小裂计算结果的值
         const xiaolieValue = parseFloat(xiaolieCalculated?.value) || 0;
         
         // 计算新的裂石攻击值（基础值 + 小裂计算结果）
         const newBreakRockMinValue = baseBreakRockMinValue + xiaolieValue;
+        const newBreakRockMaxValue = baseBreakRockMaxValue + xiaolieValue;
         
         // 更新裂石攻击输入框的值（保留整数）
         breakRockMinInput.value = Math.round(newBreakRockMinValue);
+        breakRockMaxInput.value = Math.round(newBreakRockMaxValue);
         
-        console.log(`裂石攻击综合更新: 裂石攻击=${newBreakRockMinValue} (基础${baseBreakRockMinValue} + 小裂${xiaolieValue})`);
+        console.log(`裂石攻击综合更新: 裂石攻击=${newBreakRockMinValue}-${newBreakRockMaxValue} (基础${baseBreakRockMinValue}-${baseBreakRockMaxValue} + 小裂${xiaolieValue})`);
         
         // 触发输入事件，确保其他监听器也能响应
         breakRockMinInput.dispatchEvent(new Event('input', { bubbles: true }));
+        breakRockMaxInput.dispatchEvent(new Event('input', { bubbles: true }));
         
     } catch (error) {
         console.error('更新裂石攻击值时发生错误:', error);
@@ -7091,5 +7030,86 @@ document.addEventListener('DOMContentLoaded', function() {
     // 初始化DIY计数显示
     calculateDiyCount();
     
+    // 初始化攻击输入框验证
+    initAttackInputValidation();
+    
 });
+
+// 初始化攻击输入框验证功能
+function initAttackInputValidation() {
+    try {
+        // 攻击输入框配置
+        const attackInputs = [
+            {
+                minId: 'ring-metal-attack-min',
+                maxId: 'ring-metal-attack-max',
+                name: '鸣金攻击'
+            },
+            {
+                minId: 'break-rock-attack-min',
+                maxId: 'break-rock-attack-max',
+                name: '裂石攻击'
+            },
+            {
+                minId: 'pull-silk-attack-min',
+                maxId: 'pull-silk-attack-max',
+                name: '牵丝攻击'
+            },
+            {
+                minId: 'break-bamboo-attack-min',
+                maxId: 'break-bamboo-attack-max',
+                name: '破竹攻击'
+            }
+        ];
+
+        // 为每个攻击输入框添加验证
+        attackInputs.forEach(attack => {
+            const minInput = document.getElementById(attack.minId);
+            const maxInput = document.getElementById(attack.maxId);
+            
+            if (minInput && maxInput) {
+                // 为最小值和最大值输入框添加输入事件监听器
+                minInput.addEventListener('input', createValidationHandler(attack.name, minInput, maxInput));
+                maxInput.addEventListener('input', createValidationHandler(attack.name, minInput, maxInput));
+                
+                console.log(`已为${attack.name}添加输入验证`);
+            } else {
+                console.warn(`找不到${attack.name}的输入框元素`);
+            }
+        });
+        
+        console.log('攻击输入框验证功能初始化完成');
+    } catch (error) {
+        console.error('初始化攻击输入框验证时发生错误:', error);
+    }
+}
+
+// 创建验证处理函数（带1秒延迟）
+function createValidationHandler(attackName, minInput, maxInput) {
+    let timeoutId = null;
+    
+    return function() {
+        // 清除之前的延迟
+        if (timeoutId) {
+            clearTimeout(timeoutId);
+        }
+        
+        // 设置1秒延迟
+        timeoutId = setTimeout(() => {
+            try {
+                const minValue = parseFloat(minInput.value) || 0;
+                const maxValue = parseFloat(maxInput.value) || 0;
+                
+                // 检查最小值是否大于最大值
+                if (minValue > maxValue) {
+                    // 将最大值设置为最小值
+                    maxInput.value = minValue;
+                    console.log(`${attackName}: 最小值(${minValue}) > 最大值(${maxValue})，已将最大值调整为${minValue}`);
+                }
+            } catch (error) {
+                console.error(`${attackName}验证处理时发生错误:`, error);
+            }
+        }, 1000); // 1秒延迟
+    };
+}
 
