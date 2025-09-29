@@ -100,7 +100,7 @@ let panelData = {
     craftingBonus: '天工火',
     bossTalentBonus: 0.0,
     // Boss防御
-    bossDefense: 350
+    bossDefense: 408
 };
 
 // 存储排轴数据
@@ -1949,7 +1949,7 @@ function collectAndSavePanelData() {
                         panelData[key] = parseFloat(value.replace('%', '')) || 0;
                     } else if (key === 'bossDefense') {
                         // Boss防御
-                        panelData[key] = parseFloat(value) || 350;
+                        panelData[key] = parseFloat(value) || 408;
                     } else {
                         // 字符串类型（包括craftingBonus等下拉框）
                         panelData[key] = value || (key === 'equipmentSet' ? '无' : '');
@@ -2019,7 +2019,7 @@ function savePanelDataAsDefaults() {
             talisman: panelData.talisman || '无',
             craftingBonus: panelData.craftingBonus || '无',
             bossTalentBonus: panelData.bossTalentBonus || 0,
-            bossDefense: panelData.bossDefense || 350,
+            bossDefense: panelData.bossDefense || 408,
             
             // 保存时间戳
             timestamp: Date.now()
@@ -2211,7 +2211,7 @@ function getDefaultPanelData() {
         talisman: '无帖',
         craftingBonus: '无',
         bossTalentBonus: 0,
-        bossDefense: 350
+        bossDefense: 408
     };
 }
 
@@ -2918,7 +2918,7 @@ function updatePanelDataFromInputs() {
             panelData.bossTalentBonus = parseFloat(document.getElementById('boss-talent-bonus').value.replace('%', '')) || 0;
             
             // 获取Boss防御值
-            panelData.bossDefense = parseFloat(document.getElementById('boss-defense').value) || 350;
+            panelData.bossDefense = parseFloat(document.getElementById('boss-defense').value) || 408;
         } catch (e) { console.error('其他输入框错误:', e); }
         
         // 注意：山参肉丸子效果将在伤害计算时处理，不修改输入框值
