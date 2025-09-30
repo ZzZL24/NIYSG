@@ -3984,17 +3984,32 @@ async function autoLoadFolderConfigs() {
             return;
         }
 
-        // 读取清单文件，列出所有需要加载的JSON文件（避免缓存导致 304）
-        let manifestResp = await fetch('轴/rotation-manifest.json', { cache: 'no-store' });
-        if (!manifestResp.ok) {
-            if (manifestResp.status === 304) {
-                manifestResp = await fetch('轴/rotation-manifest.json', { cache: 'reload' });
-            } else {
-                console.warn('未找到轴文件夹清单：轴/rotation-manifest.json');
-                return;
+        // 读取清单文件：先尝试根目录，其次尝试 轴/ 目录（避免缓存导致 304）
+        const manifestCandidates = ['rotation-manifest.json', '轴/rotation-manifest.json'];
+        let files = null;
+        for (const path of manifestCandidates) {
+            try {
+                let resp = await fetch(path, { cache: 'no-store' });
+                if (!resp.ok) {
+                    if (resp.status === 304) {
+                        resp = await fetch(path, { cache: 'reload' });
+                    } else {
+                        continue;
+                    }
+                }
+                const json = await resp.json();
+                if (Array.isArray(json)) {
+                    files = json;
+                    break;
+                }
+            } catch (_) {
+                // 忽略，尝试下一个候选路径
             }
         }
-        const files = await manifestResp.json();
+        if (!files) {
+            console.warn('未找到 rotation-manifest.json（根目录或 轴/ 目录）');
+            return;
+        }
         if (!Array.isArray(files) || files.length === 0) {
             console.warn('清单内容为空或格式不正确');
             return;
@@ -4012,17 +4027,34 @@ async function autoLoadFolderConfigs() {
         let firstLoadedCfg = null;
         for (const fileName of files) {
             try {
-                // 读取轴文件（避免缓存导致 304）
-                let resp = await fetch(`轴/${fileName}`, { cache: 'no-store' });
-                if (!resp.ok) {
-                    if (resp.status === 304) {
-                        resp = await fetch(`轴/${fileName}`, { cache: 'reload' });
-                    } else {
-                        console.warn(`无法获取轴文件：${fileName}`);
-                        continue;
+                // 读取轴文件：支持根目录或 轴/ 目录（避免缓存导致 304）
+                const fileCandidates = (
+                    fileName.includes('/') ? [fileName] : [fileName, `轴/${fileName}`]
+                );
+                let cfg = null;
+                for (const fp of fileCandidates) {
+                    try {
+                        let resp = await fetch(fp, { cache: 'no-store' });
+                        if (!resp.ok) {
+                            if (resp.status === 304) {
+                                resp = await fetch(fp, { cache: 'reload' });
+                            } else {
+                                continue;
+                            }
+                        }
+                        const json = await resp.json();
+                        if (json && json.name && json.rotationData) {
+                            cfg = json;
+                            break;
+                        }
+                    } catch (_) {
+                        // 尝试下一个候选路径
                     }
                 }
-                const cfg = await resp.json();
+                if (!cfg) {
+                    console.warn(`无法获取或解析轴文件：${fileName}`);
+                    continue;
+                }
                 if (!cfg || !cfg.name || !cfg.rotationData) {
                     console.warn(`轴文件格式不正确：${fileName}`);
                     continue;
