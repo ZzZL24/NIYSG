@@ -432,6 +432,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 初始化排轴配置管理功能
     initRotationConfigManagement();
+    // 从“轴”文件夹自动加载排轴配置
+    autoLoadFolderConfigs();
     
     // 初始化添加行按钮
     initAddRowButton();
@@ -2545,7 +2547,8 @@ function initCalculateDamageButton() {
 
 // 加载已保存的配置列表
 function loadSavedConfigs() {
-    const configSelect = document.getElementById('saved-configs-select');
+    // 兼容旧ID与新ID
+    const configSelect = document.getElementById('saved-rotation-configs') || document.getElementById('saved-configs-select');
     
     if (!configSelect) {
         console.error('找不到配置选择下拉框！');
@@ -3966,6 +3969,93 @@ function loadRotationConfig(config) {
         } catch (error) {
         console.error('加载配置时发生错误:', error);
         showNotification('加载失败: ' + error.message, 'error');
+    }
+}
+
+// 自动从“轴”文件夹加载排轴配置
+async function autoLoadFolderConfigs() {
+    try {
+        // 如果通过文件协议打开页面，浏览器会阻止读取本地JSON文件
+        // 这里直接给出友好提示并退出，避免产生 CORS/ERR_FAILED 报错
+        const isHttp = location.protocol === 'http:' || location.protocol === 'https:';
+        if (!isHttp) {
+            console.warn('检测到通过 file:// 打开页面，自动加载轴配置被禁用');
+            alert('自动加载轴配置需要通过本地服务器访问（http/https）。\n请在项目目录运行：py -3 -m http.server 8000\n然后使用：http://localhost:8000/ 打开本页面。');
+            return;
+        }
+
+        // 读取清单文件，列出所有需要加载的JSON文件（避免缓存导致 304）
+        let manifestResp = await fetch('轴/rotation-manifest.json', { cache: 'no-store' });
+        if (!manifestResp.ok) {
+            if (manifestResp.status === 304) {
+                manifestResp = await fetch('轴/rotation-manifest.json', { cache: 'reload' });
+            } else {
+                console.warn('未找到轴文件夹清单：轴/rotation-manifest.json');
+                return;
+            }
+        }
+        const files = await manifestResp.json();
+        if (!Array.isArray(files) || files.length === 0) {
+            console.warn('清单内容为空或格式不正确');
+            return;
+        }
+
+        // 读取现有本地配置
+        let savedConfigs = [];
+        try {
+            savedConfigs = JSON.parse(localStorage.getItem('rotationConfigs') || '[]');
+        } catch (_) {
+            savedConfigs = [];
+        }
+
+        let loadedCount = 0;
+        let firstLoadedCfg = null;
+        for (const fileName of files) {
+            try {
+                // 读取轴文件（避免缓存导致 304）
+                let resp = await fetch(`轴/${fileName}`, { cache: 'no-store' });
+                if (!resp.ok) {
+                    if (resp.status === 304) {
+                        resp = await fetch(`轴/${fileName}`, { cache: 'reload' });
+                    } else {
+                        console.warn(`无法获取轴文件：${fileName}`);
+                        continue;
+                    }
+                }
+                const cfg = await resp.json();
+                if (!cfg || !cfg.name || !cfg.rotationData) {
+                    console.warn(`轴文件格式不正确：${fileName}`);
+                    continue;
+                }
+
+                const existingIndex = savedConfigs.findIndex(c => c && c.name === cfg.name);
+                if (existingIndex !== -1) {
+                    savedConfigs[existingIndex] = cfg; // 覆盖同名配置
+                } else if (savedConfigs.length < 10) {
+                    savedConfigs.push(cfg);
+                }
+                if (!firstLoadedCfg) {
+                    firstLoadedCfg = cfg; // 记录清单中首个成功加载的配置
+                }
+                loadedCount++;
+            } catch (e) {
+                console.error(`加载轴文件失败：${fileName}`, e);
+            }
+        }
+
+        localStorage.setItem('rotationConfigs', JSON.stringify(savedConfigs));
+
+        // 更新界面上的配置列表和按钮
+        updateRotationConfigSelect();
+        updateSaveButtonDisplay();
+
+        // 不直接加载排轴，仅更新下拉列表，用户手动选择加载
+
+        if (loadedCount > 0) {
+            showNotification(`已从“轴”文件夹加载${loadedCount}个配置`, 'success');
+        }
+    } catch (err) {
+        console.warn('自动加载轴文件夹配置失败：', err);
     }
 }
 
