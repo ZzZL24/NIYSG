@@ -27,7 +27,7 @@ const skillRatesData = [
     { name: "骑龙回马二段", externalRate: 3.9051, fixedExternal: 528, breakBambooRate: 3.9051, fixedBreakBamboo: 0, externalElementRate: 3.9051, hit: 1 },
     { name: "箫声千浪炸", externalRate: 3.897, fixedExternal: 800, breakBambooRate: 3.897, fixedBreakBamboo: 0, externalElementRate: 3.897, hit: 1 },
     { name: "箫声千浪(炸前)", externalRate: 1.4614, fixedExternal: 300, breakBambooRate: 1.4614, fixedBreakBamboo: 0, externalElementRate: 1.4614, hit: 1 },
-    { name: "箫声千浪(炸后)", externalRate: 1.3128, fixedExternal: 0, breakBambooRate: 1.3128, fixedBreakBamboo: 0, externalElementRate: 1.3128, hit: 1 },
+    { name: "箫声千浪(炸后)", externalRate: 1.3127, fixedExternal: 0, breakBambooRate: 1.3127, fixedBreakBamboo: 0, externalElementRate: 1.3127, hit: 1 },
     { name: "清风霁月", externalRate: 0.8718, fixedExternal: 425, breakBambooRate: 0.8718, fixedBreakBamboo: 0, externalElementRate: 0.8718, hit: 1 },
     { name: "极乐泣血", externalRate: 2, fixedExternal: 0, breakBambooRate: 0, fixedBreakBamboo: 0, externalElementRate: 0, hit: 0 },
     { name: "易水歌", externalRate: 1, fixedExternal: 0, breakBambooRate: 0.6667, fixedBreakBamboo: 0, externalElementRate: 1, hit: 1 },
@@ -87,7 +87,7 @@ let panelData = {
     externalPenetration: 44,
     elementalPenetration: 28,
     // 装备增伤
-    ropeDartBonus: 6.4,
+    ropeDartBonus: 6.2,
     dualBladesBonus: 0.0,
     allMartialBonus: 6.4,
     bossUnitBonus: 6.4,
@@ -134,6 +134,125 @@ let expectedDamageTotal = 0;
 
 // Dot技能列表（特殊处理的技能）
 const dotSkills = ["天工火Dot", "天工毒Dot", "火·厚积薄发"];
+
+// 智能缓存系统
+const damageCache = new Map();
+const CACHE_MAX_SIZE = 1000; // 最大缓存数量
+const CACHE_EXPIRE_TIME = 5 * 60 * 1000; // 5分钟过期时间
+
+// 防抖定时器
+let updateTableDebounceTimer = null;
+let updateChartsDebounceTimer = null;
+
+// 计算状态监控
+let isCalculating = false;
+let pendingCalculation = false;
+
+// 生成缓存键
+function generateCacheKey(skill, panelData) {
+    // 只包含影响伤害计算的关键属性
+    const keyData = {
+        // 技能属性
+        name: skill.name,
+        times: skill.times,
+        buffName: skill.buffName,
+        setLayer: skill.setLayer,
+        talismanLayer: skill.talismanLayer,
+        yishuiLayer: skill.yishuiLayer,
+        suohenLayer: skill.suohenLayer,
+        qijie: skill.qijie,
+        naisan: skill.naisan,
+        yishang: skill.yishang,
+        // 面板关键属性
+        externalAttack: panelData.externalAttack,
+        breakBambooAttack: panelData.breakBambooAttack,
+        precisionRate: panelData.precisionRate,
+        criticalRate: panelData.criticalRate,
+        intentRate: panelData.intentRate,
+        directCriticalRate: panelData.directCriticalRate,
+        criticalDamageBonus: panelData.criticalDamageBonus,
+        intentDamageBonus: panelData.intentDamageBonus,
+        externalPenetration: panelData.externalPenetration,
+        equipmentSet: panelData.equipmentSet,
+        foodBuff: panelData.foodBuff,
+        bossDefense: panelData.bossDefense,
+        // 增伤属性
+        ropeDartBonus: panelData.ropeDartBonus,
+        dualBladesBonus: panelData.dualBladesBonus,
+        allMartialBonus: panelData.allMartialBonus,
+        bossUnitBonus: panelData.bossUnitBonus,
+        lightStrikeBonus: panelData.lightStrikeBonus,
+        mouseBonus: panelData.mouseBonus,
+        bossTalentBonus: panelData.bossTalentBonus,
+        isSimulationMode: isSimulationMode
+    };
+    
+    return JSON.stringify(keyData);
+}
+
+// 缓存清理函数
+function cleanExpiredCache() {
+    const now = Date.now();
+    for (const [key, entry] of damageCache.entries()) {
+        if (now - entry.timestamp > CACHE_EXPIRE_TIME) {
+            damageCache.delete(key);
+        }
+    }
+    
+    // 如果缓存过大，删除最旧的条目
+    if (damageCache.size > CACHE_MAX_SIZE) {
+        const entries = Array.from(damageCache.entries());
+        entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
+        const toDelete = entries.slice(0, damageCache.size - CACHE_MAX_SIZE);
+        toDelete.forEach(([key]) => damageCache.delete(key));
+    }
+}
+
+// 防抖版本的表格更新（优化版本）
+function debouncedUpdateRotationTable() {
+    if (updateTableDebounceTimer) {
+        clearTimeout(updateTableDebounceTimer);
+    }
+    
+    // 设置待处理标记
+    pendingCalculation = true;
+    
+    updateTableDebounceTimer = setTimeout(() => {
+        if (isCalculating) {
+            // 如果正在计算，稍后重试
+            setTimeout(debouncedUpdateRotationTable, 50);
+            return;
+        }
+        
+        isCalculating = true;
+        pendingCalculation = false;
+        
+        try {
+            updateRotationTable();
+        } finally {
+            isCalculating = false;
+            
+            // 检查是否有待处理的计算
+            if (pendingCalculation) {
+                setTimeout(debouncedUpdateRotationTable, 10);
+            }
+        }
+        
+        updateTableDebounceTimer = null;
+    }, 150); // 150ms防抖延迟
+}
+
+// 防抖版本的图表更新
+function debouncedUpdateCharts() {
+    if (updateChartsDebounceTimer) {
+        clearTimeout(updateChartsDebounceTimer);
+    }
+    
+    updateChartsDebounceTimer = setTimeout(() => {
+        updateAllCharts();
+        updateChartsDebounceTimer = null;
+    }, 300); // 300ms防抖延迟
+}
 
 
 // 页面通知功能
@@ -442,7 +561,350 @@ function initRotationTable() {
     // 清空表格内容
     tableBody.innerHTML = '';
     
+    // 初始化事件委托
+    initRotationTableEventDelegation();
+    
     // 遍历排轴数据，添加到表格中
+    updateRotationTable();
+}
+
+// 初始化排轴表格事件委托（优化版本）
+function initRotationTableEventDelegation() {
+    const rotationTable = document.getElementById('rotation-table');
+    if (!rotationTable) {
+        console.error('找不到排轴表格元素');
+        return;
+    }
+    
+    // 检查是否已经初始化过事件委托
+    if (rotationTable.hasAttribute('data-event-delegated')) {
+        return; // 已经初始化过，避免重复绑定
+    }
+    
+    // 标记已经初始化
+    rotationTable.setAttribute('data-event-delegated', 'true');
+    
+    // 使用事件委托统一处理所有事件
+    rotationTable.addEventListener('change', function(e) {
+        const target = e.target;
+        const index = parseInt(target.getAttribute('data-index'));
+        
+        // 检查索引有效性
+        if (isNaN(index) || index < 0 || index >= rotationData.length) {
+            console.error('无效的索引:', index, '数据长度:', rotationData.length);
+            return;
+        }
+        
+        // 技能选择下拉框
+        if (target.classList.contains('table-skill-select')) {
+            handleSkillSelect(target, index);
+        }
+        // BUFF选择下拉框
+        else if (target.classList.contains('table-buff-select')) {
+            handleBuffSelect(target, index);
+        }
+        // 次数输入框
+        else if (target.classList.contains('table-times-input')) {
+            handleTimesInput(target, index);
+        }
+        // 套装层数下拉框
+        else if (target.classList.contains('table-set-layer-select')) {
+            handleSetLayerSelect(target, index);
+        }
+        // 符帖下拉框
+        else if (target.classList.contains('table-talisman-select')) {
+            handleTalismanSelect(target, index);
+        }
+        // 易水歌下拉框
+        else if (target.classList.contains('table-yishui-select')) {
+            handleYishuiSelect(target, index);
+        }
+        // 所恨年年下拉框
+        else if (target.classList.contains('table-suohen-select')) {
+            handleSuohenSelect(target, index);
+        }
+        // 气窭复选框
+        else if (target.classList.contains('table-qijie-checkbox')) {
+            handleQijieCheckbox(target, index);
+        }
+        // 奶伞复选框
+        else if (target.classList.contains('table-naisan-checkbox')) {
+            handleNaisanCheckbox(target, index);
+        }
+        // 易伤复选框
+        else if (target.classList.contains('table-yishang-checkbox')) {
+            handleYishangCheckbox(target, index);
+        }
+    });
+    
+    // 处理点击事件（删除按钮和插入按钮）
+    rotationTable.addEventListener('click', function(e) {
+        const target = e.target;
+        
+        // 删除按钮
+        if (target.classList.contains('delete-btn')) {
+            const index = parseInt(target.getAttribute('data-index'));
+            if (!isNaN(index) && index >= 0 && index < rotationData.length) {
+                removeSkillFromRotation(index);
+            }
+        }
+        
+        // 插入按钮
+        if (target.classList.contains('insert-btn')) {
+            const index = parseInt(target.getAttribute('data-index'));
+            if (!isNaN(index) && index >= 0 && index <= rotationData.length) {
+                insertSkillToRotation(index);
+            }
+        }
+    });
+    
+    console.log('排轴表格事件委托初始化完成');
+}
+
+// 处理技能选择
+ function handleSkillSelect(target, index) {
+    const selectedSkillName = target.value;
+    
+    console.log('技能选择事件触发:', { index, selectedSkillName, rotationDataLength: rotationData.length });
+    
+    if (selectedSkillName && selectedSkillName !== '') {
+        // 查找选中的技能数据
+        const selectedSkill = skillRatesData.find(skill => skill.name === selectedSkillName);
+        
+        if (selectedSkill) {
+            // 保留原有的非技能数据
+            const originalData = rotationData[index];
+            
+            // 更新排轴数据，保留原有的非技能相关属性
+            rotationData[index] = {
+                ...selectedSkill,
+                buffName: originalData.buffName || '无',
+                generalBonus: originalData.generalBonus || 0,
+                criticalBonus: originalData.criticalBonus || 0,
+                externalPenetration: originalData.externalPenetration || 0,
+                extraCriticalRate: originalData.extraCriticalRate || 0,
+                times: originalData.times || 1,
+                setLayer: originalData.setLayer || '无',
+                talismanLayer: originalData.talismanLayer || '无帖',
+                yishuiLayer: originalData.yishuiLayer || '0层',
+                suohenLayer: originalData.suohenLayer || '0层',
+                qijie: originalData.qijie || '否',
+                naisan: originalData.naisan || '否',
+                yishang: originalData.yishang || '否'
+            };
+            
+            // 重新渲染表格（使用防抖版本）
+            debouncedUpdateRotationTable();
+        } else {
+            console.error('找不到技能:', selectedSkillName);
+        }
+    }
+}
+
+// 处理BUFF选择
+function handleBuffSelect(target, index) {
+    const selectedBuffName = target.value;
+    
+    if (selectedBuffName && selectedBuffName !== '') {
+        // 查找选中的BUFF数据
+        const selectedBuff = buffData.find(buff => buff.name === selectedBuffName);
+        
+        if (selectedBuff) {
+            // 更新排轴数据
+            rotationData[index] = {
+                ...rotationData[index],
+                buffName: selectedBuff.name,
+                generalBonus: selectedBuff.generalBonus,
+                criticalBonus: selectedBuff.criticalBonus,
+                externalPenetration: selectedBuff.externalPenetration,
+                extraCriticalRate: selectedBuff.extraCriticalRate
+            };
+            
+            // 更新表格（使用防抖版本）
+            debouncedUpdateRotationTable();
+        } else {
+            console.error('找不到BUFF:', selectedBuffName);
+        }
+    }
+}
+
+// 处理次数输入
+function handleTimesInput(target, index) {
+    const times = parseFloat(target.value) || 1;
+    
+    // 更新排轴数据
+    rotationData[index] = {
+        ...rotationData[index],
+        times: times
+    };
+    
+    // 更新表格
+    updateRotationTable();
+}
+
+// 处理套装层数选择
+function handleSetLayerSelect(target, index) {
+    const setLayer = target.value;
+    
+    // 更新当前行的数据
+    rotationData[index] = {
+        ...rotationData[index],
+        setLayer: setLayer
+    };
+    
+    // 检查是否启用联动模式
+    if (isCascadeModeEnabled()) {
+        console.log(`套装联动选择：位置${index}选择${setLayer}，开始同步后续位置`);
+        
+        // 联动选择：将该位置以下的所有套装下拉框同步为相同选择
+        for (let i = index + 1; i < rotationData.length; i++) {
+            rotationData[i] = {
+                ...rotationData[i],
+                setLayer: setLayer
+            };
+        }
+        
+        console.log(`联动完成：位置${index}到${rotationData.length - 1}的套装已同步为${setLayer}`);
+    } else {
+        console.log(`套装独立选择：位置${index}选择${setLayer}（联动模式已禁用）`);
+    }
+    
+    // 更新表格
+    updateRotationTable();
+}
+
+// 处理符帖选择
+function handleTalismanSelect(target, index) {
+    const talismanLayer = target.value;
+    
+    // 更新当前行的数据
+    rotationData[index] = {
+        ...rotationData[index],
+        talismanLayer: talismanLayer
+    };
+    
+    // 检查是否启用联动模式
+    if (isCascadeModeEnabled()) {
+        console.log(`符帖联动选择：位置${index}选择${talismanLayer}，开始同步后续位置`);
+        
+        // 联动选择：将该位置以下的所有符帖下拉框同步为相同选择
+        for (let i = index + 1; i < rotationData.length; i++) {
+            rotationData[i] = {
+                ...rotationData[i],
+                talismanLayer: talismanLayer
+            };
+        }
+        
+        console.log(`联动完成：位置${index}到${rotationData.length - 1}的符帖已同步为${talismanLayer}`);
+    } else {
+        console.log(`符帖独立选择：位置${index}选择${talismanLayer}（联动模式已禁用）`);
+    }
+    
+    // 更新表格
+    updateRotationTable();
+}
+
+// 处理易水歌选择
+function handleYishuiSelect(target, index) {
+    const yishuiLayer = target.value;
+    
+    // 更新当前行的数据
+    rotationData[index] = {
+        ...rotationData[index],
+        yishuiLayer: yishuiLayer
+    };
+    
+    // 检查是否启用联动模式
+    if (isCascadeModeEnabled()) {
+        console.log(`易水歌联动选择：位置${index}选择${yishuiLayer}，开始同步后续位置`);
+        
+        // 联动选择：将该位置以下的所有易水歌下拉框同步为相同选择
+        for (let i = index + 1; i < rotationData.length; i++) {
+            rotationData[i] = {
+                ...rotationData[i],
+                yishuiLayer: yishuiLayer
+            };
+        }
+        
+        console.log(`联动完成：位置${index}到${rotationData.length - 1}的易水歌已同步为${yishuiLayer}`);
+    } else {
+        console.log(`易水歌独立选择：位置${index}选择${yishuiLayer}（联动模式已禁用）`);
+    }
+    
+    // 更新表格
+    updateRotationTable();
+}
+
+// 处理所恨年年选择
+function handleSuohenSelect(target, index) {
+    const suohenLayer = target.value;
+    
+    // 更新当前行的数据
+    rotationData[index] = {
+        ...rotationData[index],
+        suohenLayer: suohenLayer
+    };
+    
+    // 检查是否启用联动模式
+    if (isCascadeModeEnabled()) {
+        console.log(`所恨年年联动选择：位置${index}选择${suohenLayer}，开始同步后续位置`);
+        
+        // 联动选择：将该位置以下的所有所恨年年下拉框同步为相同选择
+        for (let i = index + 1; i < rotationData.length; i++) {
+            rotationData[i] = {
+                ...rotationData[i],
+                suohenLayer: suohenLayer
+            };
+        }
+        
+        console.log(`联动完成：位置${index}到${rotationData.length - 1}的所恨年年已同步为${suohenLayer}`);
+    } else {
+        console.log(`所恨年年独立选择：位置${index}选择${suohenLayer}（联动模式已禁用）`);
+    }
+    
+    // 更新表格
+    updateRotationTable();
+}
+
+// 处理气窭复选框
+function handleQijieCheckbox(target, index) {
+    const qijie = target.checked ? '是' : '否';
+    
+    // 更新排轴数据
+    rotationData[index] = {
+        ...rotationData[index],
+        qijie: qijie
+    };
+    
+    // 更新表格
+    updateRotationTable();
+}
+
+// 处理奶伞复选框
+function handleNaisanCheckbox(target, index) {
+    const naisan = target.checked ? '是' : '否';
+    
+    // 更新排轴数据
+    rotationData[index] = {
+        ...rotationData[index],
+        naisan: naisan
+    };
+    
+    // 更新表格
+    updateRotationTable();
+}
+
+// 处理易伤复选框
+function handleYishangCheckbox(target, index) {
+    const yishang = target.checked ? '是' : '否';
+    
+    // 更新排轴数据
+    rotationData[index] = {
+        ...rotationData[index],
+        yishang: yishang
+    };
+    
+    // 更新表格
     updateRotationTable();
 }
 
@@ -572,10 +1034,10 @@ function calculateJileQixueTimes(rotationData) {
         // 更新排轴数据
         rotationData[jileIndex] = {
             ...rotationData[jileIndex],
-            times: finalTimes,
-            jileLayers: remainingLayers,
+            times: Math.round(finalTimes * 100) / 100, // 保留2位小数，避免浮点数精度问题
+            jileLayers: Math.round(remainingLayers * 100) / 100,
             jileHitSum: hitSum,
-            jileExpectedLayers: expectedLayers
+            jileExpectedLayers: Math.round(expectedLayers * 100) / 100
         };
     });
     
@@ -656,7 +1118,7 @@ function updateRotationTable() {
             const externalPenetration = skill.buffName && skill.buffName !== '无' ? skill.externalPenetration : 0;
             const extraCriticalRate = skill.buffName && skill.buffName !== '无' ? skill.extraCriticalRate : 0;
             let talismanIntentBonus = 0; // 用于存储会意帖的增伤
-            let talismanElementalDamageBonus = 0; // 用于存储真气属攻帖的属攻伤害加成
+            let talismanElementalDamageBonus = 0; // 用于存储真气属攻帖的属攻伤害加成，对破竹伤害和外属伤害都生效
             
             // 绳镖武学增伤：仅对"鼠鼠生威"和"牵绳引刃"两个技能生效
             if (skill.name === "鼠鼠生威" || skill.name === "牵绳引刃") {
@@ -713,7 +1175,11 @@ function updateRotationTable() {
                         talismanIntentBonus += 10; // 10%会意增伤
                         break;
                     case '奇术帖':
-                        generalBonus += 15; // 15%通用增伤
+                        // 奇术帖只对特定技能生效
+                        const qishuSkills = ['骑龙回马一段', '骑龙回马二段', '箫声千浪炸', '箫声千浪(炸前)', '箫声千浪(炸后)', '清风霁月'];
+                        if (qishuSkills.includes(skill.name)) {
+                            generalBonus += 15; // 15%通用增伤
+                        }
                         break;
                     case '承欢帖':
                         generalBonus += 20; // 20%通用增伤
@@ -725,7 +1191,7 @@ function updateRotationTable() {
                         talismanIntentBonus += 10; // 10%会意增伤
                         break;
                     case '真气属攻帖':
-                        talismanElementalDamageBonus += 15; // 15%属攻伤害加成，仅对破竹伤害生效
+                        talismanElementalDamageBonus += 15; // 15%属攻伤害加成，对破竹伤害和外属伤害都生效
                         break;
                     default:
                         break;
@@ -1123,40 +1589,52 @@ function updateRotationTable() {
             // 计算外属会心伤害
             const externalElementCriticalDamage = (avgRingMetalAttack * skill.externalElementRate) * 
                                                 effectiveCriticalRate * (1 + (panelData.criticalDamageBonus + criticalBonus) / 100) * 
-                                                (1 + generalBonus / 100) * mouseGeneralBonus * lightStrikeBonus +
+                                                (1 + generalBonus / 100) * (1 + talismanElementalDamageBonus / 100) * 
+                                                mouseGeneralBonus * lightStrikeBonus +
                                                 (avgBreakRockAttack * skill.externalElementRate) * 
                                                 effectiveCriticalRate * (1 + (panelData.criticalDamageBonus + criticalBonus) / 100) * 
-                                                (1 + generalBonus / 100) * mouseGeneralBonus * lightStrikeBonus +
+                                                (1 + generalBonus / 100) * (1 + talismanElementalDamageBonus / 100) * 
+                                                mouseGeneralBonus * lightStrikeBonus +
                                                 (avgPullSilkAttack * skill.externalElementRate) * 
                                                 effectiveCriticalRate * (1 + (panelData.criticalDamageBonus + criticalBonus) / 100) * 
-                                                (1 + generalBonus / 100) * mouseGeneralBonus * lightStrikeBonus;
+                                                (1 + generalBonus / 100) * (1 + talismanElementalDamageBonus / 100) * 
+                                                mouseGeneralBonus * lightStrikeBonus;
             
             // 计算外属会意伤害
             const externalElementIntentDamage = (panelData.ringMetalAttack.max * skill.externalElementRate) * 
                                               effectiveIntentRate * (1 + (panelData.intentDamageBonus + talismanIntentBonus) / 100) * 
-                                              (1 + generalBonus / 100) * mouseGeneralBonus * lightStrikeBonus +
+                                              (1 + generalBonus / 100) * (1 + talismanElementalDamageBonus / 100) * 
+                                              mouseGeneralBonus * lightStrikeBonus +
                                               (panelData.breakRockAttack.max * skill.externalElementRate) * 
                                               effectiveIntentRate * (1 + (panelData.intentDamageBonus + talismanIntentBonus) / 100) * 
-                                              (1 + generalBonus / 100) * mouseGeneralBonus * lightStrikeBonus +
+                                              (1 + generalBonus / 100) * (1 + talismanElementalDamageBonus / 100) * 
+                                              mouseGeneralBonus * lightStrikeBonus +
                                               (panelData.pullSilkAttack.max * skill.externalElementRate) * 
                                               effectiveIntentRate * (1 + (panelData.intentDamageBonus + talismanIntentBonus) / 100) * 
-                                              (1 + generalBonus / 100) * mouseGeneralBonus * lightStrikeBonus;
+                                              (1 + generalBonus / 100) * (1 + talismanElementalDamageBonus / 100) * 
+                                              mouseGeneralBonus * lightStrikeBonus;
             
             // 计算外属白字伤害
             const externalElementWhiteTextDamage = (avgRingMetalAttack * skill.externalElementRate) * 
-                                                whiteTextRate * (1 + generalBonus / 100) * mouseGeneralBonus * lightStrikeBonus +
+                                                whiteTextRate * (1 + generalBonus / 100) * (1 + talismanElementalDamageBonus / 100) * 
+                                                mouseGeneralBonus * lightStrikeBonus +
                                                 (avgBreakRockAttack * skill.externalElementRate) * 
-                                                whiteTextRate * (1 + generalBonus / 100) * mouseGeneralBonus * lightStrikeBonus +
+                                                whiteTextRate * (1 + generalBonus / 100) * (1 + talismanElementalDamageBonus / 100) * 
+                                                mouseGeneralBonus * lightStrikeBonus +
                                                 (avgPullSilkAttack * skill.externalElementRate) * 
-                                                whiteTextRate * (1 + generalBonus / 100) * mouseGeneralBonus * lightStrikeBonus;
+                                                whiteTextRate * (1 + generalBonus / 100) * (1 + talismanElementalDamageBonus / 100) * 
+                                                mouseGeneralBonus * lightStrikeBonus;
             
             // 计算外属擦伤伤害
             const externalElementGrazeDamage = (panelData.ringMetalAttack.min * skill.externalElementRate) * 
-                                             grazeRate * (1 + generalBonus / 100) * mouseGeneralBonus * lightStrikeBonus +
+                                             grazeRate * (1 + generalBonus / 100) * (1 + talismanElementalDamageBonus / 100) * 
+                                             mouseGeneralBonus * lightStrikeBonus +
                                              (panelData.breakRockAttack.min * skill.externalElementRate) * 
-                                             grazeRate * (1 + generalBonus / 100) * mouseGeneralBonus * lightStrikeBonus +
+                                             grazeRate * (1 + generalBonus / 100) * (1 + talismanElementalDamageBonus / 100) * 
+                                             mouseGeneralBonus * lightStrikeBonus +
                                              (panelData.pullSilkAttack.min * skill.externalElementRate) * 
-                                             grazeRate * (1 + generalBonus / 100) * mouseGeneralBonus * lightStrikeBonus;
+                                             grazeRate * (1 + generalBonus / 100) * (1 + talismanElementalDamageBonus / 100) * 
+                                             mouseGeneralBonus * lightStrikeBonus;
             
             // 获取技能使用次数，默认为1
             const times = skill.times || 1;
@@ -1273,7 +1751,10 @@ function updateRotationTable() {
             <td>${damageData.effectiveIntentRate}</td>
             <td>${damageData.whiteTextRate}</td>
             <td>${damageData.grazeRate}</td>
-            <td><button class="delete-btn" data-index="${index}">删除</button></td>
+            <td>
+                <button class="insert-btn" data-index="${index}" title="在此行前插入">插入</button>
+                <button class="delete-btn" data-index="${index}" title="删除此行">删除</button>
+            </td>
         `;
         
         fragment.appendChild(row);
@@ -1282,184 +1763,12 @@ function updateRotationTable() {
     // 一次性添加所有行到表格
     tableBody.appendChild(fragment);
     
-    // 添加删除按钮事件监听
-    const deleteButtons = document.querySelectorAll('.delete-btn');
-    deleteButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            const index = parseInt(button.getAttribute('data-index'));
-            removeSkillFromRotation(index);
-        });
-    });
-    
-    // 使用requestAnimationFrame优化图表更新
-    requestAnimationFrame(() => {
-        updateAllCharts();
-    });
-    
-    // 添加技能选择下拉框事件监听
-    const skillSelects = document.querySelectorAll('.table-skill-select');
-    skillSelects.forEach(select => {
-        select.addEventListener('change', (e) => {
-            const index = parseInt(e.target.getAttribute('data-index'));
-            const selectedSkillName = e.target.value;
-            
-            console.log('技能选择事件触发:', { index, selectedSkillName, rotationDataLength: rotationData.length });
-            
-            // 检查索引是否有效
-            if (index < 0 || index >= rotationData.length) {
-                console.error('无效的索引:', index, '数组长度:', rotationData.length);
-                return;
-            }
-            
-            if (selectedSkillName && selectedSkillName !== '') {
-                // 查找选中的技能数据
-                const selectedSkill = skillRatesData.find(skill => skill.name === selectedSkillName);
-                
-                console.log('找到的技能数据:', selectedSkill);
-                
-                if (selectedSkill) {
-                    // 保留原有的非技能数据（如times、setLayer等）
-                    const originalData = rotationData[index];
-                    
-                    console.log('原始数据:', originalData);
-                    
-                    // 更新排轴数据，保留原有的非技能相关属性
-                    rotationData[index] = {
-                        ...selectedSkill,
-                        buffName: originalData.buffName || '无',
-                        generalBonus: originalData.generalBonus || 0,
-                        criticalBonus: originalData.criticalBonus || 0,
-                        externalPenetration: originalData.externalPenetration || 0,
-                        extraCriticalRate: originalData.extraCriticalRate || 0,
-                        times: originalData.times || 1,
-                        setLayer: originalData.setLayer || '无',
-                        talismanLayer: originalData.talismanLayer || '无帖',
-                        yishuiLayer: originalData.yishuiLayer || '0层',
-                suohenLayer: originalData.suohenLayer || '0层',
-                qijie: originalData.qijie || '否',
-                naisan: originalData.naisan || '否',
-                yishang: originalData.yishang || '否',
-                        yishang: originalData.yishang || '否'
-                    };
-                    
-                    console.log('更新后的数据:', rotationData[index]);
-                    console.log('当前排轴数据长度:', rotationData.length);
-                    
-                    // 重新渲染表格
-                    updateRotationTable();
-                    
-                    console.log('表格重新渲染完成');
-                } else {
-                    console.error('找不到技能:', selectedSkillName);
-                }
-            } else {
-                // 如果选择的是空值，不做任何操作
-                console.log('用户取消选择或选择了空项');
-            }
-        });
-    });
-    
-    // 添加BUFF选择下拉框事件监听
-    const buffSelects = document.querySelectorAll('.table-buff-select');
-    buffSelects.forEach(select => {
-        select.addEventListener('change', (e) => {
-            const index = parseInt(e.target.getAttribute('data-index'));
-            const selectedBuffName = e.target.value;
-            
-            // 检查索引是否有效
-            if (index < 0 || index >= rotationData.length) {
-                console.error('无效的索引:', index);
-                return;
-            }
-            
-            if (selectedBuffName && selectedBuffName !== '') {
-                // 查找选中的BUFF数据
-                const selectedBuff = buffData.find(buff => buff.name === selectedBuffName);
-                
-                if (selectedBuff) {
-                    // 更新排轴数据
-                    rotationData[index] = {
-                        ...rotationData[index],
-                        buffName: selectedBuff.name,
-                        generalBonus: selectedBuff.generalBonus,
-                        criticalBonus: selectedBuff.criticalBonus,
-                        externalPenetration: selectedBuff.externalPenetration,
-                        extraCriticalRate: selectedBuff.extraCriticalRate
-                    };
-                    
-                    // 更新表格
-                    updateRotationTable();
-                } else {
-                    console.error('找不到BUFF:', selectedBuffName);
-                }
-            }
-        });
-    });
-    
-    // 添加次数输入框事件监听
-    const timesInputs = document.querySelectorAll('.table-times-input');
-    timesInputs.forEach(input => {
-        input.addEventListener('change', (e) => {
-            const index = parseInt(e.target.getAttribute('data-index'));
-            const times = parseFloat(e.target.value) || 1;
-            
-            // 检查索引是否有效
-            if (index < 0 || index >= rotationData.length) {
-                console.error('无效的索引:', index);
-                return;
-            }
-            
-            // 更新排轴数据
-            rotationData[index] = {
-                ...rotationData[index],
-                times: times
-            };
-            
-            // 更新表格
-            updateRotationTable();
-        });
-    });
-    
-    // 添加套装层数下拉选择框事件监听（支持联动选择）
-    const setLayerSelects = document.querySelectorAll('.table-set-layer-select');
-    setLayerSelects.forEach(select => {
-        select.addEventListener('change', (e) => {
-            const index = parseInt(e.target.getAttribute('data-index'));
-            const setLayer = e.target.value;
-            
-            // 检查索引是否有效
-            if (index < 0 || index >= rotationData.length) {
-                console.error('无效的索引:', index);
-                return;
-            }
-            
-            // 更新当前行的数据
-            rotationData[index] = {
-                ...rotationData[index],
-                setLayer: setLayer
-            };
-            
-            // 检查是否启用联动模式
-            if (isCascadeModeEnabled()) {
-                console.log(`套装联动选择：位置${index}选择${setLayer}，开始同步后续位置`);
-                
-                // 联动选择：将该位置以下的所有套装下拉框同步为相同选择
-                for (let i = index + 1; i < rotationData.length; i++) {
-                    rotationData[i] = {
-                        ...rotationData[i],
-                        setLayer: setLayer
-                    };
-                }
-                
-                console.log(`联动完成：位置${index}到${rotationData.length - 1}的套装已同步为${setLayer}`);
-            } else {
-                console.log(`套装独立选择：位置${index}选择${setLayer}（联动模式已禁用）`);
-            }
-            
-            // 更新表格
-            updateRotationTable();
-        });
-    });
+    // 使用requestAnimationFrame优化图表更新（防抖版本）
+    debouncedUpdateCharts();
+
+
+
+
     
     // 添加符帖下拉选择框事件监听（支持联动选择）
     const talismanSelects = document.querySelectorAll('.table-talisman-select');
@@ -1497,8 +1806,8 @@ function updateRotationTable() {
                 console.log(`符帖独立选择：位置${index}选择${talismanLayer}（联动模式已禁用）`);
             }
             
-            // 更新表格
-            updateRotationTable();
+            // 更新表格（使用防抖版本）
+            debouncedUpdateRotationTable();
         });
     });
     
@@ -1538,8 +1847,8 @@ function updateRotationTable() {
                 console.log(`易水歌独立选择：位置${index}选择${yishuiLayer}（联动模式已禁用）`);
             }
             
-            // 更新表格
-            updateRotationTable();
+            // 更新表格（使用防抖版本）
+            debouncedUpdateRotationTable();
         });
     });
     
@@ -1579,8 +1888,8 @@ function updateRotationTable() {
                 console.log(`所恨年年独立选择：位置${index}选择${suohenLayer}（联动模式已禁用）`);
             }
             
-            // 更新表格
-            updateRotationTable();
+            // 更新表格（使用防抖版本）
+            debouncedUpdateRotationTable();
         });
     });
     
@@ -1603,8 +1912,8 @@ function updateRotationTable() {
                 qijie: qijie
             };
             
-            // 更新表格
-            updateRotationTable();
+            // 更新表格（使用防抖版本）
+            debouncedUpdateRotationTable();
         });
     });
     
@@ -1627,8 +1936,8 @@ function updateRotationTable() {
                 naisan: naisan
             };
             
-            // 更新表格
-            updateRotationTable();
+            // 更新表格（使用防抖版本）
+            debouncedUpdateRotationTable();
         });
     });
     
@@ -1651,24 +1960,27 @@ function updateRotationTable() {
                 yishang: yishang
             };
             
-            // 更新表格
-            updateRotationTable();
+            // 更新表格（使用防抖版本）
+            debouncedUpdateRotationTable();
         });
     });
     
+    // 一次性添加所有行到表格
+    tableBody.appendChild(fragment);
+    
+    // 使用requestAnimationFrame优化图表更新（防抖版本）
+    debouncedUpdateCharts();
+
     // 更新伤害统计表格
     updateDamageStatsTable();
     
     // 更新排轴列表伤害列总和显示
     updateRotationDamageSumDisplay();
     
-    // 添加套装列表头下拉框事件监听器
+    // 添加套装列表头下拉框事件监听器（只初始化一次）
     const headerSelect = document.getElementById('set-layer-header-select');
-    if (headerSelect) {
-        // 移除之前的事件监听器（如果有的话）
-        headerSelect.removeEventListener('change', handleSetLayerHeaderChange);
-        
-        // 添加新的事件监听器
+    if (headerSelect && !headerSelect.hasAttribute('data-event-bound')) {
+        headerSelect.setAttribute('data-event-bound', 'true');
         headerSelect.addEventListener('change', handleSetLayerHeaderChange);
     }
 }
@@ -2127,6 +2439,90 @@ function removeSkillFromRotation(index) {
     updateRotationTable();
 }
 
+// 在排轴中插入技能
+function insertSkillToRotation(index) {
+    let newRotationItem;
+    
+    // 判断是否已有行数据
+    if (rotationData.length > 0) {
+        // 如果有数据，复制前一行或后一行的配置
+        let referenceRow;
+        if (index > 0) {
+            // 如果有前一行，复制前一行的配置
+            referenceRow = rotationData[index - 1];
+        } else {
+            // 如果是插入到第一行，复制第一行的配置
+            referenceRow = rotationData[0];
+        }
+        
+        // 获取BUFF对应的数值增伤
+        const buffInfo = buffData.find(buff => buff.name === referenceRow.buffName);
+        
+        newRotationItem = {
+            // 复制参考行的所有属性
+            name: "无", // 技能名称重置为"无"
+            externalRate: 0,
+            fixedExternal: 0,
+            breakBambooRate: 0,
+            fixedBreakBamboo: 0,
+            externalElementRate: 0,
+            buffName: referenceRow.buffName,
+            generalBonus: buffInfo ? buffInfo.generalBonus : 0,
+            criticalBonus: buffInfo ? buffInfo.criticalBonus : 0,
+            externalPenetration: buffInfo ? buffInfo.externalPenetration : 0,
+            extraCriticalRate: buffInfo ? buffInfo.extraCriticalRate : 0,
+            times: referenceRow.times,
+            setLayer: referenceRow.setLayer,
+            talismanLayer: referenceRow.talismanLayer,
+            yishuiLayer: referenceRow.yishuiLayer,
+            suohenLayer: referenceRow.suohenLayer,
+            qijie: referenceRow.qijie,
+            naisan: referenceRow.naisan,
+            yishang: referenceRow.yishang
+        };
+    } else {
+        // 如果是第一行，使用默认配置
+        // 根据当前选择的套装设置默认值
+        let defaultSetLayer = "无";
+        if (panelData.equipmentSet === "飞隼") {
+            defaultSetLayer = "满层";
+        } else if (panelData.equipmentSet === "岳山") {
+            defaultSetLayer = "10%通用增伤";
+        }
+        
+        // 获取默认BUFF"无"的数值增伤
+        const defaultBuffInfo = buffData.find(buff => buff.name === "无");
+        
+        newRotationItem = {
+            name: "无",
+            externalRate: 0,
+            fixedExternal: 0,
+            breakBambooRate: 0,
+            fixedBreakBamboo: 0,
+            externalElementRate: 0,
+            buffName: "无",
+            generalBonus: defaultBuffInfo ? defaultBuffInfo.generalBonus : 0,
+            criticalBonus: defaultBuffInfo ? defaultBuffInfo.criticalBonus : 0,
+            externalPenetration: defaultBuffInfo ? defaultBuffInfo.externalPenetration : 0,
+            extraCriticalRate: defaultBuffInfo ? defaultBuffInfo.extraCriticalRate : 0,
+            times: 1,
+            setLayer: defaultSetLayer,
+            talismanLayer: '无帖',
+            yishuiLayer: "0层",
+            suohenLayer: "0层",
+            qijie: "否",
+            naisan: "否",
+            yishang: "否"
+        };
+    }
+    
+    // 在指定位置插入新技能
+    rotationData.splice(index, 0, newRotationItem);
+    
+    // 更新排轴表格
+    updateRotationTable();
+}
+
 // 初始化计算伤害按钮
 function initCalculateDamageButton() {
     const calculateButton = document.getElementById('calculate-damage-btn');
@@ -2274,28 +2670,31 @@ function initAddRowButton() {
         if (rotationData.length > 0) {
             // 如果已有行数据，复制上一行的所有选择项配置
             const lastRow = rotationData[rotationData.length - 1];
-            newRotationItem = {
-                // 复制上一行的所有属性
-                name: "无", // 技能名称重置为"无"
-                externalRate: 0,
-                fixedExternal: 0,
-                breakBambooRate: 0,
-                fixedBreakBamboo: 0,
-                externalElementRate: 0,
-                buffName: lastRow.buffName,
-                generalBonus: 0,
-                criticalBonus: 0,
-                externalPenetration: 0,
-                extraCriticalRate: 0,
-                times: lastRow.times,
-                setLayer: lastRow.setLayer,
-                talismanLayer: lastRow.talismanLayer,
-                yishuiLayer: lastRow.yishuiLayer,
-                suohenLayer: lastRow.suohenLayer,
-                qijie: lastRow.qijie,
-                naisan: lastRow.naisan,
-                yishang: lastRow.yishang
-            };
+        // 获取BUFF对应的数值增伤
+        const buffInfo = buffData.find(buff => buff.name === lastRow.buffName);
+        
+        newRotationItem = {
+            // 复制上一行的所有属性
+            name: "无", // 技能名称重置为"无"
+            externalRate: 0,
+            fixedExternal: 0,
+            breakBambooRate: 0,
+            fixedBreakBamboo: 0,
+            externalElementRate: 0,
+            buffName: lastRow.buffName,
+            generalBonus: buffInfo ? buffInfo.generalBonus : 0,
+            criticalBonus: buffInfo ? buffInfo.criticalBonus : 0,
+            externalPenetration: buffInfo ? buffInfo.externalPenetration : 0,
+            extraCriticalRate: buffInfo ? buffInfo.extraCriticalRate : 0,
+            times: lastRow.times,
+            setLayer: lastRow.setLayer,
+            talismanLayer: lastRow.talismanLayer,
+            yishuiLayer: lastRow.yishuiLayer,
+            suohenLayer: lastRow.suohenLayer,
+            qijie: lastRow.qijie,
+            naisan: lastRow.naisan,
+            yishang: lastRow.yishang
+        };
                 } else {
             // 如果是第一行，使用默认配置
             // 根据当前选择的套装设置默认值
@@ -2772,7 +3171,7 @@ function updateDamageStatsDisplay(graduationDamage, expectedDamage, simulationDa
         const customGraduationDamage = document.getElementById('custom-graduation-damage');
         fixedGraduationDamage = customGraduationDamage ? parseFloat(customGraduationDamage.value) || 2000000 : 2000000;
     } else {
-        fixedGraduationDamage = 3017306; // 易水模式：毕业伤害为3017306
+        fixedGraduationDamage = 3089950; // 易水模式：毕业伤害为3089950
     }
     
     // 当选择"无"时，除了期望伤害和模拟伤害，其余单元格显示为"-"
@@ -2797,7 +3196,7 @@ function updateDamageStatsDisplay(graduationDamage, expectedDamage, simulationDa
     }
     
     // 计算并更新DPS
-    // 毕业DPS = 3017306 / T
+    // 毕业DPS = 3089950 / T
     const graduationDpsElement = document.getElementById('graduation-dps');
     if (graduationDpsElement) {
         graduationDpsElement.textContent = isNoneMode ? '-' : (fixedGraduationDamage / T).toFixed(2);
@@ -2822,7 +3221,7 @@ function updateDamageStatsDisplay(graduationDamage, expectedDamage, simulationDa
         graduationRateElement.textContent = isNoneMode ? '-' : '100.00%';
     }
     
-    // 期望毕业率 = 期望伤害 / 3017306
+    // 期望毕业率 = 期望伤害 / 3089950
     const expectedRateElement = document.getElementById('expected-rate');
     if (expectedRateElement) {
         if (isNoneMode) {
@@ -2835,7 +3234,7 @@ function updateDamageStatsDisplay(graduationDamage, expectedDamage, simulationDa
         }
     }
     
-    // 模拟毕业率 = 模拟伤害 / 3017306
+    // 模拟毕业率 = 模拟伤害 / 3089950
     const simulationRateElement = document.getElementById('simulation-rate');
     if (simulationRateElement) {
         if (isNoneMode) {
@@ -3638,7 +4037,7 @@ function updateRotationConfigSelect() {
     }
 }
 
-// 计算单个技能的伤害数据
+// 计算单个技能的伤害数据（优化版本，带缓存）
 function calculateDamage(skill) {
     if (!skill || !skill.name || skill.name === '无') {
         return {
@@ -3659,6 +4058,20 @@ function calculateDamage(skill) {
             externalElementWhiteTextDamage: 0,
             externalElementGrazeDamage: 0
         };
+    }
+    
+    // 生成缓存键
+    const cacheKey = generateCacheKey(skill, panelData);
+    
+    // 检查缓存
+    const cachedResult = damageCache.get(cacheKey);
+    if (cachedResult && Date.now() - cachedResult.timestamp < CACHE_EXPIRE_TIME) {
+        return cachedResult.data;
+    }
+    
+    // 清理过期缓存（偶尔执行）
+    if (Math.random() < 0.01) { // 1%的概率执行清理
+        cleanExpiredCache();
     }
 
     // 获取技能倍率数据
@@ -3797,7 +4210,8 @@ function calculateDamage(skill) {
     const externalElementWhiteTextDamage = externalElementDamage * whiteTextRate;
     const externalElementGrazeDamage = externalElementDamage * grazeRate;
     
-    return {
+    // 计算结果
+    const result = {
         totalDamage: totalDamage,
         externalDamage: externalDamage,
         breakBambooDamage: breakBambooDamage,
@@ -3815,6 +4229,14 @@ function calculateDamage(skill) {
         externalElementWhiteTextDamage: externalElementWhiteTextDamage,
         externalElementGrazeDamage: externalElementGrazeDamage
     };
+    
+    // 保存到缓存
+    damageCache.set(cacheKey, {
+        data: result,
+        timestamp: Date.now()
+    });
+    
+    return result;
 }
 
 // 图表相关变量
@@ -4540,6 +4962,7 @@ function updateSkillDamageChart() {
     }
                 
     const skillDamageMap = new Map();
+    const skillHitMap = new Map(); // 新增：存储技能Hit总数
     let totalDamage = 0;
 
     // 技能名称合并映射函数
@@ -4569,13 +4992,51 @@ function updateSkillDamageChart() {
             const skillSelect = cells[1].querySelector('select');
             const originalSkillName = skillSelect ? skillSelect.value : '未知技能';
             
+            // 从第4列（索引3）读取技能次数 - 优先从输入框读取，如果没有输入框则从文本内容读取
+            let skillTimes = 0;
+            const timesInput = cells[3].querySelector('input');
+            if (timesInput) {
+                skillTimes = parseFloat(timesInput.value) || 0;
+            } else {
+                skillTimes = parseFloat(cells[3].textContent) || 0;
+            }
+            
+            // 获取技能Hit数
+            const skillData = skillRatesData.find(s => s.name === originalSkillName);
+            const skillHit = skillData ? skillData.hit : 0;
+            
+            // 特殊处理：极乐泣血显示技能次数累加，其他技能显示Hit数累加
+            let totalHit;
+            if (originalSkillName === '极乐泣血') {
+                totalHit = Math.round(skillTimes * 100) / 100; // 极乐泣血显示技能次数，保留2位小数
+            } else {
+                totalHit = skillHit * skillTimes; // 其他技能显示Hit数
+            }
+            
+            // 调试信息
+            if (originalSkillName !== '无' && originalSkillName !== '未知技能') {
+                const hitType = originalSkillName === '极乐泣血' ? '次数' : 'Hit数';
+                console.log(`技能: ${originalSkillName}, 次数: ${skillTimes}, ${hitType}: ${originalSkillName === '极乐泣血' ? skillTimes : skillHit}, 总${hitType}: ${totalHit}`);
+                console.log('技能数据:', skillData);
+                console.log('第3列内容:', cells[3].textContent);
+                console.log('第3列输入框:', timesInput ? timesInput.value : '无输入框');
+            }
+            
             // 应用技能名称合并逻辑
             const mergedSkillName = mergeSkillName(originalSkillName);
             
+            // 累积伤害
             if (skillDamageMap.has(mergedSkillName)) {
                 skillDamageMap.set(mergedSkillName, skillDamageMap.get(mergedSkillName) + skillDamage);
             } else {
                 skillDamageMap.set(mergedSkillName, skillDamage);
+            }
+            
+            // 累积Hit数
+            if (skillHitMap.has(mergedSkillName)) {
+                skillHitMap.set(mergedSkillName, skillHitMap.get(mergedSkillName) + totalHit);
+            } else {
+                skillHitMap.set(mergedSkillName, totalHit);
             }
         }
     });
@@ -4609,9 +5070,12 @@ function updateSkillDamageChart() {
     skillDamageChart.data.datasets[0].data = data;
     skillDamageChart.data.datasets[0].backgroundColor = colors;
 
+    // 调试信息：输出Hit数统计
+    console.log('Hit数统计:', Array.from(skillHitMap.entries()));
+    
     // 更新图表（无动画）
     skillDamageChart.update('none');
-    updateSkillDamageLegend(sortedSkills);
+    updateSkillDamageLegend(sortedSkills, skillHitMap);
 }
 
 // 更新伤害类型图例
@@ -4667,7 +5131,7 @@ function updateCritTypeLegend(criticalDamage = 0, intentDamage = 0, whiteTextDam
 }
 
 // 更新技能伤害图例
-function updateSkillDamageLegend(sortedSkills = []) {
+function updateSkillDamageLegend(sortedSkills = [], skillHitMap = new Map()) {
     const legend = document.getElementById('skillDamageLegend');
     if (!legend || !skillDamageChart) return;
 
@@ -4681,13 +5145,21 @@ function updateSkillDamageLegend(sortedSkills = []) {
         // 获取实际伤害值
         const actualDamage = sortedSkills[index] ? sortedSkills[index][1] : 0;
         
+        // 获取Hit总数
+        const totalHits = skillHitMap.get(label) || 0;
+        
         const legendItem = document.createElement('div');
         legendItem.className = 'legend-item';
+        
+        // 极乐泣血显示次数，其他技能显示Hit数
+        const hitDisplay = label === '极乐泣血' ? `${Math.round(totalHits * 100) / 100}次` : `${totalHits}Hit`;
+        
         legendItem.innerHTML = `
             <div class="legend-color" style="background-color: ${color}"></div>
             <span class="legend-label">${label}</span>
             <span class="legend-value">${percentage.toFixed(2)}%</span>
             <span class="legend-actual">(${actualDamage.toFixed(2)})</span>
+            <span class="legend-hits">[${hitDisplay}]</span>
         `;
         legend.appendChild(legendItem);
     });
@@ -4906,6 +5378,9 @@ function importDiyToBasic() {
 // 更新panelData对象（从输入框获取值）
 function updatePanelDataFromInputs() {
     try {
+        // 清空伤害计算缓存（面板数据变化时）
+        damageCache.clear();
+        
         // 更新战斗属性
         panelData.externalAttack.min = parseFloat(document.getElementById('external-attack-min').value) || 0;
         panelData.externalAttack.max = parseFloat(document.getElementById('external-attack-max').value) || 0;
@@ -6449,12 +6924,12 @@ function updateRopeDartBonus() {
         }
         
         const currentValue = parseFloat(bonusInput.value) || 0;
-        const bonusValue = checkbox.checked ? 6.4 : -6.4;
+        const bonusValue = checkbox.checked ? 6.2 : -6.2;
         const newValue = Math.max(0, currentValue + bonusValue);
         
         bonusInput.value = preciseRound(newValue, 1);
         
-        console.log(`绳镖武学增伤更新: ${checkbox.checked ? '+' : '-'}6.4, 新值: ${newValue.toFixed(1)}`);
+        console.log(`绳镖武学增伤更新: ${checkbox.checked ? '+' : '-'}6.2, 新值: ${newValue.toFixed(1)}`);
         
         // 触发输入事件
         bonusInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -6476,12 +6951,12 @@ function updateDualBladeBonus() {
         }
         
         const currentValue = parseFloat(bonusInput.value) || 0;
-        const bonusValue = checkbox.checked ? 6.4 : -6.4;
+        const bonusValue = checkbox.checked ? 6.2 : -6.2;
         const newValue = Math.max(0, currentValue + bonusValue);
         
         bonusInput.value = preciseRound(newValue, 1);
         
-        console.log(`双刀武学增伤更新: ${checkbox.checked ? '+' : '-'}6.4, 新值: ${newValue.toFixed(1)}`);
+        console.log(`双刀武学增伤更新: ${checkbox.checked ? '+' : '-'}6.2, 新值: ${newValue.toFixed(1)}`);
         
         // 触发输入事件
         bonusInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -7112,4 +7587,5 @@ function createValidationHandler(attackName, minInput, maxInput) {
         }, 1000); // 1秒延迟
     };
 }
+
 

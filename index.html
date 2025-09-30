@@ -2,8 +2,9 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>伤害计算器 - 游戏风格界面</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>破竹风·测</title>
+    <link rel="icon" type="image/png" href="icon.png">
     <link rel="stylesheet" href="game-styled.css">
     <!-- MathJax LaTeX渲染库 -->
     <script>
@@ -483,7 +484,7 @@
         <!-- 标签页 -->
           <div class="tabs" style="text-align: left;">
                 <button class="tab-button active" data-tab="basic-info">基础信息</button>
-                <button class="tab-button" data-tab="rotation">排轴界面</button>
+                <button class="tab-button" data-tab="rotation">计算界面</button>
                 <button class="tab-button" data-tab="damage-stats">伤害统计</button>
                 <button class="tab-button" data-tab="trait-diy">词条DIY</button>
                 <button class="tab-button" data-tab="skill-buff-data">技能增益表</button>
@@ -502,7 +503,7 @@
                         <div class="input-row" style="padding: 2px 0;">
                             <label>外功攻击:</label>
                             <div class="input-pair">
-                                <input type="number" id="external-attack-min" value="1299" min="0" placeholder="最小值">
+                                <input type="number" id="external-attack-min" value="1351" min="0" placeholder="最小值">
                                 <span>-</span>
                                 <input type="number" id="external-attack-max" value="3690" min="0" placeholder="最大值">
                             </div>
@@ -511,13 +512,13 @@
                         <!-- 精准率 -->
                         <div class="input-row" style="padding: 2px 0;">
                             <label for="precision-rate">精准率(%):</label>
-                            <input type="number" id="precision-rate" value="98.8" min="0" max="98.2" step="0.1">
+                            <input type="number" id="precision-rate" value="100" min="0" max="100" step="0.1">
                         </div>
                         
                         <!-- 会心率 -->
                         <div class="input-row" style="padding: 2px 0;">
                             <label for="critical-rate">会心率(%):</label>
-                            <input type="number" id="critical-rate" value="70.9" min="0" max="100" step="0.1">
+                            <input type="number" id="critical-rate" value="70.5" min="0" max="100" step="0.1">
                         </div>
                         
                         <!-- 会意率 -->
@@ -625,7 +626,7 @@
                         <h4>装备增伤</h4>
                         <div class="input-row" style="padding: 2px 0;">
                             <label for="rope-dart-bonus">绳镖武学增伤(%):</label>
-                            <input type="number" id="rope-dart-bonus" value="6.4" min="0" step="0.1">
+                            <input type="number" id="rope-dart-bonus" value="6.2" min="0" step="0.1">
                         </div>
                         <div class="input-row" style="padding: 2px 0;">
                             <label for="dual-blades-bonus">双刀武学增伤(%):</label>
@@ -633,7 +634,7 @@
                         </div>
                         <div class="input-row" style="padding: 2px 0;">
                             <label for="all-martial-bonus">全武学增伤(%):</label>
-                            <input type="number" id="all-martial-bonus" value="6.4" min="0" step="0.1">
+                            <input type="number" id="all-martial-bonus" value="3.2" min="0" step="0.1">
                         </div>
                         <div class="input-row" style="padding: 2px 0;">
                             <label for="boss-unit-bonus">首领单位增伤(%):</label>
@@ -723,9 +724,9 @@
             
         </div>
         
-        <!-- 排轴界面标签页内容 -->
+        <!-- 计算界面标签页内容 -->
         <div id="rotation" class="tab-content">
-            <h2>排轴界面</h2>
+            <h2>计算界面</h2>
             
             <!-- 优化后的排轴控制区域 -->
             <div class="rotation-main-container">
@@ -828,6 +829,13 @@
                                 </tr>
                             </tbody>
                         </table>
+                        
+                        <!-- 轴链接 -->
+                        <div style="margin-top: 15px; text-align: center;">
+                            <a href="https://www.ilanzou.com/s/Vb7NLYQA" target="_blank" style="color: #3b82f6; text-decoration: none; font-weight: 600; font-size: 14px; padding: 8px 16px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 2px solid #3b82f6; border-radius: 6px; display: inline-block; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);">
+                                轴：@https://www.ilanzou.com/s/Vb7NLYQA
+                            </a>
+                        </div>
                     </div>
                     
                     <!-- 右侧说明文本框 -->
@@ -836,16 +844,20 @@
                         <div class="explanation-content">
                             <div class="explanation-text">
                                 <h4>计算</h4>
-                                <p><strong>期望计算：</strong>基于理论概率计算的平均伤害值，使用伤害公式直接计算各种情况下的期望伤害。</p>
-                                <p><strong>模拟计算：</strong>通过随机数模拟实际战斗过程。即攻击值=random[min,max],概率判定=random(0,1)掉落在生效权重区间的结果。</p>                               
+                                <li><strong>期望计算：</strong>基于理论概率计算的平均伤害值，使用伤害公式直接计算各种情况下的期望伤害。</li>
+                                <li><strong>模拟计算：</strong>通过随机数模拟实际战斗过程。即攻击值=random[min,max],概率判定=random(0,1)掉落在生效权重区间的结果。</li>                               
                                 <h4>极乐泣血</h4>
-                                <p><strong>自动计算（默认）：</strong>层数=Hit*0.15，期望3.5层累计一次刺伤，次数自动计算</p>
-                                <p><strong>手动输入：</strong>勾选"极乐手动"复选框后，可以自由修改极乐泣血的次数</p>
-                                <h4>其他技能</h4>
-                                <li>红刀A2(1/2),红刀A4(5/7)；丢部分伤害</li>
+                                <li><strong>自动计算：</strong>层数=Hit*0.15，期望3.5层累计一次刺伤，次数自动计算</li>
+                                <li><strong>手动输入：</strong>勾选"极乐手动"复选框后，可以自由修改极乐泣血的次数</li>
+                                <h4>技能</h4>
+                                <li>红刀A2(1/2),红刀A4(5/7)，丢部分伤害</li>
                                 <li>箫音千浪(炸后)：炸前与炸后的落笛倍率不一样，炸前的符合官方面板参数</li>
-                                <h4>页面</h4>
-                                <p>代码都是AI自动生成堆叠的，所以模拟计算参数较多时会非常卡顿，请耐心使用~</p>
+                                <li>泣血Dot和天工Dot的触发次数不会算</li>
+                                <li>奇术还是6重9段</li>
+                                <h4>其他</h4>
+                                <li>觉得数据不对，可重新返回基础页面按下空格重新计算</li>
+                                <li>轴，链接无需登录可直接下载</li>
+                                <li>代码都是AI自动生成堆叠的，所以界面有点卡顿</li>
                             </div>
                         </div>
                     </div>
@@ -1191,7 +1203,7 @@
                         <!-- 心法选择 -->
                         <h4>心法选择</h4>
                         <!-- 第一行：忘川、泥鱼 -->
-                        <div class="input-row" style="padding: 4px 0; display: flex; justify-content: space-between; align-items: center;">
+                        <div class="input-row" style="padding: 0; display: flex; justify-content: space-between; align-items: center;">
                             <div style="display: flex; align-items: center; flex: 1; margin-right: 20px;">
                                 <label style="margin-right: 8px; min-width: 40px;">忘川:</label>
                                 <input type="checkbox" id="diy-wangchuan">
@@ -1203,7 +1215,7 @@
                         </div>
                         
                         <!-- 第二行：易水、断石 -->
-                        <div class="input-row" style="padding: 4px 0; display: flex; justify-content: space-between; align-items: center;">
+                        <div class="input-row" style="padding: 0; display: flex; justify-content: space-between; align-items: center;">
                             <div style="display: flex; align-items: center; flex: 1; margin-right: 20px;">
                                 <label style="margin-right: 8px; min-width: 40px;">易水:</label>
                                 <input type="checkbox" id="diy-yishui">
@@ -1215,7 +1227,7 @@
                         </div>
                         
                         <!-- 第三行：极乐、征人 -->
-                        <div class="input-row" style="padding: 4px 0; display: flex; justify-content: space-between; align-items: center;">
+                        <div class="input-row" style="padding: 0; display: flex; justify-content: space-between; align-items: center;">
                             <div style="display: flex; align-items: center; flex: 1; margin-right: 20px;">
                                 <label style="margin-right: 8px; min-width: 40px;">极乐:</label>
                                 <input type="checkbox" id="diy-jile">
@@ -1357,7 +1369,7 @@
                         
                         <!-- 四个模块分两行布局 -->
                         <!-- 第一行：绳镖武学和首领单位 -->
-                        <div class="input-row" style="padding: 4px 0; display: flex; justify-content: space-between; align-items: center;">
+                        <div class="input-row" style="padding: 1px 0; display: flex; justify-content: space-between; align-items: center;">
                             <!-- 绳镖武学 -->
                             <div style="display: flex; align-items: center; flex: 1; margin-right: 20px;">
                                 <label style="margin-right: 8px; min-width: 60px;">绳镖武学:</label>
@@ -1373,7 +1385,7 @@
                         </div>
                         
                         <!-- 第二行：双刀武学和全武学 -->
-                        <div class="input-row" style="padding: 4px 0; display: flex; justify-content: space-between; align-items: center;">
+                        <div class="input-row" style="padding: 1px 0; display: flex; justify-content: space-between; align-items: center;">
                             <!-- 双刀武学 -->
                             <div style="display: flex; align-items: center; flex: 1; margin-right: 20px;">
                                 <label style="margin-right: 8px; min-width: 60px;">双刀武学:</label>
@@ -1405,9 +1417,9 @@
                     <div class="latex-formula">
                         $$\begin{aligned}
                         伤害 = \Bigg\{
-                        & \Big[ (\text{外功攻击} - \text{有效BOSS防御}) \times \text{外功倍率} + \text{固定外功} \Big] \times \left(1 + \frac{\text{外穿}}{200}\right) \times (1 + \text{通用增伤}\%) \times (1 + \text{外攻伤害加成}\%) \times (1 + \text{会心(意)增伤}\%) \\
-                        &+ \Big( \text{破竹攻击} \times \text{外功倍率} + \text{固定破竹} \Big) \times \left(1 + \frac{\text{属穿}}{200}\right) \times (1 + \text{通用增伤}\%) \times (1 + \text{属攻伤害加成}\%) \times 1.5 \times (1 + \text{会心(意)增伤}\%) \\
-                        &+ \Big( \text{外属攻击} \times \text{外功倍率} \Big) \times (1 + \text{通用增伤}\%) \times (1 + \text{会心(意)增伤}\%)
+                        & \Big[ (\text{外功攻击} - \text{有效BOSS防御}) \times \text{外功倍率} + \text{固定外功} \Big] \times \left(1 + \frac{\text{外穿}}{200}\right) \times (1 + \text{外攻伤害加成}\%) \times (1 + \text{通用增伤}\%) \times (1 + \text{会心(意)增伤}\%) \\
+                        &+ \Big( \text{破竹攻击} \times \text{外功倍率} + \text{固定破竹} \Big) \times \left(1 + \frac{\text{属穿}}{200}\right) \times (1 + \text{属攻伤害加成}\%) \times 1.5 \times (1 + \text{通用增伤}\%) \times (1 + \text{会心(意)增伤}\%) \\
+                        &+ \Big( \text{外属攻击} \times \text{外功倍率} \Big) \times (1 + \text{外属攻伤害加成}\%) \times (1 + \text{通用增伤}\%) \times (1 + \text{会心(意)增伤}\%)
                         \Bigg\} \times \text{定音增伤}(\%)
                         \end{aligned}$$
                     </div>
