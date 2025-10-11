@@ -1031,6 +1031,14 @@ h4 {
         min-width: auto;
     }
     
+    .rotation-disclaimer {
+        margin-left: 0;
+        margin-top: 8px;
+        font-size: 10px;
+        white-space: normal;
+        text-align: center;
+    }
+    
     .damage-stats-table-container {
         padding: 8px;
         min-width: auto;
@@ -1726,16 +1734,7 @@ tr:hover td {
         margin: 0;
     }
     
-    /* 伤害控制区域移动端优化 */
-    .damage-controls-container {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 15px;
-    }
-    
-    .damage-mode-selector {
-        justify-content: center;
-    }
+    /* 模式选择器移动端优化 */
     
     .custom-config-content {
         flex-direction: column;
@@ -2948,6 +2947,26 @@ input[type="checkbox"]:hover {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+/* 排轴免责声明文本样式 */
+.rotation-disclaimer {
+    font-size: 11px;
+    color: #6c757d;
+    font-style: italic;
+    margin-left: 12px;
+    padding: 4px 8px;
+    background: rgba(108, 117, 125, 0.08);
+    border-radius: 4px;
+    border-left: 2px solid #ffc107;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+    transition: all 0.2s ease;
+}
+
+.rotation-disclaimer:hover {
+    color: #495057;
+    background: rgba(108, 117, 125, 0.12);
+}
+
 /* 右侧伤害表格区域 */
 .damage-stats-section {
     flex: 0 0 350px;
@@ -2965,10 +2984,10 @@ input[type="checkbox"]:hover {
     border-color: #bbb;
 }
 
-/* 伤害模式选择器 */
+/* 伤害模式选择器 - 表格上方左对齐 */
 .damage-mode-selector {
-    margin-bottom: 15px;
-    text-align: center;
+    margin-bottom: 10px;
+    text-align: left;
 }
 
 .mode-select {

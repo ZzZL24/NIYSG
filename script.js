@@ -23,12 +23,12 @@ const skillRatesData = [
     { name: "横斩", externalRate: 2.6351, fixedExternal: 730, breakBambooRate: 2.6351, fixedBreakBamboo: 398, externalElementRate: 2.6351, hit: 7 },
     { name: "牵绳引刃", externalRate: 0.0621, fixedExternal: 17, breakBambooRate: 0.0621, fixedBreakBamboo: 9, externalElementRate: 0.0621, hit: 1 },
     { name: "鼠鼠生威", externalRate: 0.3490, fixedExternal: 0, breakBambooRate: 0.3490, fixedBreakBamboo: 0, externalElementRate: 0.3490, hit: 1 },
-    { name: "骑龙回马一段", externalRate: 3.1951, fixedExternal: 432, breakBambooRate: 3.1951, fixedBreakBamboo: 0, externalElementRate: 3.1951, hit: 1 },
-    { name: "骑龙回马二段", externalRate: 3.9051, fixedExternal: 528, breakBambooRate: 3.9051, fixedBreakBamboo: 0, externalElementRate: 3.9051, hit: 1 },
-    { name: "箫声千浪炸", externalRate: 3.897, fixedExternal: 800, breakBambooRate: 3.897, fixedBreakBamboo: 0, externalElementRate: 3.897, hit: 1 },
-    { name: "箫声千浪(炸前)", externalRate: 1.4614, fixedExternal: 300, breakBambooRate: 1.4614, fixedBreakBamboo: 0, externalElementRate: 1.4614, hit: 1 },
-    { name: "箫声千浪(炸后)", externalRate: 1.3127, fixedExternal: 0, breakBambooRate: 1.3127, fixedBreakBamboo: 0, externalElementRate: 1.3127, hit: 1 },
-    { name: "清风霁月", externalRate: 0.8718, fixedExternal: 425, breakBambooRate: 0.8718, fixedBreakBamboo: 0, externalElementRate: 0.8718, hit: 1 },
+    { name: "骑龙回马一段", externalRate: 3.1956, fixedExternal: 459, breakBambooRate: 3.1956, fixedBreakBamboo: 0, externalElementRate: 3.1956, hit: 1 },
+    { name: "骑龙回马二段", externalRate: 3.9058, fixedExternal: 561, breakBambooRate: 3.9058, fixedBreakBamboo: 0, externalElementRate: 3.9058, hit: 1 },
+    { name: "箫声千浪炸", externalRate: 3.919, fixedExternal: 830, breakBambooRate: 3.919, fixedBreakBamboo: 0, externalElementRate: 3.919, hit: 1 },
+    { name: "箫声千浪(炸前)", externalRate: 1.4696, fixedExternal: 310, breakBambooRate: 1.4696, fixedBreakBamboo: 0, externalElementRate: 1.4696, hit: 1 },
+    { name: "箫声千浪(炸后)", externalRate: 1.3107, fixedExternal: 0, breakBambooRate: 1.3107, fixedBreakBamboo: 0, externalElementRate: 1.3107, hit: 1 },
+    { name: "清风霁月", externalRate: 0.9539, fixedExternal: 467, breakBambooRate: 0.9539, fixedBreakBamboo: 0, externalElementRate: 0.9539, hit: 1 },
     { name: "极乐泣血", externalRate: 2, fixedExternal: 0, breakBambooRate: 0, fixedBreakBamboo: 0, externalElementRate: 0, hit: 0 },
     { name: "易水歌", externalRate: 1, fixedExternal: 0, breakBambooRate: 0.6667, fixedBreakBamboo: 0, externalElementRate: 1, hit: 1 },
     { name: "天工火Dot", externalRate: 0.26, fixedExternal: 3, breakBambooRate: 0, fixedBreakBamboo: 0, externalElementRate: 0, hit: 0 },
@@ -2844,7 +2844,7 @@ function initDamageModeSelect() {
             T = 60;
         } else if (selectedMode === 'duanshi') {
             // 断石模式：T值设为50
-            T = 50;
+            T = 60;
         } else if (selectedMode === 'custom') {
             // 自选模式：使用用户自定义的T值
             const customTValue = document.getElementById('custom-t-value');
@@ -2911,7 +2911,7 @@ function initCustomModeConfig() {
         if (!customGraduationDamage || !customTValue) return;
         
         // 获取用户输入的值
-        const graduationDamage = parseFloat(customGraduationDamage.value) || 2000000;
+        const graduationDamage = parseFloat(customGraduationDamage.value) || 3132489;
         const tValue = parseFloat(customTValue.value) || 60;
         
         // 更新全局变量
@@ -3168,13 +3168,13 @@ function updateDamageStatsDisplay(graduationDamage, expectedDamage, simulationDa
     // 根据模式设置毕业伤害
     let fixedGraduationDamage;
     if (mode === 'duanshi') {
-        fixedGraduationDamage = 2000000;  // 断石模式：毕业伤害为2000000
+        fixedGraduationDamage = 3132489;  // 断石模式：毕业伤害为3146618
     } else if (mode === 'custom') {
         // 自选模式：使用用户自定义的毕业伤害
         const customGraduationDamage = document.getElementById('custom-graduation-damage');
-        fixedGraduationDamage = customGraduationDamage ? parseFloat(customGraduationDamage.value) || 2000000 : 2000000;
+        fixedGraduationDamage = customGraduationDamage ? parseFloat(customGraduationDamage.value) || 3132489 : 3132489;
     } else {
-        fixedGraduationDamage = 3089950; // 易水模式：毕业伤害为3089950
+        fixedGraduationDamage = 3086121; // 易水模式：毕业伤害为3090734
     }
     
     // 当选择"无"时，除了期望伤害和模拟伤害，其余单元格显示为"-"
@@ -3199,7 +3199,7 @@ function updateDamageStatsDisplay(graduationDamage, expectedDamage, simulationDa
     }
     
     // 计算并更新DPS
-    // 毕业DPS = 3089950 / T
+    // 毕业DPS = 3086121 / T
     const graduationDpsElement = document.getElementById('graduation-dps');
     if (graduationDpsElement) {
         graduationDpsElement.textContent = isNoneMode ? '-' : (fixedGraduationDamage / T).toFixed(2);
@@ -3224,7 +3224,7 @@ function updateDamageStatsDisplay(graduationDamage, expectedDamage, simulationDa
         graduationRateElement.textContent = isNoneMode ? '-' : '100.00%';
     }
     
-    // 期望毕业率 = 期望伤害 / 3089950
+    // 期望毕业率 = 期望伤害 / 3086121
     const expectedRateElement = document.getElementById('expected-rate');
     if (expectedRateElement) {
         if (isNoneMode) {
@@ -3237,7 +3237,7 @@ function updateDamageStatsDisplay(graduationDamage, expectedDamage, simulationDa
         }
     }
     
-    // 模拟毕业率 = 模拟伤害 / 3089950
+    // 模拟毕业率 = 模拟伤害 / 3086121
     const simulationRateElement = document.getElementById('simulation-rate');
     if (simulationRateElement) {
         if (isNoneMode) {
@@ -3957,6 +3957,23 @@ function loadRotationConfig(config) {
         // 加载后修复BUFF数据同步问题
         fixRotationDataBuffSync();
         
+        // 根据配置名称自动切换毕业DPS模式
+        const damageSelect = document.getElementById('damage-mode-select');
+        if (damageSelect && config.name) {
+            const configName = config.name.toLowerCase();
+            if (configName.includes('断石')) {
+                damageSelect.value = 'duanshi';
+                console.log('检测到断石配置，自动切换到断石模式');
+            } else if (configName.includes('易水')) {
+                damageSelect.value = 'yishui';
+                console.log('检测到易水配置，自动切换到易水模式');
+            }
+            
+            // 触发change事件以更新相关计算
+            const changeEvent = new Event('change', { bubbles: true });
+            damageSelect.dispatchEvent(changeEvent);
+        }
+        
         // 不再加载面板数据，伤害计算将基于当前页面的面板数据
         // Object.assign(panelData, config.panelData); // 已移除
         
@@ -3968,7 +3985,7 @@ function loadRotationConfig(config) {
         
         } catch (error) {
         console.error('加载配置时发生错误:', error);
-        showNotification('加载失败: ' + error.message, 'error');
+        alert('加载失败: ' + error.message);
     }
 }
 
@@ -4081,10 +4098,29 @@ async function autoLoadFolderConfigs() {
         updateRotationConfigSelect();
         updateSaveButtonDisplay();
 
-        // 不直接加载排轴，仅更新下拉列表，用户手动选择加载
+        // 自动加载"易水一分钟打桩轴"配置
 
         if (loadedCount > 0) {
-            showNotification(`已从“轴”文件夹加载${loadedCount}个配置`, 'success');
+            // 查找易水一分钟打桩轴配置
+            const yishuiConfig = savedConfigs.find(config => 
+                config && config.name && config.name.includes('易水一分钟打桩轴')
+            );
+            
+            if (yishuiConfig) {
+                // 自动加载易水一分钟打桩轴配置
+                loadRotationConfig(yishuiConfig);
+                
+                // 更新下拉选择框的选中状态
+                const configSelect = document.getElementById('saved-rotation-configs');
+                if (configSelect) {
+                    configSelect.value = yishuiConfig.name;
+                }
+                
+                console.log('已自动加载易水一分钟打桩轴配置');
+                showNotification(`已从"轴"文件夹加载${loadedCount}个配置，并自动加载易水一分钟打桩轴`, 'success');
+            } else {
+                showNotification(`已从"轴"文件夹加载${loadedCount}个配置`, 'success');
+            }
         }
     } catch (err) {
         console.warn('自动加载轴文件夹配置失败：', err);
@@ -5442,17 +5478,11 @@ function initDiyImportToBasicButton() {
         return;
     }
     
-    importButton.addEventListener('click', async function() {
+    importButton.addEventListener('click', function() {
         console.log('DIY导入到基础信息按钮被点击');
         
         try {
-            // 确认操作
-            const confirmImport = await showConfirmDialog('确定要将DIY配置导入到基础信息页面吗？这将覆盖当前的基础信息配置。', '导入DIY配置');
-            if (!confirmImport) {
-                return;
-            }
-            
-            // 执行导入
+            // 直接执行导入，无需用户确认
             importDiyToBasic();
             
             showNotification('DIY配置已成功导入到基础信息页面！', 'success');
@@ -5478,6 +5508,32 @@ function importDiyToBasic() {
                 basicElement.value = diyElement.value;
             }
         });
+        
+        // 攻击值逻辑判定：当最小值>最大值时，使最大值=最小值
+        
+        // 外功攻击判定
+        const externalAttackMin = document.getElementById('external-attack-min');
+        const externalAttackMax = document.getElementById('external-attack-max');
+        if (externalAttackMin && externalAttackMax) {
+            const minValue = parseFloat(externalAttackMin.value) || 0;
+            const maxValue = parseFloat(externalAttackMax.value) || 0;
+            if (minValue > maxValue) {
+                externalAttackMax.value = minValue.toString();
+                console.log(`外功攻击最大值已调整为最小值: ${minValue}`);
+            }
+        }
+        
+        // 破竹攻击判定
+        const breakBambooMin = document.getElementById('break-bamboo-attack-min');
+        const breakBambooMax = document.getElementById('break-bamboo-attack-max');
+        if (breakBambooMin && breakBambooMax) {
+            const minValue = parseFloat(breakBambooMin.value) || 0;
+            const maxValue = parseFloat(breakBambooMax.value) || 0;
+            if (minValue > maxValue) {
+                breakBambooMax.value = minValue.toString();
+                console.log(`破竹攻击最大值已调整为最小值: ${minValue}`);
+            }
+        }
         
         // 更新panelData对象
         updatePanelDataFromInputs();
@@ -6607,7 +6663,7 @@ function updateExternalAttackFromAllSources() {
         let equipmentMinBonus = 0;
         const equipmentSelect = document.getElementById('diy-equipment-select');
         const equipmentValue = equipmentSelect?.value || '无';
-        if (equipmentValue === '燕归' || equipmentValue === '岳山') {
+        if (equipmentValue === '新燕归' || equipmentValue === '岳山') {
             equipmentMinBonus = 78; // 燕归和岳山装备外功攻击最小值加成
         }
         

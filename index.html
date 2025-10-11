@@ -63,29 +63,7 @@
             to { opacity: 1; transform: translateY(0); }
         }
         
-        /* 伤害控制区域整体布局 */
-        .damage-controls-container {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 20px;
-            margin-top: 15px;
-            padding: 12px 16px;
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            border-radius: 8px;
-            border: 1px solid #dee2e6;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            width: 100%;
-            box-sizing: border-box;
-        }
-        
-        /* 左侧模式选择器 */
-        .damage-mode-selector {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-shrink: 0;
-        }
+        /* 模式选择器样式 - 现在位于表格上方 */
         
         .mode-select-label {
             font-size: 14px;
@@ -755,10 +733,38 @@
                             </div>
                         </div>
                         
-                        <!-- 第三行：伤害模式选择和控制区域 -->
-                        <div class="damage-controls-container">
-                            <!-- 左侧：模式选择下拉框 -->
-                            <div class="damage-mode-selector">
+                        <!-- 右侧：自选模式配置区域 -->
+                        <div id="custom-mode-config" class="custom-mode-config">
+                            <div class="custom-config-content">
+                                <div class="config-item">
+                                    <label for="custom-graduation-damage" class="config-label">
+                                        <i class="config-icon">🎯</i>
+                                        毕业伤害
+                                    </label>
+                                    <input type="number" id="custom-graduation-damage" value="3132489" min="0" step="1000" class="config-input graduation-input">
+                                </div>
+                                
+                                <div class="config-item">
+                                    <label for="custom-t-value" class="config-label">
+                                        <i class="config-icon">⏱️</i>
+                                        时间
+                                    </label>
+                                    <input type="number" id="custom-t-value" value="60" min="1" max="200" step="1" class="config-input t-value-input">
+                                </div>
+                                
+                                <button id="apply-custom-config" class="apply-custom-btn">
+                                    <i class="btn-icon">✓</i>
+                                    应用配置
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 中间伤害表格 -->
+                    <div class="damage-stats-section">
+                        <!-- 模式选择控件 - 放置在表格上方左对齐 -->
+                        <div style="margin-bottom: 10px; text-align: left; display: flex; align-items: center; gap: 12px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
                                 <label for="damage-mode-select" class="mode-select-label">毕业DPS:</label>
                                 <select id="damage-mode-select" class="mode-select">
                                     <option value="none" selected>无</option>
@@ -767,38 +773,8 @@
                                     <option value="custom">自选</option>
                                 </select>
                             </div>
-                            
-                            
-                            <!-- 右侧：自选模式配置区域 -->
-                            <div id="custom-mode-config" class="custom-mode-config">
-                                <div class="custom-config-content">
-                                    <div class="config-item">
-                                        <label for="custom-graduation-damage" class="config-label">
-                                            <i class="config-icon">🎯</i>
-                                            毕业伤害
-                                        </label>
-                                        <input type="number" id="custom-graduation-damage" value="2000000" min="0" step="1000" class="config-input graduation-input">
-                                    </div>
-                                    
-                                    <div class="config-item">
-                                        <label for="custom-t-value" class="config-label">
-                                            <i class="config-icon">⏱️</i>
-                                            时间
-                                        </label>
-                                        <input type="number" id="custom-t-value" value="60" min="1" max="200" step="1" class="config-input t-value-input">
-                                    </div>
-                                    
-                                    <button id="apply-custom-config" class="apply-custom-btn">
-                                        <i class="btn-icon">✓</i>
-                                        应用配置
-                                    </button>
-                                </div>
-                            </div>
+                            <span class="rotation-disclaimer">打桩轴为理想轴仅用于测算自身毕业率，实战有所出入</span>
                         </div>
-                    </div>
-                    
-                    <!-- 中间伤害表格 -->
-                    <div class="damage-stats-section">
                         <table id="damage-stats-table" class="damage-stats-table enhanced-table">
                             <thead>
                                 <tr>
@@ -830,12 +806,7 @@
                             </tbody>
                         </table>
                         
-                        <!-- 轴链接 -->
-                        <div style="margin-top: 15px; text-align: center;">
-                            <a href="https://www.ilanzou.com/s/Vb7NLYQA" target="_blank" style="color: #3b82f6; text-decoration: none; font-weight: 600; font-size: 14px; padding: 8px 16px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 2px solid #3b82f6; border-radius: 6px; display: inline-block; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);">
-                                排轴下载链接：@https://www.ilanzou.com/s/Vb7NLYQA
-                            </a>
-                        </div>
+
                     </div>
                     
                     <!-- 右侧说明文本框 -->
@@ -853,9 +824,8 @@
                                 <li>红刀A2(1/2),红刀A4(5/7)，丢部分伤害</li>
                                 <li>箫音千浪(炸后)：炸前与炸后的落笛倍率不一样，炸前的符合官方面板参数</li>
                                 <li>泣血Dot和天工Dot的触发次数不会算</li>
-                                <li>奇术还是6重9段</li>
                                 <h4>其他</h4>
-                                <li>轴，链接无需登录可直接下载</li>
+
                                 <li>最好在PC端使用，未做移动端适配</li>
                                 <li>浣花套未实装，免费的AI有点听不懂啥意思</li>
                                 <li>代码都是AI自动生成堆叠的，所以计算界面有点卡顿</li>
