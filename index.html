@@ -703,17 +703,11 @@
                     <!-- 说明栏附加内容：毕业率计算与实战差异说明 -->
                     <div style="margin-top: 10px; background: #fff8e1; border: 1px solid #ffeaa7; border-radius: 6px; color: #5c4404; font-size: 15px; padding: 12px; line-height: 1.6; text-align: left; font-family: 'Microsoft YaHei','Heiti SC','SimHei',sans-serif; font-weight: 600;">
                         <div class="title-stars" style="text-align: center; color: #ffc107; font-size: 18px; line-height: 1; margin: 4px 0 6px 0;">★ ★ ★</div>
-                        <h4 style="margin: 0 0 8px 0; font-size: 16px; color: #7a5f06; font-weight: 700; text-align: left;">核心差异：计算与实际打桩的不同</h4>
-                        <p>期望计算的总伤害与实际打桩数值必然存在差异。比如飞隼的“断飞”、易水的层数叠加时机，实际打桩比计算多 6 个左右“鼠鼠”单位；红刀技能容易丢失伤害判定，阴阳崩解这类 BUFF 持续时间内，因技能模组不同也会产生伤害差异；再加上不同面板下气竭的触发时机不同；大小攻击之间的随机取值等等，这些因素共同导致了计算结果与实际打桩的偏差。不过后续若有大佬分享竞速轴，这类计算与实际的差异或许能进一步缩小。</p>
-                        <div class="title-stars" style="text-align: center; color: #ffc107; font-size: 18px; line-height: 1; margin: 10px 0 6px 0;">★ ★ ★</div>
-                        <h4 style="margin: 0 0 8px 0; font-size: 16px; color: #7a5f06; font-weight: 700; text-align: left;">计算定位：提供统一参照标准</h4>
-                        <p>需要明确的是，毕业率计算并非为了给出绝对准确的伤害数值，而是通过统一技能循环轴，为玩家提供参照——既能横向对比不同玩家之间的面板差异，也能纵向对标自身与版本最高标准的差距。</p>
-                        <div class="title-stars" style="text-align: center; color: #ffc107; font-size: 18px; line-height: 1; margin: 10px 0 6px 0;">★ ★ ★</div>
-                        <h4 style="margin: 0 0 8px 0; font-size: 16px; color: #7a5f06; font-weight: 700; text-align: left;">数据验证：误差范围与特殊情况</h4>
-                        <p>若对表格数据存疑，可通过实测单个技能验证差异。多数技能的误差会控制在千分之几以内，主要源于计算精度的取舍和面板数值的小数点省略；仅“箫音千浪（炸后）”和“易水歌 6”的差异相对明显，核心原因是官方提供的这两个技能基础面板存在数据偏差。</p>
-                        <div class="title-stars" style="text-align: center; color: #ffc107; font-size: 18px; line-height: 1; margin: 10px 0 6px 0;">★ ★ ★</div>
-                        <h4 style="margin: 0 0 8px 0; font-size: 16px; color: #7a5f06; font-weight: 700; text-align: left;">数据反馈：欢迎纠错与完善</h4>
-                        <p>为进一步提升数据的参考价值，若大家在对比实测或使用过程中发现计算有误，欢迎随时反馈。我会第一时间核查问题，及时修正错误，确保数据能更准确地为大家提供参照。</p>
+                        <ul class="explain-points" style="margin: 6px 0 0; padding-left: 1.2em;">
+                            <li>期望计算的总伤害与实际打桩存在差异；后续若有大佬提供竞速实战轴，能缩小差距。</li>
+                            <li>毕业率计算并非为了给出绝对准确的伤害数值，而是通过统一技能循环轴作为参照，便于横向比较不同玩家的面板差异，及纵向对标自身与版本最高标准之间的差距。</li>
+                            <li>单项技能的误差控制在千分之几，来源于计算精度取舍和面板小数点省略；仅“箫音千浪（炸后）”与“易水歌6”差异较明显，主要因官方基础面板数据存在偏差。</li>
+                        </ul>
                     </div>
                 </div>
             </div>
@@ -753,7 +747,7 @@
                         
                         <!-- 套装切换说明 -->
                         <div class="equipment-switch-notice">
-                            <span class="notice-text">💡在套装切换操作中，请先在排轴列表伤害列右侧的套装表头处选择目标套装，随后更新该套装对应的数值参数。</span>
+                            <span class="notice-text">💡飞隼易水和燕归易水采用的是同一个轴的模板，只是套装效果进行了更改；断石同理。</span>
                         </div>
                         
                         <!-- 右侧：自选模式配置区域 -->
@@ -791,8 +785,10 @@
                                 <label for="damage-mode-select" class="mode-select-label">毕业DPS:</label>
                                 <select id="damage-mode-select" class="mode-select">
                                     <option value="none" selected>无</option>
-                                    <option value="yishui">易水</option>
-                                    <option value="duanshi">断石</option>
+                                    <option value="feisun_yishui">飞隼易水</option>
+                                    <option value="feisun_duanshi">飞隼断石</option>
+                                    <option value="yangui_yishui">燕归易水</option>
+                                    <option value="yangui_duanshi">燕归断石</option>
                                     <option value="custom">自选</option>
                                 </select>
                             </div>

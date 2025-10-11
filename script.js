@@ -2840,19 +2840,28 @@ function initDamageModeSelect() {
             }
         }
         
-        // 根据选择的模式设置T值
+        // 根据选择的模式设置T值（兼容旧值与新四模式）
         if (selectedMode === 'none') {
             // "无"选项：保持默认状态，T值保持为60
-            T = 60;
-        } else if (selectedMode === 'yishui') {
-            T = 60;
-        } else if (selectedMode === 'duanshi') {
-            // 断石模式：T值设为50
             T = 60;
         } else if (selectedMode === 'custom') {
             // 自选模式：使用用户自定义的T值
             const customTValue = document.getElementById('custom-t-value');
             T = customTValue ? parseFloat(customTValue.value) || 60 : 60;
+        } else if (
+            selectedMode === 'yishui' ||
+            selectedMode === 'feisun_yishui' ||
+            selectedMode === 'yangui_yishui'
+        ) {
+            // 易水类模式：T值设为60
+            T = 60;
+        } else if (
+            selectedMode === 'duanshi' ||
+            selectedMode === 'feisun_duanshi' ||
+            selectedMode === 'yangui_duanshi'
+        ) {
+            // 断石类模式：T值设为60（按最新需求统一T=60）
+            T = 60;
         }
         
         // 更新伤害统计表格
@@ -3171,14 +3180,22 @@ function updateRotationDamageSumDisplay() {
 function updateDamageStatsDisplay(graduationDamage, expectedDamage, simulationDamage, mode = 'none') {
     // 根据模式设置毕业伤害
     let fixedGraduationDamage;
-    if (mode === 'duanshi') {
-        fixedGraduationDamage = 3132489;  // 断石模式：毕业伤害为3146618
-    } else if (mode === 'custom') {
+    if (mode === 'custom') {
         // 自选模式：使用用户自定义的毕业伤害
         const customGraduationDamage = document.getElementById('custom-graduation-damage');
         fixedGraduationDamage = customGraduationDamage ? parseFloat(customGraduationDamage.value) || 3132489 : 3132489;
-    } else {
-        fixedGraduationDamage = 3086121; // 易水模式：毕业伤害为3090734
+    } else if (mode && mode.indexOf('yangui_duanshi') !== -1) {
+        // 燕归断石：按需求设置毕业伤害
+        fixedGraduationDamage = 3063010;
+    } else if (mode && mode.indexOf('yangui_yishui') !== -1) {
+        // 燕归易水：按需求设置毕业伤害
+        fixedGraduationDamage = 3001324;
+    } else if (mode && mode.indexOf('duanshi') !== -1) {
+        // 其他断石类（默认飞隼断石）
+        fixedGraduationDamage = 3132489;
+    } else if (mode && mode.indexOf('yishui') !== -1) {
+        // 其他易水类（默认飞隼易水）
+        fixedGraduationDamage = 3086121;
     }
     
     // 当选择"无"时，除了期望伤害和模拟伤害，其余单元格显示为"-"
@@ -3416,10 +3433,15 @@ function initSaveRotationButton() {
         return;
     }
     
+            // 读取当前套装类型（优先表头选择，其次面板值）
+            const headerSelect = document.getElementById('set-layer-header-select');
+            const currentEquipmentSet = (headerSelect && headerSelect.value) || panelData.equipmentSet || '无';
+
             // 创建保存数据对象 - 只保存排轴数据，不保存面板数据
         const saveData = {
                 name: configName.trim(),
-                rotationData: [...rotationData] // 深拷贝排轴数据
+                rotationData: [...rotationData], // 深拷贝排轴数据
+                equipmentSet: currentEquipmentSet
                 // 移除panelData，排轴配置不包含面板数据
                 // 移除时间信息，不保存时间戳和修改时间
             };
@@ -3962,21 +3984,45 @@ function loadRotationConfig(config) {
         // 加载后修复BUFF数据同步问题
         fixRotationDataBuffSync();
         
-        // 根据配置名称自动切换毕业DPS模式
+        // 根据配置名称自动切换毕业DPS模式（支持飞隼/燕归 + 易水/断石）
         const damageSelect = document.getElementById('damage-mode-select');
         if (damageSelect && config.name) {
-            const configName = config.name.toLowerCase();
-            if (configName.includes('断石')) {
-                damageSelect.value = 'duanshi';
-                console.log('检测到断石配置，自动切换到断石模式');
-            } else if (configName.includes('易水')) {
-                damageSelect.value = 'yishui';
-                console.log('检测到易水配置，自动切换到易水模式');
+            const name = config.name || '';
+            let modeToSet = null;
+            if (name.includes('断石')) {
+                if (name.includes('飞隼')) modeToSet = 'feisun_duanshi';
+                else if (name.includes('燕归')) modeToSet = 'yangui_duanshi';
+                else modeToSet = 'feisun_duanshi'; // 兼容旧配置，默认断石归入飞隼断石
+                console.log('检测到断石配置，自动切换到断石类模式');
+            } else if (name.includes('易水')) {
+                if (name.includes('飞隼')) modeToSet = 'feisun_yishui';
+                else if (name.includes('燕归')) modeToSet = 'yangui_yishui';
+                else modeToSet = 'feisun_yishui'; // 兼容旧配置，默认易水归入飞隼易水
+                console.log('检测到易水配置，自动切换到易水类模式');
             }
             
-            // 触发change事件以更新相关计算
-            const changeEvent = new Event('change', { bubbles: true });
-            damageSelect.dispatchEvent(changeEvent);
+            if (modeToSet) {
+                damageSelect.value = modeToSet;
+                // 触发change事件以更新相关计算
+                const changeEvent = new Event('change', { bubbles: true });
+                damageSelect.dispatchEvent(changeEvent);
+            }
+        }
+
+        // 同步当前排轴的套装类型到表头与面板（优先使用配置中记录的值）
+        try {
+            const headerSelect = document.getElementById('set-layer-header-select');
+            const equipmentSetSelect = document.getElementById('equipment-set');
+            let equipmentSetToApply = config.equipmentSet;
+            if (!equipmentSetToApply) {
+                equipmentSetToApply = inferEquipmentSetFromRotation(rotationData);
+            }
+            panelData.equipmentSet = equipmentSetToApply || '无';
+            if (headerSelect) headerSelect.value = panelData.equipmentSet;
+            if (equipmentSetSelect) equipmentSetSelect.value = panelData.equipmentSet;
+            console.log(`已同步套装类型为：${panelData.equipmentSet}`);
+        } catch (e) {
+            console.warn('同步套装类型到表头与面板时出现问题：', e);
         }
         
         // 不再加载面板数据，伤害计算将基于当前页面的面板数据
@@ -3992,6 +4038,22 @@ function loadRotationConfig(config) {
         console.error('加载配置时发生错误:', error);
         alert('加载失败: ' + error.message);
     }
+}
+
+// 根据排轴数据推断套装类型（用于旧配置未记录套装类型时）
+function inferEquipmentSetFromRotation(rotationItems) {
+    const layers = (rotationItems || []).map(item => item && item.setLayer).filter(Boolean);
+    const hasFeisui = layers.some(l => ['0层','1层','2层','3层','4层','满层'].includes(l));
+    const hasYangui = layers.some(l => /外功增伤/.test(l));
+    const hasShiyu = layers.some(l => /会心增伤/.test(l));
+    const hasYueshan = layers.some(l => /通用增伤/.test(l));
+    const hasXinYangui = layers.some(l => /破竹/.test(l) || /通用\+10%破竹增伤/.test(l));
+    if (hasXinYangui) return '新燕归';
+    if (hasYangui) return '燕归';
+    if (hasShiyu) return '时雨';
+    if (hasYueshan) return '岳山';
+    if (hasFeisui) return '飞隼';
+    return '无';
 }
 
 // 自动从“轴”文件夹加载排轴配置
@@ -4106,23 +4168,23 @@ async function autoLoadFolderConfigs() {
         // 自动加载"易水一分钟打桩轴"配置
 
         if (loadedCount > 0) {
-            // 查找易水一分钟打桩轴配置
-            const yishuiConfig = savedConfigs.find(config => 
-                config && config.name && config.name.includes('易水一分钟打桩轴')
+            // 查找并自动加载：飞隼易水木桩轴-dy高育良
+            const defaultConfig = savedConfigs.find(config => 
+                config && config.name && config.name.includes('飞隼易水木桩轴-dy高育良')
             );
-            
-            if (yishuiConfig) {
-                // 自动加载易水一分钟打桩轴配置
-                loadRotationConfig(yishuiConfig);
-                
+
+            if (defaultConfig) {
+                // 自动加载指定默认配置
+                loadRotationConfig(defaultConfig);
+
                 // 更新下拉选择框的选中状态
                 const configSelect = document.getElementById('saved-rotation-configs');
                 if (configSelect) {
-                    configSelect.value = yishuiConfig.name;
+                    configSelect.value = defaultConfig.name;
                 }
-                
-                console.log('已自动加载易水一分钟打桩轴配置');
-                showNotification(`已从"轴"文件夹加载${loadedCount}个配置，并自动加载易水一分钟打桩轴`, 'success');
+
+                console.log('已自动加载：飞隼易水木桩轴-dy高育良');
+                showNotification(`已从"轴"文件夹加载${loadedCount}个配置，并自动加载飞隼易水木桩轴-dy高育良`, 'success');
             } else {
                 showNotification(`已从"轴"文件夹加载${loadedCount}个配置`, 'success');
             }
