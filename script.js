@@ -70,14 +70,14 @@ const buffData = [
 
 // 存储面板数据
 let panelData = {
-    externalAttack: { min: 1299, max: 3690 },
+    externalAttack: { min: 1299, max: 3735 },
     breakBambooAttack: { min: 365, max: 655 },
     ringMetalAttack: { min: 0, max: 0 },
     breakRockAttack: { min: 0, max: 0 },  // 修正：若最小值大于最大值，则将最大值调整为与最小值相等
     pullSilkAttack: { min: 0, max: 0 },  // 修正：若最小值大于最大值，则将最大值调整为与最小值相等
     precisionRate: 98.8,
     criticalRate: 70.9,
-    intentRate: 15.8,
+    intentRate: 16.9,
     directCriticalRate: 4.6,
     directIntentRate: 0.0,
     criticalDamageBonus: 57.9,
