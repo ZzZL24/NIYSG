@@ -630,12 +630,15 @@
                         <!-- 其他增伤 -->
                         <h4 style="margin: 10px 0 5px 0;">其他增伤</h4>
                         <div class="input-row" style="padding: 2px 0;">
-                            <label for="boss-talent-bonus">BOSS天赋(%):</label>
-                            <input type="number" id="boss-talent-bonus" value="0.0" min="0" step="0.1">
-                        </div>
-                        <div class="input-row" style="padding: 2px 0;">
                             <label for="boss-defense">BOSS防御:</label>
                             <input type="number" id="boss-defense" value="408" min="0">
+                        </div>
+                        <div class="input-row" style="padding: 2px 0;">
+                            <label for="boss-talent-select">BOSS天赋:</label>
+                            <select id="boss-talent-select" class="select-input enhanced-select">
+                                <option value="wooden-dummy" selected>木桩</option>
+                                <option value="trial-sword">试剑/侠境</option>
+                            </select>
                         </div>
                         <div class="input-row" style="padding: 2px 0;">
                             <label for="equipment-set">套装装备:</label>
@@ -731,6 +734,11 @@
                                 </select>
                                 <button id="delete-rotation-config-btn" class="delete-config-btn">删除配置</button>
                             </div>
+                        </div>
+                        
+                        <!-- 套装切换说明 -->
+                        <div class="equipment-switch-notice">
+                            <span class="notice-text">💡在套装切换操作中，请先在排轴列表伤害列右侧的套装表头处选择目标套装，随后更新该套装对应的数值参数。</span>
                         </div>
                         
                         <!-- 右侧：自选模式配置区域 -->
@@ -1408,9 +1416,9 @@
                                 <th colspan="2">精准率&lt;100%</th>
                             </tr>
                             <tr>
-                                <th>会心+会意&lt;100%</th>
+                                <th>会心+会意≤100%</th>
                                 <th>会心+会意&gt;100%</th>
-                                <th>会心+会意&lt;100%</th>
+                                <th>会心+会意≤100%</th>
                                 <th>会心+会意&gt;100%</th>
                             </tr>
                         </thead>

@@ -98,7 +98,7 @@ let panelData = {
     foodBuff: '涮鱼',
     talisman: '会心帖',
     craftingBonus: '天工火',
-    bossTalentBonus: 0.0,
+    bossTalent: 'wooden-dummy',
     // Boss防御
     bossDefense: 408
 };
@@ -183,7 +183,7 @@ function generateCacheKey(skill, panelData) {
         bossUnitBonus: panelData.bossUnitBonus,
         lightStrikeBonus: panelData.lightStrikeBonus,
         mouseBonus: panelData.mouseBonus,
-        bossTalentBonus: panelData.bossTalentBonus,
+        bossTalent: panelData.bossTalent,
         isSimulationMode: isSimulationMode
     };
     
@@ -1210,7 +1210,11 @@ function updateRotationTable() {
             }
             
             // Boss天赋增伤
-            generalBonus += panelData.bossTalentBonus;
+            let bossTalentBonus = 0;
+            if (panelData.bossTalent === 'trial-sword') {
+                bossTalentBonus = 15; // 试剑/侠境增加15%通用增伤
+            }
+            generalBonus += bossTalentBonus;
             
             // 鼠鼠定音增伤：仅适用于鼠鼠生威技能，独立计算
             // 鼠鼠生威技能有额外独立的1.3倍全部伤害（1.24倍外功伤害已归类为额外外功伤害加成）
@@ -2239,7 +2243,7 @@ function collectAndSavePanelData() {
             foodBuff: 'food-buff',
             talisman: 'talisman',
             craftingBonus: 'crafting-bonus',
-            bossTalentBonus: 'boss-talent-bonus',
+            bossTalent: 'boss-talent-select',
             bossDefense: 'boss-defense'
         };
         
@@ -2332,7 +2336,7 @@ function savePanelDataAsDefaults() {
             foodBuff: panelData.foodBuff || '无',
             talisman: panelData.talisman || '无',
             craftingBonus: panelData.craftingBonus || '无',
-            bossTalentBonus: panelData.bossTalentBonus || 0,
+            bossTalent: panelData.bossTalent || 'wooden-dummy',
             bossDefense: panelData.bossDefense || 408,
             
             // 保存时间戳
@@ -2405,7 +2409,7 @@ function loadPanelDataDefaults() {
         setInputValue('food-buff', defaultValues.foodBuff);
         setInputValue('talisman', defaultValues.talisman);
         setInputValue('crafting-bonus', defaultValues.craftingBonus);
-        setInputValue('boss-talent-bonus', defaultValues.bossTalentBonus);
+        setInputValue('boss-talent-select', defaultValues.bossTalent);
         setInputValue('boss-defense', defaultValues.bossDefense);
         
         console.log('基础信息默认值加载完成');
@@ -2609,7 +2613,7 @@ function getDefaultPanelData() {
         foodBuff: '无',
         talisman: '无帖',
         craftingBonus: '无',
-        bossTalentBonus: 0,
+        bossTalent: 'wooden-dummy',
         bossDefense: 408
     };
 }
@@ -2655,7 +2659,7 @@ function updatePanelInputs() {
         document.getElementById('crafting-bonus').value = panelData.craftingBonus;
         
         // 更新BOSS相关输入框
-        document.getElementById('boss-talent-bonus').value = panelData.bossTalentBonus;
+        document.getElementById('boss-talent-select').value = panelData.bossTalent;
         document.getElementById('boss-defense').value = panelData.bossDefense;
     } catch (error) {
         console.error('更新面板输入框时发生错误：', error);
@@ -3317,7 +3321,8 @@ function updatePanelDataFromInputs() {
             panelData.foodBuff = document.getElementById('food-buff').value || '无';
             panelData.talisman = document.getElementById('talisman').value || '无帖';
             panelData.craftingBonus = document.getElementById('crafting-bonus').value || '无';
-            panelData.bossTalentBonus = parseFloat(document.getElementById('boss-talent-bonus').value.replace('%', '')) || 0;
+            // 获取BOSS天赋选择
+            panelData.bossTalent = document.getElementById('boss-talent-select').value || 'wooden-dummy';
             
             // 获取Boss防御值
             panelData.bossDefense = parseFloat(document.getElementById('boss-defense').value) || 408;
