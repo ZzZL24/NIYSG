@@ -4,6 +4,13 @@ function preciseRound(value, decimals = 1) {
     return Math.round((value + Number.EPSILON) * factor) / factor;
 }
 
+// 数值显示：最多三位小数，不显示多余的0
+function formatUpTo3Decimals(value) {
+    const num = Number(value);
+    if (!isFinite(num)) return '';
+    return num.toFixed(3).replace(/\.?0+$/, '');
+}
+
 // 技能倍率表数据
 const skillRatesData = [
     { name: "无", externalRate: 0, fixedExternal: 0, breakBambooRate: 0, fixedBreakBamboo: 0, externalElementRate: 0, hit: 0 },
@@ -13,7 +20,7 @@ const skillRatesData = [
     { name: "白刀A4", externalRate: 0.5082, fixedExternal: 142, breakBambooRate: 0.5082, fixedBreakBamboo: 77, externalElementRate: 0.5082, hit: 2 },
     { name: "红刀A1", externalRate: 0.6472, fixedExternal: 180, breakBambooRate: 0.6472, fixedBreakBamboo: 98, externalElementRate: 0.6472, hit: 2 },
     { name: "红刀A2", externalRate: 0.9012, fixedExternal: 250, breakBambooRate: 0.9012, fixedBreakBamboo: 136, externalElementRate: 0.9012, hit: 2 },
-    { name: "红刀A2(1/2)", externalRate: 0.4506, fixedExternal: 120, breakBambooRate: 0.4506, fixedBreakBamboo: 68, externalElementRate: 0.4506, hit: 1 },
+    { name: "红刀A2(1/2)", externalRate: 0.4506, fixedExternal: 125, breakBambooRate: 0.4506, fixedBreakBamboo: 68, externalElementRate: 0.4506, hit: 1 },
     { name: "红刀A3", externalRate: 1.4455, fixedExternal: 401, breakBambooRate: 1.4455, fixedBreakBamboo: 218, externalElementRate: 1.4455, hit: 8 },
     { name: "红刀A4", externalRate: 1.7358, fixedExternal: 481, breakBambooRate: 1.7358, fixedBreakBamboo: 262, externalElementRate: 1.7358, hit: 7 },
     { name: "红刀A4(5/7)", externalRate: 1.215, fixedExternal: 336.7, breakBambooRate: 1.215, fixedBreakBamboo: 183.4, externalElementRate: 1.215, hit: 5 },
@@ -27,7 +34,7 @@ const skillRatesData = [
     { name: "骑龙回马二段", externalRate: 3.9058, fixedExternal: 561, breakBambooRate: 3.9058, fixedBreakBamboo: 0, externalElementRate: 3.9058, hit: 1 },
     { name: "箫声千浪炸", externalRate: 3.919, fixedExternal: 830, breakBambooRate: 3.919, fixedBreakBamboo: 0, externalElementRate: 3.919, hit: 1 },
     { name: "箫声千浪(炸前)", externalRate: 1.4696, fixedExternal: 310, breakBambooRate: 1.4696, fixedBreakBamboo: 0, externalElementRate: 1.4696, hit: 1 },
-    { name: "箫声千浪(炸后)", externalRate: 1.3107, fixedExternal: 0, breakBambooRate: 1.3107, fixedBreakBamboo: 0, externalElementRate: 1.3107, hit: 1 },
+    { name: "箫声千浪(炸后)", externalRate: 1.3098, fixedExternal: 0, breakBambooRate: 1.3098, fixedBreakBamboo: 0, externalElementRate: 1.3098, hit: 1 },
     { name: "清风霁月", externalRate: 0.9539, fixedExternal: 467, breakBambooRate: 0.9539, fixedBreakBamboo: 0, externalElementRate: 0.9539, hit: 1 },
     { name: "极乐泣血", externalRate: 2, fixedExternal: 0, breakBambooRate: 0, fixedBreakBamboo: 0, externalElementRate: 0, hit: 0 },
     { name: "易水歌", externalRate: 1, fixedExternal: 0, breakBambooRate: 0.6667, fixedBreakBamboo: 0, externalElementRate: 1, hit: 1 },
@@ -70,14 +77,14 @@ const buffData = [
 
 // 存储面板数据
 let panelData = {
-    externalAttack: { min: 1299, max: 3735 },
+    externalAttack: { min: 1299, max: 3602 },
     breakBambooAttack: { min: 365, max: 655 },
     ringMetalAttack: { min: 0, max: 0 },
     breakRockAttack: { min: 0, max: 0 },  // 修正：若最小值大于最大值，则将最大值调整为与最小值相等
     pullSilkAttack: { min: 0, max: 0 },  // 修正：若最小值大于最大值，则将最大值调整为与最小值相等
-    precisionRate: 98.8,
-    criticalRate: 70.9,
-    intentRate: 16.9,
+    precisionRate: 100,
+    criticalRate: 68.2,
+    intentRate: 18.8,
     directCriticalRate: 4.6,
     directIntentRate: 0.0,
     criticalDamageBonus: 57.9,
@@ -96,11 +103,11 @@ let panelData = {
     // 其他增伤
     equipmentSet: '飞隼',
     foodBuff: '涮鱼',
-    talisman: '会心帖',
+    talisman: '真气会心帖',
     craftingBonus: '天工火',
     bossTalent: 'wooden-dummy',
     // Boss防御
-    bossDefense: 408
+    bossDefense: 405
 };
 
 // 存储排轴数据
@@ -1699,7 +1706,7 @@ function updateRotationTable() {
                 </select>
             </td>
             <td>
-                <input type="number" class="table-times-input" data-index="${index}" value="${(skill.times || 1).toFixed(2)}" min="0" step="1" style="width: 60px; text-align: center;" ${skill.name === "极乐泣血" && jileCalculationMode === 'auto' ? 'readonly' : ''}>
+                <input type="number" class="table-times-input" data-index="${index}" value="${formatUpTo3Decimals(skill.times || 1)}" min="0" step="1" style="width: 60px; text-align: center;" ${skill.name === "极乐泣血" && jileCalculationMode === 'auto' ? 'readonly' : ''}>
             </td>
             <td>${damageData.totalDamage}</td>
             <td>
@@ -2862,6 +2869,9 @@ function initDamageModeSelect() {
         ) {
             // 断石类模式：T值设为60（按最新需求统一T=60）
             T = 60;
+        } else if (selectedMode === 'puwu_lao1') {
+            // 普五老一模式：时间T为43
+            T = 43;
         }
         
         // 更新伤害统计表格
@@ -2880,6 +2890,16 @@ function initJileCalculationMode() {
     const jileManualToggle = document.getElementById('jile-manual-mode-toggle');
     if (!jileManualToggle) return;
     
+    // 根据初始勾选状态同步一次全局模式与表格
+    try {
+        const isManualInit = jileManualToggle.checked;
+        jileCalculationMode = isManualInit ? 'manual' : 'auto';
+        updateRotationTable();
+        showJileModeNotification(jileCalculationMode);
+    } catch (e) {
+        console.warn('初始化极乐泣血模式同步时出现问题:', e);
+    }
+
     // 监听复选框变化
     jileManualToggle.addEventListener('change', function(e) {
         const isManual = e.target.checked;
@@ -2924,7 +2944,7 @@ function initCustomModeConfig() {
         if (!customGraduationDamage || !customTValue) return;
         
         // 获取用户输入的值
-        const graduationDamage = parseFloat(customGraduationDamage.value) || 3132489;
+        const graduationDamage = parseFloat(customGraduationDamage.value) || 3122602;
         const tValue = parseFloat(customTValue.value) || 60;
         
         // 更新全局变量
@@ -3183,19 +3203,22 @@ function updateDamageStatsDisplay(graduationDamage, expectedDamage, simulationDa
     if (mode === 'custom') {
         // 自选模式：使用用户自定义的毕业伤害
         const customGraduationDamage = document.getElementById('custom-graduation-damage');
-        fixedGraduationDamage = customGraduationDamage ? parseFloat(customGraduationDamage.value) || 3132489 : 3132489;
+        fixedGraduationDamage = customGraduationDamage ? parseFloat(customGraduationDamage.value) || 3122602 : 3122602;
+    } else if (mode === 'puwu_lao1') {
+        // 普五老一：毕业伤害为2176108
+        fixedGraduationDamage = 2176108;
     } else if (mode && mode.indexOf('yangui_duanshi') !== -1) {
         // 燕归断石：按需求设置毕业伤害
-        fixedGraduationDamage = 3063010;
+        fixedGraduationDamage = 3057228;
     } else if (mode && mode.indexOf('yangui_yishui') !== -1) {
         // 燕归易水：按需求设置毕业伤害
-        fixedGraduationDamage = 3001324;
+        fixedGraduationDamage = 2995793;
     } else if (mode && mode.indexOf('duanshi') !== -1) {
         // 其他断石类（默认飞隼断石）
-        fixedGraduationDamage = 3132489;
+        fixedGraduationDamage = 3122602;
     } else if (mode && mode.indexOf('yishui') !== -1) {
         // 其他易水类（默认飞隼易水）
-        fixedGraduationDamage = 3086121;
+        fixedGraduationDamage = 3065444;
     }
     
     // 当选择"无"时，除了期望伤害和模拟伤害，其余单元格显示为"-"
@@ -3220,7 +3243,7 @@ function updateDamageStatsDisplay(graduationDamage, expectedDamage, simulationDa
     }
     
     // 计算并更新DPS
-    // 毕业DPS = 3086121 / T
+    // 毕业DPS = 3065444 / T
     const graduationDpsElement = document.getElementById('graduation-dps');
     if (graduationDpsElement) {
         graduationDpsElement.textContent = isNoneMode ? '-' : (fixedGraduationDamage / T).toFixed(2);
@@ -3245,7 +3268,7 @@ function updateDamageStatsDisplay(graduationDamage, expectedDamage, simulationDa
         graduationRateElement.textContent = isNoneMode ? '-' : '100.00%';
     }
     
-    // 期望毕业率 = 期望伤害 / 3086121
+    // 期望毕业率 = 期望伤害 / 3065444
     const expectedRateElement = document.getElementById('expected-rate');
     if (expectedRateElement) {
         if (isNoneMode) {
@@ -3258,7 +3281,7 @@ function updateDamageStatsDisplay(graduationDamage, expectedDamage, simulationDa
         }
     }
     
-    // 模拟毕业率 = 模拟伤害 / 3086121
+    // 模拟毕业率 = 模拟伤害 / 3065444
     const simulationRateElement = document.getElementById('simulation-rate');
     if (simulationRateElement) {
         if (isNoneMode) {
@@ -3999,6 +4022,10 @@ function loadRotationConfig(config) {
                 else if (name.includes('燕归')) modeToSet = 'yangui_yishui';
                 else modeToSet = 'feisun_yishui'; // 兼容旧配置，默认易水归入飞隼易水
                 console.log('检测到易水配置，自动切换到易水类模式');
+            } else if (name.includes('普五') || name.includes('老一')) {
+                // 普通五人本·老一配置：联动到“普五老一”毕业模式
+                modeToSet = 'puwu_lao1';
+                console.log('检测到普五老一配置，自动切换到普五老一模式');
             }
             
             if (modeToSet) {
