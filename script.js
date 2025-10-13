@@ -2274,7 +2274,7 @@ function collectAndSavePanelData() {
                         panelData[key] = parseFloat(value.replace('%', '')) || 0;
                     } else if (key === 'bossDefense') {
                         // Boss防御
-                        panelData[key] = parseFloat(value) || 408;
+                        panelData[key] = parseFloat(value) || 405;
                     } else {
                         // 字符串类型（包括craftingBonus等下拉框）
                         panelData[key] = value || (key === 'equipmentSet' ? '无' : '');
@@ -2344,7 +2344,7 @@ function savePanelDataAsDefaults() {
             talisman: panelData.talisman || '无',
             craftingBonus: panelData.craftingBonus || '无',
             bossTalent: panelData.bossTalent || 'wooden-dummy',
-            bossDefense: panelData.bossDefense || 408,
+            bossDefense: panelData.bossDefense || 405,
             
             // 保存时间戳
             timestamp: Date.now()
@@ -2621,7 +2621,7 @@ function getDefaultPanelData() {
         talisman: '无帖',
         craftingBonus: '无',
         bossTalent: 'wooden-dummy',
-        bossDefense: 408
+        bossDefense: 405
     };
 }
 
@@ -3365,7 +3365,7 @@ function updatePanelDataFromInputs() {
             panelData.bossTalent = document.getElementById('boss-talent-select').value || 'wooden-dummy';
             
             // 获取Boss防御值
-            panelData.bossDefense = parseFloat(document.getElementById('boss-defense').value) || 408;
+            panelData.bossDefense = parseFloat(document.getElementById('boss-defense').value) || 405;
         } catch (e) { console.error('其他输入框错误:', e); }
         
         // 注意：山参肉丸子效果将在伤害计算时处理，不修改输入框值
