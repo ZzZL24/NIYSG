@@ -1,3 +1,26 @@
+// 调试开关 - 生产环境设为false
+const DEBUG_MODE = false;
+const DEBUG_LEVEL = 1; // 0=无调试, 1=关键信息, 2=详细信息
+
+// 统一调试输出函数
+function debugLog(message, level = 1) {
+    if (DEBUG_MODE && DEBUG_LEVEL >= level) {
+        console.log(message);
+    }
+}
+
+function debugError(message) {
+    if (DEBUG_MODE) {
+        console.error(message);
+    }
+}
+
+function debugWarn(message) {
+    if (DEBUG_MODE) {
+        console.warn(message);
+    }
+}
+
 // 精确数值处理函数
 function preciseRound(value, decimals = 1) {
     const factor = Math.pow(10, decimals);
@@ -10,6 +33,190 @@ function formatUpTo3Decimals(value) {
     if (!isFinite(num)) return '';
     return num.toFixed(3).replace(/\.?0+$/, '');
 }
+
+// ==================== 配置管理模块 ====================
+// 游戏配置数据，便于维护和扩展
+const GameConfig = {
+    // 技能分类配置
+    skillCategories: {
+        ropeDartSkills: ["鼠鼠生威", "牵绳引刃"],
+        dualBladesSkills: ["白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2", "红刀A2(1/2)", "红刀A3", "红刀A4", "红刀A4(5/7)", "红刀A5", "痴障"],
+        allMartialSkills: ["鼠鼠生威", "牵绳引刃", "白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2", "红刀A2(1/2)", "红刀A3", "红刀A4", "红刀A4(5/7)", "红刀A5", "痴障", "易水歌", "极乐泣血"],
+        redBladeSkills: ["红刀A1", "红刀A2", "红刀A2(1/2)", "红刀A3", "红刀A4", "红刀A4(5/7)", "红刀A5"],
+        bladeSkills: ["白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2", "红刀A2(1/2)", "红刀A3", "红刀A4", "红刀A4(5/7)", "红刀A5"],
+        dotSkills: ["天工火Dot", "天工毒Dot", "火·厚积薄发"]
+    },
+    
+    // 技能特殊效果配置
+    skillEffects: {
+        "鼠鼠生威": {
+            generalBonus: 80,
+            mouseMultiplier: 1.3
+        }
+    },
+    
+    
+    // 计算常量
+    constants: {
+        maxCriticalRate: 0.8,
+        breakBambooMultiplier: 1.5,
+        redBladeElementalPenetration: 10,
+        bossDefenseReduction: 0.1
+    }
+};
+
+// ==================== 数据验证模块 ====================
+class DataValidator {
+    static validatePanelData(data) {
+        const errors = [];
+        
+        // 验证攻击值范围
+        if (data.externalAttack.min > data.externalAttack.max) {
+            errors.push('外功攻击最小值不能大于最大值');
+        }
+        if (data.breakBambooAttack.min > data.breakBambooAttack.max) {
+            errors.push('破竹攻击最小值不能大于最大值');
+        }
+        
+        // 验证概率值范围
+        if (data.precisionRate < 0 || data.precisionRate > 100) {
+            errors.push('精准率必须在0-100之间');
+        }
+        if (data.criticalRate < 0 || data.criticalRate > 100) {
+            errors.push('会心率必须在0-100之间');
+        }
+        if (data.intentRate < 0 || data.intentRate > 100) {
+            errors.push('会意率必须在0-100之间');
+        }
+        
+        // 验证增伤值范围
+        if (data.criticalDamageBonus < 0) {
+            errors.push('会心伤害加成不能为负数');
+        }
+        if (data.intentDamageBonus < 0) {
+            errors.push('会意伤害加成不能为负数');
+        }
+        
+        return {
+            isValid: errors.length === 0,
+            errors: errors
+        };
+    }
+    
+    static validateSkillData(skill) {
+        if (!skill || !skill.name || skill.name === '无') {
+            return { isValid: false, errors: ['无效的技能数据'] };
+        }
+        
+        const skillData = skillRatesData.find(s => s.name === skill.name);
+        if (!skillData) {
+            return { isValid: false, errors: [`未找到技能 ${skill.name} 的数据`] };
+        }
+        
+        return { isValid: true, errors: [] };
+    }
+}
+
+// ==================== 状态管理模块 ====================
+class StateManager {
+    constructor() {
+        this.state = new Map();
+        this.listeners = new Map();
+    }
+    
+    setState(key, value) {
+        const oldValue = this.state.get(key);
+        this.state.set(key, value);
+        
+        // 通知监听器
+        if (this.listeners.has(key)) {
+            this.listeners.get(key).forEach(callback => {
+                callback(value, oldValue);
+            });
+        }
+    }
+    
+    getState(key) {
+        return this.state.get(key);
+    }
+    
+    subscribe(key, callback) {
+        if (!this.listeners.has(key)) {
+            this.listeners.set(key, []);
+        }
+        this.listeners.get(key).push(callback);
+    }
+    
+    unsubscribe(key, callback) {
+        if (this.listeners.has(key)) {
+            const callbacks = this.listeners.get(key);
+            const index = callbacks.indexOf(callback);
+            if (index > -1) {
+                callbacks.splice(index, 1);
+            }
+        }
+    }
+}
+
+// 创建全局状态管理器实例
+const stateManager = new StateManager();
+
+// ==================== 性能监控模块 ====================
+class PerformanceMonitor {
+    constructor() {
+        this.metrics = {
+            calculationTime: [],
+            cacheHitRate: 0,
+            totalCalculations: 0,
+            averageCalculationTime: 0
+        };
+        this.startTime = 0;
+    }
+    
+    startTiming() {
+        this.startTime = performance.now();
+    }
+    
+    endTiming() {
+        if (this.startTime > 0) {
+            const duration = performance.now() - this.startTime;
+            this.metrics.calculationTime.push(duration);
+            this.metrics.totalCalculations++;
+            
+            // 保持最近100次的计算时间
+            if (this.metrics.calculationTime.length > 100) {
+                this.metrics.calculationTime.shift();
+            }
+            
+            // 计算平均时间
+            this.metrics.averageCalculationTime = 
+                this.metrics.calculationTime.reduce((a, b) => a + b, 0) / this.metrics.calculationTime.length;
+        }
+    }
+    
+    updateCacheStats(cacheStats) {
+        this.metrics.cacheHitRate = parseFloat(cacheStats.hitRate);
+    }
+    
+    getMetrics() {
+        return {
+            ...this.metrics,
+            cacheStats: damageCache.getStats()
+        };
+    }
+    
+    reset() {
+        this.metrics = {
+            calculationTime: [],
+            cacheHitRate: 0,
+            totalCalculations: 0,
+            averageCalculationTime: 0
+        };
+    }
+}
+
+// 创建性能监控实例
+const performanceMonitor = new PerformanceMonitor();
 
 // 技能倍率表数据
 const skillRatesData = [
@@ -75,13 +282,19 @@ const buffData = [
 
 // 存储选中的增伤BUFF
 
-// 存储面板数据
-let panelData = {
+// ==================== 数据管理类 ====================
+class PanelDataManager {
+    constructor() {
+        this.data = this.getDefaultData();
+    }
+    
+    getDefaultData() {
+        return {
     externalAttack: { min: 1299, max: 3602 },
     breakBambooAttack: { min: 365, max: 655 },
     ringMetalAttack: { min: 0, max: 0 },
-    breakRockAttack: { min: 0, max: 0 },  // 修正：若最小值大于最大值，则将最大值调整为与最小值相等
-    pullSilkAttack: { min: 0, max: 0 },  // 修正：若最小值大于最大值，则将最大值调整为与最小值相等
+            breakRockAttack: { min: 0, max: 0 },
+            pullSilkAttack: { min: 0, max: 0 },
     precisionRate: 100,
     criticalRate: 68.2,
     intentRate: 18.8,
@@ -109,12 +322,254 @@ let panelData = {
     // Boss防御
     bossDefense: 405
 };
+    }
+    
+    // 从HTML表单获取数据
+    getDataFromInputs() {
+        const tempData = this.getDefaultData();
+        
+        // 安全获取输入值
+        const updateValue = (elementId, targetObj, key, defaultValue = 0) => {
+            try {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    const value = parseFloat(element.value) || defaultValue;
+                    if (key.includes('.')) {
+                        const [parentKey, childKey] = key.split('.');
+                        if (!targetObj[parentKey]) targetObj[parentKey] = {};
+                        targetObj[parentKey][childKey] = value;
+                    } else {
+                        targetObj[key] = value;
+                    }
+                }
+            } catch (error) {
+                console.warn(`获取元素 ${elementId} 的值时出错:`, error);
+            }
+        };
+        
+        // 更新战斗属性
+        updateValue('external-attack-min', tempData, 'externalAttack.min');
+        updateValue('external-attack-max', tempData, 'externalAttack.max');
+        updateValue('precision-rate', tempData, 'precisionRate');
+        updateValue('critical-rate', tempData, 'criticalRate');
+        updateValue('intent-rate', tempData, 'intentRate');
+        updateValue('direct-critical-rate', tempData, 'directCriticalRate');
+        updateValue('direct-intent-rate', tempData, 'directIntentRate');
+        
+        // 更新攻击属性
+        updateValue('ring-metal-attack-min', tempData, 'ringMetalAttack.min');
+        updateValue('ring-metal-attack-max', tempData, 'ringMetalAttack.max');
+        updateValue('break-rock-attack-min', tempData, 'breakRockAttack.min');
+        updateValue('break-rock-attack-max', tempData, 'breakRockAttack.max');
+        updateValue('pull-silk-attack-min', tempData, 'pullSilkAttack.min');
+        updateValue('pull-silk-attack-max', tempData, 'pullSilkAttack.max');
+        updateValue('break-bamboo-attack-min', tempData, 'breakBambooAttack.min');
+        updateValue('break-bamboo-attack-max', tempData, 'breakBambooAttack.max');
+        
+        // 更新伤害加成
+        updateValue('critical-damage-bonus', tempData, 'criticalDamageBonus');
+        updateValue('intent-damage-bonus', tempData, 'intentDamageBonus');
+        updateValue('external-damage-bonus', tempData, 'externalDamageBonus');
+        updateValue('elemental-damage-bonus', tempData, 'elementalDamageBonus');
+        updateValue('external-penetration', tempData, 'externalPenetration');
+        updateValue('elemental-penetration', tempData, 'elementalPenetration');
+        
+        // 更新装备增伤
+        updateValue('rope-dart-bonus', tempData, 'ropeDartBonus');
+        updateValue('dual-blades-bonus', tempData, 'dualBladesBonus');
+        updateValue('all-martial-bonus', tempData, 'allMartialBonus');
+        updateValue('boss-unit-bonus', tempData, 'bossUnitBonus');
+        updateValue('light-strike-bonus', tempData, 'lightStrikeBonus');
+        updateValue('mouse-bonus', tempData, 'mouseBonus');
+        
+        // 更新其他设置（下拉框和选择框）
+        const updateSelectValue = (elementId, targetObj, key, defaultValue = '') => {
+            try {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    targetObj[key] = element.value || defaultValue;
+                }
+            } catch (error) {
+                console.warn(`获取选择框 ${elementId} 的值时出错:`, error);
+            }
+        };
+        
+        updateSelectValue('equipment-set', tempData, 'equipmentSet', '无');
+        updateSelectValue('food-buff', tempData, 'foodBuff', '无');
+        updateSelectValue('talisman', tempData, 'talisman', '无');
+        updateSelectValue('crafting-bonus', tempData, 'craftingBonus', '无');
+        updateSelectValue('boss-talent-select', tempData, 'bossTalent', 'wooden-dummy');
+        
+        // 更新Boss防御
+        updateValue('boss-defense', tempData, 'bossDefense', 405);
+        
+        // 调试：验证BOSS天赋获取
+        debugLog('🔥 getDataFromInputs - BOSS天赋获取验证:', 2);
+        debugLog('- 获取到的BOSS天赋: ' + tempData.bossTalent, 2);
+        debugLog('- 是否试剑侠境: ' + (tempData.bossTalent === 'trial-sword'), 2);
+        
+        // 调试：验证天工火和涮鱼获取
+        debugLog('🔥 getDataFromInputs - 天工火和涮鱼获取验证:', 2);
+        debugLog('- 获取到的天工: ' + tempData.craftingBonus, 2);
+        debugLog('- 是否天工火: ' + (tempData.craftingBonus === '天工火'), 2);
+        debugLog('- 获取到的食物增益: ' + tempData.foodBuff, 2);
+        debugLog('- 是否涮鱼: ' + (tempData.foodBuff === '涮鱼'), 2);
+        
+        return tempData;
+    }
+    
+    // 验证数据
+    validateData(data) {
+        return DataValidator.validatePanelData(data);
+    }
+    
+    // 更新数据
+    updateData(newData) {
+        this.data = { ...this.data, ...newData };
+    }
+    
+    // 获取数据
+    getData() {
+        return { ...this.data };
+    }
+    
+    // 重置为默认值
+    reset() {
+        this.data = this.getDefaultData();
+    }
+}
 
-// 存储排轴数据
-let rotationData = [];
+// 创建数据管理器实例
+const panelDataManager = new PanelDataManager();
 
-// 存储原始排轴数据（用于模拟计算）
-let originalRotationData = [];
+// 为了向后兼容，保留全局变量（但标记为废弃）
+/** @deprecated 使用 panelDataManager.getData() 替代 */
+let panelData = panelDataManager.getData();
+
+// 排轴数据管理器 - 支持多实例
+class RotationDataManager {
+    constructor() {
+        this.rotations = new Map();
+        this.currentRotationId = 'default';
+        this.originalRotations = new Map();
+    }
+    
+    // 创建新的排轴实例
+    createRotation(id, data = []) {
+        this.rotations.set(id, [...data]);
+        this.originalRotations.set(id, [...data]);
+        return this.getRotation(id);
+    }
+    
+    // 获取排轴数据
+    getRotation(id = null) {
+        const rotationId = id || this.currentRotationId;
+        return this.rotations.get(rotationId) || [];
+    }
+    
+    // 更新排轴数据
+    updateRotation(id, data) {
+        this.rotations.set(id, [...data]);
+        return this.getRotation(id);
+    }
+    
+    // 设置当前排轴ID
+    setCurrentRotation(id) {
+        this.currentRotationId = id;
+    }
+    
+    // 获取当前排轴数据
+    getCurrentRotation() {
+        return this.getRotation(this.currentRotationId);
+    }
+    
+    // 更新当前排轴数据
+    updateCurrentRotation(data) {
+        return this.updateRotation(this.currentRotationId, data);
+    }
+    
+    // 获取原始排轴数据
+    getOriginalRotation(id = null) {
+        const rotationId = id || this.currentRotationId;
+        return this.originalRotations.get(rotationId) || [];
+    }
+    
+    // 更新原始排轴数据
+    updateOriginalRotation(id, data) {
+        this.originalRotations.set(id, [...data]);
+    }
+    
+    // 删除排轴实例
+    deleteRotation(id) {
+        this.rotations.delete(id);
+        this.originalRotations.delete(id);
+    }
+    
+    // 获取所有排轴ID
+    getAllRotationIds() {
+        return Array.from(this.rotations.keys());
+    }
+    
+    // 复制排轴数据
+    copyRotation(fromId, toId) {
+        const sourceData = this.getRotation(fromId);
+        return this.createRotation(toId, sourceData);
+    }
+}
+
+// 创建全局排轴数据管理器实例
+const rotationDataManager = new RotationDataManager();
+
+// 向后兼容的全局变量（已弃用，建议使用 rotationDataManager）
+/** @deprecated 使用 rotationDataManager.getCurrentRotation() 替代 */
+let rotationData = rotationDataManager.getCurrentRotation();
+
+/** @deprecated 使用 rotationDataManager.getOriginalRotation() 替代 */
+let originalRotationData = rotationDataManager.getOriginalRotation();
+
+// 向后兼容性支持：同步全局变量与排轴数据管理器
+function syncGlobalRotationData() {
+    // 同步全局变量到排轴数据管理器
+    if (rotationData && rotationData.length > 0) {
+        rotationDataManager.updateCurrentRotation(rotationData);
+    }
+    
+    // 同步原始排轴数据
+    if (originalRotationData && originalRotationData.length > 0) {
+        rotationDataManager.updateOriginalRotation(rotationDataManager.currentRotationId, originalRotationData);
+    }
+}
+
+// 向后兼容性支持：更新全局变量
+function updateGlobalRotationData() {
+    rotationData = rotationDataManager.getCurrentRotation();
+    originalRotationData = rotationDataManager.getOriginalRotation();
+}
+
+// 辅助函数：更新排轴数据并同步到管理器
+function updateRotationDataItem(index, newData) {
+    if (index >= 0 && index < rotationData.length) {
+        rotationData[index] = newData;
+        // 同步到排轴数据管理器
+        rotationDataManager.updateCurrentRotation(rotationData);
+    }
+}
+
+// 辅助函数：批量更新排轴数据并同步到管理器
+function updateRotationDataBatch(updates) {
+    let hasChanges = false;
+    updates.forEach(({ index, data }) => {
+        if (index >= 0 && index < rotationData.length) {
+            rotationData[index] = data;
+            hasChanges = true;
+        }
+    });
+    
+    if (hasChanges) {
+        // 同步到排轴数据管理器
+        rotationDataManager.updateCurrentRotation(rotationData);
+    }
+}
 
 // 全局变量T，用于DPS计算
 let T = 60;
@@ -139,13 +594,98 @@ let globalSimulationProbabilities = null;
 // 存储期望伤害总和
 let expectedDamageTotal = 0;
 
-// Dot技能列表（特殊处理的技能）
-const dotSkills = ["天工火Dot", "天工毒Dot", "火·厚积薄发"];
+// Dot技能列表（特殊处理的技能）- 使用配置中的定义
 
-// 智能缓存系统
-const damageCache = new Map();
-const CACHE_MAX_SIZE = 1000; // 最大缓存数量
-const CACHE_EXPIRE_TIME = 5 * 60 * 1000; // 5分钟过期时间
+// ==================== 优化的缓存系统 ====================
+class AdvancedCache {
+    constructor(maxSize = 1000, expireTime = 5 * 60 * 1000) {
+        this.cache = new Map();
+        this.accessOrder = new Map(); // 记录访问顺序
+        this.maxSize = maxSize;
+        this.expireTime = expireTime;
+        this.hitCount = 0;
+        this.missCount = 0;
+    }
+    
+    get(key) {
+        const entry = this.cache.get(key);
+        if (!entry) {
+            this.missCount++;
+            return null;
+        }
+        
+        // 检查是否过期
+        if (Date.now() - entry.timestamp > this.expireTime) {
+            this.cache.delete(key);
+            this.accessOrder.delete(key);
+            this.missCount++;
+            return null;
+        }
+        
+        // 更新访问顺序
+        this.accessOrder.set(key, Date.now());
+        this.hitCount++;
+        return entry.data;
+    }
+    
+    set(key, data) {
+        // 如果缓存已满，删除最久未访问的项
+        if (this.cache.size >= this.maxSize) {
+            this.evictLRU();
+        }
+        
+        this.cache.set(key, {
+            data: data,
+            timestamp: Date.now()
+        });
+        this.accessOrder.set(key, Date.now());
+    }
+    
+    evictLRU() {
+        let oldestKey = null;
+        let oldestTime = Infinity;
+        
+        for (const [key, time] of this.accessOrder.entries()) {
+            if (time < oldestTime) {
+                oldestTime = time;
+                oldestKey = key;
+            }
+        }
+        
+        if (oldestKey) {
+            this.cache.delete(oldestKey);
+            this.accessOrder.delete(oldestKey);
+        }
+    }
+    
+    clear() {
+        this.cache.clear();
+        this.accessOrder.clear();
+    }
+    
+    getStats() {
+        const total = this.hitCount + this.missCount;
+        return {
+            size: this.cache.size,
+            hitRate: total > 0 ? (this.hitCount / total * 100).toFixed(2) + '%' : '0%',
+            hitCount: this.hitCount,
+            missCount: this.missCount
+        };
+    }
+    
+    cleanExpired() {
+        const now = Date.now();
+        for (const [key, entry] of this.cache.entries()) {
+            if (now - entry.timestamp > this.expireTime) {
+                this.cache.delete(key);
+                this.accessOrder.delete(key);
+            }
+        }
+    }
+}
+
+// 创建优化的缓存实例
+const damageCache = new AdvancedCache(1000, 5 * 60 * 1000);
 
 // 防抖定时器
 let updateTableDebounceTimer = null;
@@ -180,6 +720,9 @@ function generateCacheKey(skill, panelData) {
         criticalDamageBonus: panelData.criticalDamageBonus,
         intentDamageBonus: panelData.intentDamageBonus,
         externalPenetration: panelData.externalPenetration,
+        elementalPenetration: panelData.elementalPenetration,
+        externalDamageBonus: panelData.externalDamageBonus,
+        elementalDamageBonus: panelData.elementalDamageBonus,
         equipmentSet: panelData.equipmentSet,
         foodBuff: panelData.foodBuff,
         bossDefense: panelData.bossDefense,
@@ -198,22 +741,73 @@ function generateCacheKey(skill, panelData) {
 }
 
 // 缓存清理函数
+// ==================== 优化的缓存管理函数 ====================
 function cleanExpiredCache() {
-    const now = Date.now();
-    for (const [key, entry] of damageCache.entries()) {
-        if (now - entry.timestamp > CACHE_EXPIRE_TIME) {
-            damageCache.delete(key);
-        }
+    damageCache.cleanExpired();
+}
+
+// 获取缓存统计信息
+function getCacheStats() {
+    return damageCache.getStats();
+}
+
+
+// ==================== 调试面板 ====================
+function createDebugPanel() {
+    const debugPanel = document.createElement('div');
+    debugPanel.id = 'debug-panel';
+    debugPanel.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        font-family: monospace;
+        font-size: 12px;
+        z-index: 10000;
+        display: none;
+        max-width: 300px;
+    `;
+    
+    const updateDebugInfo = () => {
+        const metrics = performanceMonitor.getMetrics();
+        debugPanel.innerHTML = `
+            <div><strong>性能监控</strong></div>
+            <div>总计算次数: ${metrics.totalCalculations}</div>
+            <div>平均计算时间: ${metrics.averageCalculationTime.toFixed(2)}ms</div>
+            <div>缓存命中率: ${metrics.cacheStats.hitRate}</div>
+            <div>缓存大小: ${metrics.cacheStats.size}</div>
+            <div>缓存命中: ${metrics.cacheStats.hitCount}</div>
+            <div>缓存未命中: ${metrics.cacheStats.missCount}</div>
+        `;
+    };
+    
+    // 每秒更新一次
+    setInterval(updateDebugInfo, 1000);
+    
+    document.body.appendChild(debugPanel);
+    return debugPanel;
+}
+
+// 切换调试面板显示
+function toggleDebugPanel() {
+    let debugPanel = document.getElementById('debug-panel');
+    if (!debugPanel) {
+        debugPanel = createDebugPanel();
     }
     
-    // 如果缓存过大，删除最旧的条目
-    if (damageCache.size > CACHE_MAX_SIZE) {
-        const entries = Array.from(damageCache.entries());
-        entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
-        const toDelete = entries.slice(0, damageCache.size - CACHE_MAX_SIZE);
-        toDelete.forEach(([key]) => damageCache.delete(key));
-    }
+    debugPanel.style.display = debugPanel.style.display === 'none' ? 'block' : 'none';
 }
+
+// 添加键盘快捷键（Ctrl+Shift+D 切换调试面板）
+document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+        e.preventDefault();
+        toggleDebugPanel();
+    }
+});
 
 // 防抖版本的表格更新（优化版本）
 function debouncedUpdateRotationTable() {
@@ -428,6 +1022,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // 初始化清空排轴按钮
     initClearRotationButton();
     
+    // 初始化基础信息页面计算按钮
+    initBasicInfoCalculateButton();
+    
     // 初始化保存排轴按钮
     initSaveRotationButton();
 
@@ -472,7 +1069,74 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 加载基础信息默认值
     loadPanelDataDefaults();
+    
+    // 确保按钮处于正确状态
+    ensureButtonsEnabled();
+    
+    // 测试按钮功能
+    setTimeout(() => {
+        testButtonFunctions();
+    }, 1000);
 });
+
+// 确保按钮处于正确状态
+function ensureButtonsEnabled() {
+    debugLog('🔧 确保按钮处于正确状态...', 2);
+    
+    // 检查当前是否在模拟模式
+    if (isSimulationMode) {
+        debugLog('⚠️ 当前处于模拟模式，按钮应该被禁用', 2);
+        return;
+    }
+    
+    // 确保排轴操作按钮可用
+    const rotationButtons = ['clear-rotation-btn', 'save-rotation-btn', 'import-rotation-btn', 'simulation-btn'];
+    rotationButtons.forEach(btnId => {
+        const btn = document.getElementById(btnId);
+        if (btn) {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+            debugLog(`✅ 按钮 ${btnId} 已启用`, 2);
+        } else {
+            debugError(`❌ 找不到按钮 ${btnId}`);
+        }
+    });
+    
+    debugLog('✅ 按钮状态检查完成', 2);
+}
+
+// 测试按钮功能
+function testButtonFunctions() {
+    debugLog('🧪 测试按钮功能...', 2);
+    
+    // 测试清空排轴按钮
+    const clearBtn = document.getElementById('clear-rotation-btn');
+    if (clearBtn) {
+        debugLog('✅ 清空排轴按钮存在', 2);
+        debugLog('- disabled: ' + clearBtn.disabled, 2);
+        debugLog('- opacity: ' + clearBtn.style.opacity, 2);
+        debugLog('- cursor: ' + clearBtn.style.cursor, 2);
+    } else {
+        debugError('❌ 找不到清空排轴按钮');
+    }
+    
+    // 测试保存排轴按钮
+    const saveBtn = document.getElementById('save-rotation-btn');
+    if (saveBtn) {
+        debugLog('✅ 保存排轴按钮存在', 2);
+        debugLog('- disabled: ' + saveBtn.disabled, 2);
+        debugLog('- opacity: ' + saveBtn.style.opacity, 2);
+        debugLog('- cursor: ' + saveBtn.style.cursor, 2);
+    } else {
+        debugError('❌ 找不到保存排轴按钮');
+    }
+    
+    // 检查事件监听器
+    debugLog('🔍 检查事件监听器...', 2);
+    debugLog('- rotationData长度: ' + (rotationData ? rotationData.length : 'undefined'), 2);
+    debugLog('- 当前模拟模式: ' + isSimulationMode, 2);
+}
 
 // 初始化标签页切换
 function initTabs() {
@@ -519,7 +1183,7 @@ function initTabs() {
                 setLayerHeaderSelect.value = selectedSet;
             }
             
-            console.log(`基础信息面板套装选择：${selectedSet}，已同步到表头`);
+            debugLog(`基础信息面板套装选择：${selectedSet}，已同步到表头`, 2);
         });
     }
 }
@@ -685,7 +1349,7 @@ function initRotationTableEventDelegation() {
             const originalData = rotationData[index];
             
             // 更新排轴数据，保留原有的非技能相关属性
-            rotationData[index] = {
+            const newSkillData = {
                 ...selectedSkill,
                 buffName: originalData.buffName || '无',
                 generalBonus: originalData.generalBonus || 0,
@@ -701,6 +1365,8 @@ function initRotationTableEventDelegation() {
                 naisan: originalData.naisan || '否',
                 yishang: originalData.yishang || '否'
             };
+            
+            updateRotationDataItem(index, newSkillData);
             
             // 重新渲染表格（使用防抖版本）
             debouncedUpdateRotationTable();
@@ -720,7 +1386,7 @@ function handleBuffSelect(target, index) {
         
         if (selectedBuff) {
             // 更新排轴数据
-            rotationData[index] = {
+            const newBuffData = {
                 ...rotationData[index],
                 buffName: selectedBuff.name,
                 generalBonus: selectedBuff.generalBonus,
@@ -728,6 +1394,8 @@ function handleBuffSelect(target, index) {
                 externalPenetration: selectedBuff.externalPenetration,
                 extraCriticalRate: selectedBuff.extraCriticalRate
             };
+            
+            updateRotationDataItem(index, newBuffData);
             
             // 更新表格（使用防抖版本）
             debouncedUpdateRotationTable();
@@ -742,10 +1410,12 @@ function handleTimesInput(target, index) {
     const times = parseFloat(target.value) || 1;
     
     // 更新排轴数据
-    rotationData[index] = {
+    const newTimesData = {
         ...rotationData[index],
         times: times
     };
+    
+    updateRotationDataItem(index, newTimesData);
     
     // 更新表格
     updateRotationTable();
@@ -756,22 +1426,30 @@ function handleSetLayerSelect(target, index) {
     const setLayer = target.value;
     
     // 更新当前行的数据
-    rotationData[index] = {
+    const newSetLayerData = {
         ...rotationData[index],
         setLayer: setLayer
     };
+    
+    updateRotationDataItem(index, newSetLayerData);
     
     // 检查是否启用联动模式
     if (isCascadeModeEnabled()) {
         console.log(`套装联动选择：位置${index}选择${setLayer}，开始同步后续位置`);
         
         // 联动选择：将该位置以下的所有套装下拉框同步为相同选择
+        const updates = [];
         for (let i = index + 1; i < rotationData.length; i++) {
-            rotationData[i] = {
+            updates.push({
+                index: i,
+                data: {
                 ...rotationData[i],
                 setLayer: setLayer
-            };
+                }
+            });
         }
+        
+        updateRotationDataBatch(updates);
         
         console.log(`联动完成：位置${index}到${rotationData.length - 1}的套装已同步为${setLayer}`);
     } else {
@@ -787,22 +1465,30 @@ function handleTalismanSelect(target, index) {
     const talismanLayer = target.value;
     
     // 更新当前行的数据
-    rotationData[index] = {
+    const newTalismanData = {
         ...rotationData[index],
         talismanLayer: talismanLayer
     };
+    
+    updateRotationDataItem(index, newTalismanData);
     
     // 检查是否启用联动模式
     if (isCascadeModeEnabled()) {
         console.log(`符帖联动选择：位置${index}选择${talismanLayer}，开始同步后续位置`);
         
         // 联动选择：将该位置以下的所有符帖下拉框同步为相同选择
+        const updates = [];
         for (let i = index + 1; i < rotationData.length; i++) {
-            rotationData[i] = {
+            updates.push({
+                index: i,
+                data: {
                 ...rotationData[i],
                 talismanLayer: talismanLayer
-            };
+                }
+            });
         }
+        
+        updateRotationDataBatch(updates);
         
         console.log(`联动完成：位置${index}到${rotationData.length - 1}的符帖已同步为${talismanLayer}`);
     } else {
@@ -818,22 +1504,30 @@ function handleYishuiSelect(target, index) {
     const yishuiLayer = target.value;
     
     // 更新当前行的数据
-    rotationData[index] = {
+    const newYishuiData = {
         ...rotationData[index],
         yishuiLayer: yishuiLayer
     };
+    
+    updateRotationDataItem(index, newYishuiData);
     
     // 检查是否启用联动模式
     if (isCascadeModeEnabled()) {
         console.log(`易水歌联动选择：位置${index}选择${yishuiLayer}，开始同步后续位置`);
         
         // 联动选择：将该位置以下的所有易水歌下拉框同步为相同选择
+        const updates = [];
         for (let i = index + 1; i < rotationData.length; i++) {
-            rotationData[i] = {
+            updates.push({
+                index: i,
+                data: {
                 ...rotationData[i],
                 yishuiLayer: yishuiLayer
-            };
+                }
+            });
         }
+        
+        updateRotationDataBatch(updates);
         
         console.log(`联动完成：位置${index}到${rotationData.length - 1}的易水歌已同步为${yishuiLayer}`);
     } else {
@@ -849,22 +1543,30 @@ function handleSuohenSelect(target, index) {
     const suohenLayer = target.value;
     
     // 更新当前行的数据
-    rotationData[index] = {
+    const newSuohenData = {
         ...rotationData[index],
         suohenLayer: suohenLayer
     };
+    
+    updateRotationDataItem(index, newSuohenData);
     
     // 检查是否启用联动模式
     if (isCascadeModeEnabled()) {
         console.log(`所恨年年联动选择：位置${index}选择${suohenLayer}，开始同步后续位置`);
         
         // 联动选择：将该位置以下的所有所恨年年下拉框同步为相同选择
+        const updates = [];
         for (let i = index + 1; i < rotationData.length; i++) {
-            rotationData[i] = {
+            updates.push({
+                index: i,
+                data: {
                 ...rotationData[i],
                 suohenLayer: suohenLayer
-            };
+                }
+            });
         }
+        
+        updateRotationDataBatch(updates);
         
         console.log(`联动完成：位置${index}到${rotationData.length - 1}的所恨年年已同步为${suohenLayer}`);
     } else {
@@ -880,10 +1582,12 @@ function handleQijieCheckbox(target, index) {
     const qijie = target.checked ? '是' : '否';
     
     // 更新排轴数据
-    rotationData[index] = {
+    const newQijieData = {
         ...rotationData[index],
         qijie: qijie
     };
+    
+    updateRotationDataItem(index, newQijieData);
     
     // 更新表格
     updateRotationTable();
@@ -894,10 +1598,12 @@ function handleNaisanCheckbox(target, index) {
     const naisan = target.checked ? '是' : '否';
     
     // 更新排轴数据
-    rotationData[index] = {
+    const newNaisanData = {
         ...rotationData[index],
         naisan: naisan
     };
+    
+    updateRotationDataItem(index, newNaisanData);
     
     // 更新表格
     updateRotationTable();
@@ -908,10 +1614,12 @@ function handleYishangCheckbox(target, index) {
     const yishang = target.checked ? '是' : '否';
     
     // 更新排轴数据
-    rotationData[index] = {
+    const newYishangData = {
         ...rotationData[index],
         yishang: yishang
     };
+    
+    updateRotationDataItem(index, newYishangData);
     
     // 更新表格
     updateRotationTable();
@@ -991,13 +1699,15 @@ function getTalismanOptions(selectedValue) {
 // 全局变量：极乐泣血计算模式
 let jileCalculationMode = 'auto'; // 'auto' 或 'manual'
 
-// 计算极乐泣血的次数和层数
-function calculateJileQixueTimes(rotationData) {
+// 计算极乐泣血的次数和层数（支持独立数据）
+function calculateJileQixueTimes(rotationDataParam = null) {
+    // 获取排轴数据（支持多实例）
+    const currentRotationData = rotationDataParam || rotationDataManager.getCurrentRotation();
     const jileIndices = [];
     const hitSums = [];
     
     // 找到所有极乐泣血的位置
-    rotationData.forEach((skill, index) => {
+    currentRotationData.forEach((skill, index) => {
         if (skill.name === "极乐泣血") {
             jileIndices.push(index);
         }
@@ -1005,12 +1715,12 @@ function calculateJileQixueTimes(rotationData) {
     
     // 如果没有极乐泣血，直接返回
     if (jileIndices.length === 0) {
-        return rotationData;
+        return currentRotationData;
     }
     
     // 如果是手动模式，不自动计算，直接返回
     if (jileCalculationMode === 'manual') {
-        return rotationData;
+        return currentRotationData;
     }
     
     // 计算每个极乐泣血之间的hit数总和
@@ -1020,9 +1730,9 @@ function calculateJileQixueTimes(rotationData) {
         
         let hitSum = 0;
         for (let j = startIndex; j < endIndex; j++) {
-            const skill = skillRatesData.find(s => s.name === rotationData[j].name);
+            const skill = skillRatesData.find(s => s.name === currentRotationData[j].name);
             if (skill) {
-                hitSum += skill.hit * (rotationData[j].times || 1);
+                hitSum += skill.hit * (currentRotationData[j].times || 1);
             }
         }
         hitSums.push(hitSum);
@@ -1041,8 +1751,8 @@ function calculateJileQixueTimes(rotationData) {
         finalTimes = 0 + fullStacks + remainingLayers / 3.5;
         
         // 更新排轴数据
-        rotationData[jileIndex] = {
-            ...rotationData[jileIndex],
+        currentRotationData[jileIndex] = {
+            ...currentRotationData[jileIndex],
             times: Math.round(finalTimes * 100) / 100, // 保留2位小数，避免浮点数精度问题
             jileLayers: Math.round(remainingLayers * 100) / 100,
             jileHitSum: hitSum,
@@ -1050,19 +1760,235 @@ function calculateJileQixueTimes(rotationData) {
         };
     });
     
-    return rotationData;
+    return currentRotationData;
 }
 
-// 更新排轴表格（优化版本）
-function updateRotationTable() {
-    console.log('开始更新排轴表格, 当前数据长度:', rotationData.length);
+// 多面板期望伤害计算管理器
+class MultiPanelCalculationManager {
+    constructor() {
+        this.panels = new Map();
+        this.calculations = new Map();
+    }
     
-    // 确保使用当前页面的面板数据进行伤害计算
-    updatePanelDataFromInputs();
+    // 注册面板
+    registerPanel(panelId, panelData, rotationData) {
+        this.panels.set(panelId, {
+            panelData: { ...panelData },
+            rotationData: [...rotationData],
+            lastCalculated: null
+        });
+    }
+    
+    // 计算单个面板的期望伤害
+    calculatePanelExpectedDamage(panelId) {
+        const panel = this.panels.get(panelId);
+        if (!panel) {
+            console.error(`面板 ${panelId} 不存在`);
+            return 0;
+        }
+        
+        const expectedDamage = calculateExpectedDamage(panel.panelData, panel.rotationData);
+        panel.lastCalculated = expectedDamage;
+        return expectedDamage;
+    }
+    
+    // 计算所有面板的期望伤害
+    calculateAllPanelsExpectedDamage() {
+        const results = {};
+        
+        this.panels.forEach((panel, panelId) => {
+            results[panelId] = this.calculatePanelExpectedDamage(panelId);
+        });
+        
+        return results;
+    }
+    
+    // 比较两个面板的期望伤害
+    comparePanels(panelId1, panelId2) {
+        const damage1 = this.calculatePanelExpectedDamage(panelId1);
+        const damage2 = this.calculatePanelExpectedDamage(panelId2);
+        
+        return {
+            panel1: { id: panelId1, damage: damage1 },
+            panel2: { id: panelId2, damage: damage2 },
+            difference: damage1 - damage2,
+            betterPanel: damage1 > damage2 ? panelId1 : panelId2
+        };
+    }
+    
+    // 获取面板信息
+    getPanel(panelId) {
+        return this.panels.get(panelId);
+    }
+    
+    // 更新面板数据
+    updatePanel(panelId, panelData, rotationData) {
+        if (this.panels.has(panelId)) {
+            this.panels.set(panelId, {
+                panelData: { ...panelData },
+                rotationData: [...rotationData],
+                lastCalculated: null
+            });
+        }
+    }
+    
+    // 删除面板
+    removePanel(panelId) {
+        this.panels.delete(panelId);
+    }
+    
+    // 获取所有面板ID
+    getAllPanelIds() {
+        return Array.from(this.panels.keys());
+    }
+}
+
+// 创建全局多面板计算管理器实例
+const multiPanelCalculationManager = new MultiPanelCalculationManager();
+
+// 多面板计算工具函数
+class MultiPanelCalculationUtils {
+    // 创建两个面板的对比计算
+    static createDualPanelComparison(panel1Id, panel1Data, panel1Rotation, panel2Id, panel2Data, panel2Rotation) {
+        // 注册两个面板
+        multiPanelCalculationManager.registerPanel(panel1Id, panel1Data, panel1Rotation);
+        multiPanelCalculationManager.registerPanel(panel2Id, panel2Data, panel2Rotation);
+        
+        // 计算对比结果
+        const comparison = multiPanelCalculationManager.comparePanels(panel1Id, panel2Id);
+        
+        return {
+            ...comparison,
+            panel1Dps: comparison.panel1.damage / T,
+            panel2Dps: comparison.panel2.damage / T,
+            dpsDifference: (comparison.panel1.damage - comparison.panel2.damage) / T
+        };
+    }
+    
+    // 批量计算多个面板
+    static calculateMultiplePanels(panels) {
+        const results = {};
+        
+        panels.forEach(panel => {
+            multiPanelCalculationManager.registerPanel(panel.id, panel.panelData, panel.rotationData);
+            results[panel.id] = multiPanelCalculationManager.calculatePanelExpectedDamage(panel.id);
+        });
+        
+        return results;
+    }
+    
+    // 获取最佳面板
+    static getBestPanel(panelIds) {
+        let bestPanel = null;
+        let bestDamage = 0;
+        
+        panelIds.forEach(panelId => {
+            const damage = multiPanelCalculationManager.calculatePanelExpectedDamage(panelId);
+            if (damage > bestDamage) {
+                bestDamage = damage;
+                bestPanel = panelId;
+            }
+        });
+        
+        return { panelId: bestPanel, damage: bestDamage };
+    }
+    
+    // 导出面板数据
+    static exportPanelData(panelId) {
+        const panel = multiPanelCalculationManager.getPanel(panelId);
+        if (!panel) return null;
+        
+        return {
+            panelId,
+            panelData: panel.panelData,
+            rotationData: panel.rotationData,
+            expectedDamage: panel.lastCalculated
+        };
+    }
+    
+// 导入面板数据
+static importPanelData(panelId, panelData, rotationData) {
+    multiPanelCalculationManager.registerPanel(panelId, panelData, rotationData);
+    return multiPanelCalculationManager.calculatePanelExpectedDamage(panelId);
+}
+}
+
+// 测试函数：验证排轴数据同步
+function testRotationDataSync() {
+    console.log('=== 测试排轴数据同步 ===');
+    
+    // 检查全局变量与排轴数据管理器是否同步
+    const globalRotationData = rotationData;
+    const managerRotationData = rotationDataManager.getCurrentRotation();
+    
+    console.log('全局rotationData长度:', globalRotationData.length);
+    console.log('管理器rotationData长度:', managerRotationData.length);
+    console.log('数据是否同步:', JSON.stringify(globalRotationData) === JSON.stringify(managerRotationData));
+    
+    // 检查排轴数据管理器状态
+    console.log('当前排轴ID:', rotationDataManager.currentRotationId);
+    console.log('所有排轴ID:', rotationDataManager.getAllRotationIds());
+    
+    return {
+        globalLength: globalRotationData.length,
+        managerLength: managerRotationData.length,
+        isSynced: JSON.stringify(globalRotationData) === JSON.stringify(managerRotationData)
+    };
+}
+
+// ==================== 多面板计算使用示例 ====================
+/*
+// 示例1：创建两个面板的对比计算
+const panel1Data = panelDataManager.getDataFromInputs();
+const panel1Rotation = rotationDataManager.getCurrentRotation();
+const panel2Data = { ...panel1Data, externalAttack: { min: 1500, max: 2500 } };
+const panel2Rotation = [...panel1Rotation];
+
+const comparison = MultiPanelCalculationUtils.createDualPanelComparison(
+    'panel1', panel1Data, panel1Rotation,
+    'panel2', panel2Data, panel2Rotation
+);
+
+console.log('面板对比结果:', comparison);
+console.log('面板1期望伤害:', comparison.panel1.damage);
+console.log('面板2期望伤害:', comparison.panel2.damage);
+console.log('伤害差异:', comparison.difference);
+console.log('更好的面板:', comparison.betterPanel);
+
+// 示例2：批量计算多个面板
+const panels = [
+    { id: 'panel1', panelData: panel1Data, rotationData: panel1Rotation },
+    { id: 'panel2', panelData: panel2Data, rotationData: panel2Rotation },
+    { id: 'panel3', panelData: panel3Data, rotationData: panel3Rotation }
+];
+
+const results = MultiPanelCalculationUtils.calculateMultiplePanels(panels);
+console.log('多面板计算结果:', results);
+
+// 示例3：获取最佳面板
+const bestPanel = MultiPanelCalculationUtils.getBestPanel(['panel1', 'panel2', 'panel3']);
+console.log('最佳面板:', bestPanel);
+
+// 示例4：导出/导入面板数据
+const exportedData = MultiPanelCalculationUtils.exportPanelData('panel1');
+const importedDamage = MultiPanelCalculationUtils.importPanelData('panel4', exportedData.panelData, exportedData.rotationData);
+*/
+
+// 更新排轴表格（优化版本，支持多实例）
+function updateRotationTable(rotationDataParam = null) {
+    // 获取排轴数据（支持多实例）
+    const currentRotationData = rotationDataParam || rotationData;
+    
+    debugLog('开始更新排轴表格, 当前数据长度: ' + currentRotationData.length, 2);
+    
+    // 获取当前面板数据（局部变量）
+    const currentPanelData = panelDataManager.getDataFromInputs();
     
     // 计算极乐泣血的次数（模拟模式下跳过，因为已经分离处理）
     if (!isSimulationMode) {
-        rotationData = calculateJileQixueTimes(rotationData);
+        const updatedRotationData = calculateJileQixueTimes(currentRotationData);
+        // 更新当前排轴数据
+        rotationDataManager.updateCurrentRotation(updatedRotationData);
     }
     
     const tableBody = document.querySelector('#rotation-table tbody');
@@ -1085,7 +2011,7 @@ function updateRotationTable() {
     }
     
     // 遍历排轴数据，添加到表格中
-    rotationData.forEach((skill, index) => {
+    currentRotationData.forEach((skill, index) => {
         const row = document.createElement('tr');
         
         // 创建技能选择下拉框
@@ -1130,7 +2056,7 @@ function updateRotationTable() {
             let talismanElementalDamageBonus = 0; // 用于存储真气属攻帖的属攻伤害加成，对破竹伤害和外属伤害都生效
             
             // 绳镖武学增伤：仅对"鼠鼠生威"和"牵绳引刃"两个技能生效
-            if (skill.name === "鼠鼠生威" || skill.name === "牵绳引刃") {
+            if (GameConfig.skillCategories.ropeDartSkills.includes(skill.name)) {
                 generalBonus += panelData.ropeDartBonus;
             }
             
@@ -1140,14 +2066,12 @@ function updateRotationTable() {
             }
             
             // 双刀武学增伤：适用于白刀技能A1至A4、红刀技能A1至A5以及痴障技能
-            const dualBladesSkills = ["白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2", "红刀A2(1/2)", "红刀A3", "红刀A4", "红刀A4(5/7)", "红刀A5", "痴障"];
-            if (dualBladesSkills.includes(skill.name)) {
+            if (GameConfig.skillCategories.dualBladesSkills.includes(skill.name)) {
                 generalBonus += panelData.dualBladesBonus;
             }
             
-            // 全武学增伤：适用于绳镖武学和双刀武学增伤的所有技能
-            const allMartialSkills = ["鼠鼠生威", "牵绳引刃", "白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2", "红刀A2(1/2)", "红刀A3", "红刀A4", "红刀A4(5/7)", "红刀A5", "痴障"];
-            if (allMartialSkills.includes(skill.name)) {
+            // 全武学增伤：适用于绳镖武学、双刀武学、易水歌和极乐泣血技能
+            if (GameConfig.skillCategories.allMartialSkills.includes(skill.name)) {
                 generalBonus += panelData.allMartialBonus;
             }
             
@@ -1228,16 +2152,15 @@ function updateRotationTable() {
             const mouseGeneralBonus = skill.name === "鼠鼠生威" ? (1 + panelData.mouseBonus / 100) * 1.3 : 1;
             
             // 强效轻击增伤：仅适用于红刀A1-A5技能，独立计算
-            const redBladeSkills = ["红刀A1", "红刀A2", "红刀A2(1/2)", "红刀A3", "红刀A4", "红刀A4(5/7)", "红刀A5"];
-            const lightStrikeBonus = redBladeSkills.includes(skill.name) ? (1 + panelData.lightStrikeBonus / 100) : 1;
+            const lightStrikeBonus = GameConfig.skillCategories.redBladeSkills.includes(skill.name) ? (1 + panelData.lightStrikeBonus / 100) : 1;
             
             // 红刀A1-A5属攻穿透+10：仅适用于红刀A1-A5技能
-            const redBladeElementalPenetration = redBladeSkills.includes(skill.name) ? 10 : 0;
+            const redBladeElementalPenetration = GameConfig.skillCategories.redBladeSkills.includes(skill.name) ? GameConfig.constants.redBladeElementalPenetration : 0;
             
             // 获取面板数据
             const precisionRate = panelData.precisionRate / 100; // 精准率（转换为小数）
             // 面板会心率=会心率+额外会心率（不超过80%）+直接会心率（可超出80%）（转换为小数）
-            const baseCriticalRate = Math.min((panelData.criticalRate + extraCriticalRate) / 100, 0.8);
+            const baseCriticalRate = Math.min((panelData.criticalRate + extraCriticalRate) / 100, GameConfig.constants.maxCriticalRate);
             const directCriticalRate = panelData.directCriticalRate / 100;
             const criticalRate = baseCriticalRate + directCriticalRate;   
             const intentRate = panelData.intentRate / 100;     // 会意率（转换为小数）
@@ -1246,7 +2169,7 @@ function updateRotationTable() {
             let effectiveCriticalRate, effectiveIntentRate, grazeRate, whiteTextRate;
             
             // 检查是否为Dot技能（在任何模式下都只产生白字伤害）
-            if (dotSkills.includes(skill.name)) {
+            if (GameConfig.skillCategories.dotSkills.includes(skill.name)) {
                 // Dot技能只产生白字伤害
                 effectiveCriticalRate = 0;
                 effectiveIntentRate = 0;
@@ -1415,11 +2338,12 @@ function updateRotationTable() {
             if (panelData.foodBuff === '涮鱼') {
                 externalAttackWithFeisui.min += 120;
                 externalAttackWithFeisui.max += 240;
+                debugLog('🔥 涮鱼增益应用: 外功攻击+120~240', 2);
             }
             
             // 计算外功攻击值（模拟模式下使用随机值，Dot技能除外）
             let avgExternalAttack;
-            if (isSimulationMode && !dotSkills.includes(skill.name)) {
+            if (isSimulationMode && !GameConfig.skillCategories.dotSkills.includes(skill.name)) {
                 // 在最小值到最大值之间随机选取一个整数
                 avgExternalAttack = Math.floor(Math.random() * (externalAttackWithFeisui.max - externalAttackWithFeisui.min + 1)) + externalAttackWithFeisui.min;
             } else {
@@ -1429,7 +2353,7 @@ function updateRotationTable() {
             
             // 计算破竹攻击值（模拟模式下使用随机值，Dot技能除外）
             let avgBreakBambooAttack;
-            if (isSimulationMode && !dotSkills.includes(skill.name)) {
+            if (isSimulationMode && !GameConfig.skillCategories.dotSkills.includes(skill.name)) {
                 avgBreakBambooAttack = Math.floor(Math.random() * (panelData.breakBambooAttack.max - panelData.breakBambooAttack.min + 1)) + panelData.breakBambooAttack.min;
             } else {
                 avgBreakBambooAttack = (panelData.breakBambooAttack.min + panelData.breakBambooAttack.max) / 2;
@@ -1449,7 +2373,7 @@ function updateRotationTable() {
             // 计算各类型攻击平均值
             // 计算各类攻击值（模拟模式下使用随机值，Dot技能除外）
             let avgRingMetalAttack, avgBreakRockAttack, avgPullSilkAttack;
-            if (isSimulationMode && !dotSkills.includes(skill.name)) {
+            if (isSimulationMode && !GameConfig.skillCategories.dotSkills.includes(skill.name)) {
                 avgRingMetalAttack = Math.floor(Math.random() * (panelData.ringMetalAttack.max - panelData.ringMetalAttack.min + 1)) + panelData.ringMetalAttack.min;
                 avgBreakRockAttack = Math.floor(Math.random() * (panelData.breakRockAttack.max - panelData.breakRockAttack.min + 1)) + panelData.breakRockAttack.min;
                 avgPullSilkAttack = Math.floor(Math.random() * (panelData.pullSilkAttack.max - panelData.pullSilkAttack.min + 1)) + panelData.pullSilkAttack.min;
@@ -1518,11 +2442,10 @@ function updateRotationTable() {
             }
             
             // 计算有效BOSS防御值（考虑技能减防和所恨年年减防）
-            const bladeSkills = ["白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2", "红刀A2(1/2)", "红刀A3", "红刀A4", "红刀A4(5/7)", "红刀A5"];
             let effectiveBossDefense = panelData.bossDefense;
             
             // 先应用技能的10%减防
-            if (bladeSkills.includes(skill.name)) {
+            if (GameConfig.skillCategories.bladeSkills.includes(skill.name)) {
                 effectiveBossDefense = effectiveBossDefense * 0.9;
             }
             
@@ -1580,23 +2503,23 @@ function updateRotationTable() {
             // 计算破竹会心伤害
             const breakBambooCriticalDamage = (avgBreakBambooAttack * skill.breakBambooRate + skill.fixedBreakBamboo) * 
                                              (1 + (panelData.elementalPenetration + redBladeElementalPenetration) / 200) * effectiveCriticalRate * 
-                                             (1 + (panelData.criticalDamageBonus + criticalBonus) / 100) * 1.5 * (1 + (panelData.elementalDamageBonus + newYanguiBreakBambooBonus + talismanElementalDamageBonus) / 100) * 
+                                             (1 + (panelData.criticalDamageBonus + criticalBonus) / 100) * GameConfig.constants.breakBambooMultiplier * (1 + (panelData.elementalDamageBonus + newYanguiBreakBambooBonus + talismanElementalDamageBonus) / 100) * 
                                              (1 + generalBonus / 100) * mouseGeneralBonus * lightStrikeBonus;
             
             // 计算破竹会意伤害
             const breakBambooIntentDamage = (panelData.breakBambooAttack.max * skill.breakBambooRate + skill.fixedBreakBamboo) * 
                                             (1 + (panelData.elementalPenetration + redBladeElementalPenetration) / 200) * effectiveIntentRate * 
-                                            (1 + (panelData.intentDamageBonus + talismanIntentBonus) / 100) * 1.5 * (1 + (panelData.elementalDamageBonus + newYanguiBreakBambooBonus + talismanElementalDamageBonus) / 100) * 
+                                            (1 + (panelData.intentDamageBonus + talismanIntentBonus) / 100) * GameConfig.constants.breakBambooMultiplier * (1 + (panelData.elementalDamageBonus + newYanguiBreakBambooBonus + talismanElementalDamageBonus) / 100) * 
                                             (1 + generalBonus / 100) * mouseGeneralBonus * lightStrikeBonus;
             
             // 计算破竹白字伤害
             const breakBambooWhiteTextDamage = (avgBreakBambooAttack * skill.breakBambooRate + skill.fixedBreakBamboo) * 
-                                               (1 + (panelData.elementalPenetration + redBladeElementalPenetration) / 200) * whiteTextRate * 1.5 * (1 + (panelData.elementalDamageBonus + newYanguiBreakBambooBonus + talismanElementalDamageBonus) / 100) * 
+                                               (1 + (panelData.elementalPenetration + redBladeElementalPenetration) / 200) * whiteTextRate * GameConfig.constants.breakBambooMultiplier * (1 + (panelData.elementalDamageBonus + newYanguiBreakBambooBonus + talismanElementalDamageBonus) / 100) * 
                                                (1 + generalBonus / 100) * mouseGeneralBonus * lightStrikeBonus;
             
             // 计算破竹擦伤伤害
             const breakBambooGrazeDamage = (panelData.breakBambooAttack.min * skill.breakBambooRate + skill.fixedBreakBamboo) * 
-                                          (1 + (panelData.elementalPenetration + redBladeElementalPenetration) / 200) * grazeRate * 1.5 * (1 + (panelData.elementalDamageBonus + newYanguiBreakBambooBonus + talismanElementalDamageBonus) / 100) * 
+                                          (1 + (panelData.elementalPenetration + redBladeElementalPenetration) / 200) * grazeRate * GameConfig.constants.breakBambooMultiplier * (1 + (panelData.elementalDamageBonus + newYanguiBreakBambooBonus + talismanElementalDamageBonus) / 100) * 
                                           (1 + generalBonus / 100) * mouseGeneralBonus * lightStrikeBonus;
             
             // 计算外属会心伤害
@@ -1691,6 +2614,25 @@ function updateRotationTable() {
                 whiteTextRate: (whiteTextRate * 100).toFixed(2) + '%',
                 grazeRate: (grazeRate * 100).toFixed(2) + '%'
             };
+            
+            // 新增：第一面板（排轴列表）详细伤害调试信息
+            if (debugMode) {
+                debugLog(`\n=== 第一面板技能${index}: ${skill.name} 详细伤害类型 ===`, 2);
+                debugLog('- 外功会心伤害: ' + totalExternalCriticalDamage.toFixed(2), 2);
+                debugLog('- 外功会意伤害: ' + totalExternalIntentDamage.toFixed(2), 2);
+                debugLog('- 外功白字伤害: ' + totalExternalWhiteTextDamage.toFixed(2), 2);
+                debugLog('- 外功擦伤伤害: ' + totalExternalGrazeDamage.toFixed(2), 2);
+                debugLog('- 破竹会心伤害: ' + totalBreakBambooCriticalDamage.toFixed(2), 2);
+                debugLog('- 破竹会意伤害: ' + totalBreakBambooIntentDamage.toFixed(2), 2);
+                debugLog('- 破竹白字伤害: ' + totalBreakBambooWhiteTextDamage.toFixed(2), 2);
+                debugLog('- 破竹擦伤伤害: ' + totalBreakBambooGrazeDamage.toFixed(2), 2);
+                debugLog('- 外属会心伤害: ' + totalExternalElementCriticalDamage.toFixed(2), 2);
+                debugLog('- 外属会意伤害: ' + totalExternalElementIntentDamage.toFixed(2), 2);
+                debugLog('- 外属白字伤害: ' + totalExternalElementWhiteTextDamage.toFixed(2), 2);
+                debugLog('- 外属擦伤伤害: ' + totalExternalElementGrazeDamage.toFixed(2), 2);
+                debugLog('- 总伤害: ' + totalDamage.toFixed(2), 2);
+                debugLog('- 使用次数: ' + times, 2);
+            }
         }
         
         row.innerHTML = `
@@ -1783,200 +2725,11 @@ function updateRotationTable() {
 
 
     
-    // 添加符帖下拉选择框事件监听（支持联动选择）
-    const talismanSelects = document.querySelectorAll('.table-talisman-select');
-    talismanSelects.forEach(select => {
-        select.addEventListener('change', (e) => {
-            const index = parseInt(e.target.getAttribute('data-index'));
-            const talismanLayer = e.target.value;
-            
-            // 检查索引是否有效
-            if (index < 0 || index >= rotationData.length) {
-                console.error('无效的索引:', index);
-                return;
-            }
-            
-            // 更新当前行的数据
-            rotationData[index] = {
-                ...rotationData[index],
-                talismanLayer: talismanLayer
-            };
-            
-            // 检查是否启用联动模式
-            if (isCascadeModeEnabled()) {
-                console.log(`符帖联动选择：位置${index}选择${talismanLayer}，开始同步后续位置`);
-                
-                // 联动选择：将该位置以下的所有符帖下拉框同步为相同选择
-                for (let i = index + 1; i < rotationData.length; i++) {
-                    rotationData[i] = {
-                        ...rotationData[i],
-                        talismanLayer: talismanLayer
-                    };
-                }
-                
-                console.log(`联动完成：位置${index}到${rotationData.length - 1}的符帖已同步为${talismanLayer}`);
-            } else {
-                console.log(`符帖独立选择：位置${index}选择${talismanLayer}（联动模式已禁用）`);
-            }
-            
-            // 更新表格（使用防抖版本）
-            debouncedUpdateRotationTable();
-        });
-    });
     
-    // 添加易水歌下拉选择框事件监听（支持联动选择）
-    const yishuiSelects = document.querySelectorAll('.table-yishui-select');
-    yishuiSelects.forEach(select => {
-        select.addEventListener('change', (e) => {
-            const index = parseInt(e.target.getAttribute('data-index'));
-            const yishuiLayer = e.target.value;
-            
-            // 检查索引是否有效
-            if (index < 0 || index >= rotationData.length) {
-                console.error('无效的索引:', index);
-                return;
-            }
-            
-            // 更新当前行的数据
-            rotationData[index] = {
-                ...rotationData[index],
-                yishuiLayer: yishuiLayer
-            };
-            
-            // 检查是否启用联动模式
-            if (isCascadeModeEnabled()) {
-                console.log(`易水歌联动选择：位置${index}选择${yishuiLayer}，开始同步后续位置`);
-                
-                // 联动选择：将该位置以下的所有易水歌下拉框同步为相同选择
-                for (let i = index + 1; i < rotationData.length; i++) {
-                    rotationData[i] = {
-                        ...rotationData[i],
-                        yishuiLayer: yishuiLayer
-                    };
-                }
-                
-                console.log(`联动完成：位置${index}到${rotationData.length - 1}的易水歌已同步为${yishuiLayer}`);
-            } else {
-                console.log(`易水歌独立选择：位置${index}选择${yishuiLayer}（联动模式已禁用）`);
-            }
-            
-            // 更新表格（使用防抖版本）
-            debouncedUpdateRotationTable();
-        });
-    });
     
-    // 添加所恨年年下拉选择框事件监听（支持联动选择）
-    const suohenSelects = document.querySelectorAll('.table-suohen-select');
-    suohenSelects.forEach(select => {
-        select.addEventListener('change', (e) => {
-            const index = parseInt(e.target.getAttribute('data-index'));
-            const suohenLayer = e.target.value;
-            
-            // 检查索引是否有效
-            if (index < 0 || index >= rotationData.length) {
-                console.error('无效的索引:', index);
-                return;
-            }
-            
-            // 更新当前行的数据
-            rotationData[index] = {
-                ...rotationData[index],
-                suohenLayer: suohenLayer
-            };
-            
-            // 检查是否启用联动模式
-            if (isCascadeModeEnabled()) {
-                console.log(`所恨年年联动选择：位置${index}选择${suohenLayer}，开始同步后续位置`);
-                
-                // 联动选择：将该位置以下的所有所恨年年下拉框同步为相同选择
-                for (let i = index + 1; i < rotationData.length; i++) {
-                    rotationData[i] = {
-                        ...rotationData[i],
-                        suohenLayer: suohenLayer
-                    };
-                }
-                
-                console.log(`联动完成：位置${index}到${rotationData.length - 1}的所恨年年已同步为${suohenLayer}`);
-            } else {
-                console.log(`所恨年年独立选择：位置${index}选择${suohenLayer}（联动模式已禁用）`);
-            }
-            
-            // 更新表格（使用防抖版本）
-            debouncedUpdateRotationTable();
-        });
-    });
     
-    // 添加气窭复选框事件监听
-    const qijieCheckboxes = document.querySelectorAll('.table-qijie-checkbox');
-    qijieCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', (e) => {
-            const index = parseInt(e.target.getAttribute('data-index'));
-            const qijie = e.target.checked ? '是' : '否';
-            
-            // 检查索引是否有效
-            if (index < 0 || index >= rotationData.length) {
-                console.error('无效的索引:', index);
-                return;
-            }
-            
-            // 更新排轴数据
-            rotationData[index] = {
-                ...rotationData[index],
-                qijie: qijie
-            };
-            
-            // 更新表格（使用防抖版本）
-            debouncedUpdateRotationTable();
-        });
-    });
     
-    // 添加奶伞复选框事件监听
-    const naisanCheckboxes = document.querySelectorAll('.table-naisan-checkbox');
-    naisanCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', (e) => {
-            const index = parseInt(e.target.getAttribute('data-index'));
-            const naisan = e.target.checked ? '是' : '否';
-            
-            // 检查索引是否有效
-            if (index < 0 || index >= rotationData.length) {
-                console.error('无效的索引:', index);
-                return;
-            }
-            
-            // 更新排轴数据
-            rotationData[index] = {
-                ...rotationData[index],
-                naisan: naisan
-            };
-            
-            // 更新表格（使用防抖版本）
-            debouncedUpdateRotationTable();
-        });
-    });
     
-    // 添加易伤复选框事件监听
-    const yishangCheckboxes = document.querySelectorAll('.table-yishang-checkbox');
-    yishangCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', (e) => {
-            const index = parseInt(e.target.getAttribute('data-index'));
-            const yishang = e.target.checked ? '是' : '否';
-            
-            // 检查索引是否有效
-            if (index < 0 || index >= rotationData.length) {
-                console.error('无效的索引:', index);
-                return;
-            }
-            
-            // 更新排轴数据
-            rotationData[index] = {
-                ...rotationData[index],
-                yishang: yishang
-            };
-            
-            // 更新表格（使用防抖版本）
-            debouncedUpdateRotationTable();
-        });
-    });
     
     // 一次性添加所有行到表格
     tableBody.appendChild(fragment);
@@ -2434,16 +3187,33 @@ function loadPanelDataDefaults() {
 function initClearRotationButton() {
     const clearButton = document.getElementById('clear-rotation-btn');
     
+    if (!clearButton) {
+        console.error('❌ 找不到清空排轴按钮！');
+        return;
+    }
+    
+    debugLog('✅ 找到清空排轴按钮，正在绑定事件...', 2);
+    
     clearButton.addEventListener('click', async () => {
+        debugLog('🖱️ 清空排轴按钮被点击', 1);
         const confirmClear = await showConfirmDialog('确定要清空排轴吗？', '清空排轴');
         if (confirmClear) {
+            debugLog('✅ 用户确认清空排轴', 1);
             // 清空排轴数据
             rotationData = [];
             
+            // 同步到排轴数据管理器
+            rotationDataManager.updateCurrentRotation(rotationData);
+            
             // 更新排轴表格
             updateRotationTable();
+            debugLog('✅ 排轴已清空，表格已更新', 1);
+        } else {
+            debugLog('❌ 用户取消清空排轴', 1);
         }
     });
+    
+    debugLog('✅ 清空排轴按钮事件绑定完成', 2);
 }
 
 // 从排轴中移除技能
@@ -2552,6 +3322,44 @@ function initCalculateDamageButton() {
         // 显示伤害计算结果
         displayDamageResult(damageResult);
     });
+}
+
+// 初始化基础信息页面计算按钮
+function initBasicInfoCalculateButton() {
+    const basicInfoCalculateButton = document.getElementById('save-panel-btn');
+    
+    if (basicInfoCalculateButton) {
+        basicInfoCalculateButton.addEventListener('click', async () => {
+            debugLog('🔥 基础信息页面计算按钮被点击，开始计算词条毕业度...', 1);
+            
+            // 显示加载状态
+            showCalculationLoading();
+            
+            try {
+                // 获取当前期望伤害
+                const rotationDamageSum = calculateRotationDamageSum();
+                let expectedDamage;
+                
+                if (isSimulationMode) {
+                    const expectedElement = document.getElementById('expected-damage');
+                    expectedDamage = expectedElement ? parseFloat(expectedElement.textContent) || 0 : rotationDamageSum;
+                } else {
+                    expectedDamage = rotationDamageSum;
+                }
+                
+                // 计算词条毕业度
+                await calculateAllGraduationsAsync(expectedDamage);
+                
+                debugLog('✅ 词条毕业度计算完成！', 1);
+                
+            } catch (error) {
+                console.error('计算词条毕业度时发生错误:', error);
+                showCalculationError(error);
+            } finally {
+                hideCalculationLoading();
+            }
+        });
+    }
 }
 
 
@@ -2804,22 +3612,15 @@ function initDamageStatsTable() {
     // 初始化表格数据
     updateDamageStatsTable();
     
-    // 监听排轴数据变化
-    const observer = new MutationObserver(() => {
-        updateDamageStatsTable();
-        // 同时更新排轴列表伤害列总和
-        updateRotationDamageSumDisplay();
-    });
+    // 移除排轴数据变化的实时计算监听器
+    // 现在只有点击计算按钮时才会进行计算
+    console.log('排轴数据变化实时计算已禁用');
     
-    // 监听排轴表格的变化
-    const rotationTable = document.getElementById('rotation-table');
-    if (rotationTable) {
-        observer.observe(rotationTable, {
-            childList: true,
-            subtree: true,
-            attributes: true
-        });
-    }
+    // 为面板数据变化添加监听器，确保期望2伤害实时更新
+    setupPanelDataChangeListeners();
+    
+    // 移除排轴表格变化的实时监听器
+    console.log('排轴表格变化实时监听器已禁用');
     
     // 添加排轴表格伤害列的实时监听
     setupRotationDamageColumnListener();
@@ -2944,7 +3745,7 @@ function initCustomModeConfig() {
         if (!customGraduationDamage || !customTValue) return;
         
         // 获取用户输入的值
-        const graduationDamage = parseFloat(customGraduationDamage.value) || 3122602;
+        const graduationDamage = parseFloat(customGraduationDamage.value) || 3138065;
         const tValue = parseFloat(customTValue.value) || 60;
         
         // 更新全局变量
@@ -2997,8 +3798,13 @@ function setupRotationDamageColumnListener() {
     });
 }
 
-// 更新伤害统计表格
-function updateDamageStatsTable() {
+// 异步更新伤害统计表格
+async function updateDamageStatsTable() {
+    debugLog('🔥 updateDamageStatsTable 被调用！', 2);
+    
+    // 显示加载状态
+    showCalculationLoading();
+    
     try {
         // 使用排轴列表伤害列总和
         const rotationDamageSum = calculateRotationDamageSum();
@@ -3008,7 +3814,6 @@ function updateDamageStatsTable() {
         
         if (isSimulationMode) {
             // 模拟模式：期望伤害保持不变，模拟伤害使用排轴列表总和
-            // 获取当前期望伤害的值，保持不变
             const expectedElement = document.getElementById('expected-damage');
             expectedDamage = expectedElement ? parseFloat(expectedElement.textContent) || 0 : rotationDamageSum;
             simulationDamage = rotationDamageSum;
@@ -3021,30 +3826,2301 @@ function updateDamageStatsTable() {
         // 更新表格显示
         updateDamageStatsDisplay(0, expectedDamage, simulationDamage, currentDamageMode);
         
+        debugLog('✅ 基础面板计算完成！', 1);
+        
     } catch (error) {
         console.error('更新伤害统计表格时发生错误:', error);
+        showCalculationError(error);
+    } finally {
+        hideCalculationLoading();
     }
 }
 
+// 异步计算所有词条毕业度
+async function calculateAllGraduationsAsync(expectedDamage) {
+    debugLog('🚀 开始分两批计算...', 1);
+    
+    // 第1批：基础面板计算
+    debugLog('📊 第1批：基础面板计算...', 1);
+    await calculateBasePanelAsync(expectedDamage);
+    
+    // 第2批：所有词条毕业度面板计算
+    debugLog('🔧 第2批：词条毕业度面板计算...', 1);
+    await calculateTraitPanelsAsync(expectedDamage);
+    
+    debugLog('✅ 分两批计算完成！', 1);
+}
+
+// 第1批：基础面板计算
+async function calculateBasePanelAsync(expectedDamage) {
+    console.log('🔥 计算基础面板...');
+    
+    // 基础面板计算（这里主要是获取第一面板的期望伤害）
+    // 实际上第一面板的伤害计算已经在updateDamageStatsTable中完成
+    // 这里主要是为了保持批次逻辑的一致性
+    
+    // 让出主线程
+    await new Promise(resolve => setTimeout(resolve, 10));
+    
+}
+
+// 第2批：词条毕业度面板计算
+async function calculateTraitPanelsAsync(expectedDamage) {
+    
+    const graduationTasks = [
+        // 基础词条毕业度
+        { name: '大外功', func: () => calculateLargeExternalGraduation(expectedDamage) },
+        { name: '小外功', func: () => calculateSmallExternalGraduation(expectedDamage) },
+        
+        // 破竹词条毕业度
+        { name: '大破竹', func: () => calculateLargeBreakBambooGraduation(expectedDamage) },
+        { name: '小破竹', func: () => calculateSmallBreakBambooGraduation(expectedDamage) },
+        
+        // 裂石词条毕业度
+        { name: '小裂石', func: () => calculateSmallBreakRockGraduation(expectedDamage) },
+        
+        // 属性词条毕业度
+        { name: '精准率', func: () => calculatePrecisionGraduation(expectedDamage) },
+        { name: '会心率', func: () => calculateCriticalGraduation(expectedDamage) },
+        { name: '会意率', func: () => calculateIntentGraduation(expectedDamage) },
+        
+        // 基础属性词条毕业度
+        { name: '劲', func: () => calculateJingGraduation(expectedDamage) },
+        { name: '敏', func: () => calculateMinGraduation(expectedDamage) },
+        { name: '势', func: () => calculateShiGraduation(expectedDamage) },
+        
+        // 条件词条毕业度
+        { name: '绳镖武学', func: () => calculateShengbiaoGraduation(expectedDamage) },
+        { name: '双刀武学', func: () => calculateShuangdaoGraduation(expectedDamage) },
+        { name: '全武学', func: () => calculateQuanwuxueGraduation(expectedDamage) },
+        { name: '首领单位', func: () => calculateShoulingGraduation(expectedDamage) }
+    ];
+    
+    // 内部优化：将15个词条分成3小批，每批5个，避免一次性启动太多任务
+    const internalBatchSize = 5;
+    for (let i = 0; i < graduationTasks.length; i += internalBatchSize) {
+        const batch = graduationTasks.slice(i, i + internalBatchSize);
+        
+        await Promise.all(
+            batch.map(task => calculateGraduationAsync(task.name, task.func))
+        );
+        
+        // 让出主线程，显示进度
+        await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    
+    // 计算完成后进行排序
+    sortTraitGraduationTable();
+    
+}
+
+// 排序词条毕业度表格
+function sortTraitGraduationTable() {
+    
+    const tbody = document.getElementById('trait-graduation-tbody');
+    if (!tbody) {
+        console.error('找不到词条毕业度表格体');
+        return;
+    }
+    
+    // 获取所有行
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    // 提取每行的数据并排序
+    const rowData = rows.map(row => {
+        const cells = row.querySelectorAll('td');
+        const traitName = cells[0].textContent.trim();
+        const graduationCell = cells[1];
+        const graduationText = graduationCell.textContent.trim();
+        
+        // 解析毕业度数值
+        let graduationValue = 0;
+        if (graduationText !== '-' && graduationText !== '') {
+            // 提取数值部分（去掉%符号）
+            const match = graduationText.match(/([+-]?\d+\.?\d*)/);
+            if (match) {
+                graduationValue = parseFloat(match[1]);
+            }
+        }
+        
+        return {
+            row: row,
+            traitName: traitName,
+            graduationValue: graduationValue,
+            graduationText: graduationText
+        };
+    });
+    
+    // 按毕业度从高到低排序
+    rowData.sort((a, b) => b.graduationValue - a.graduationValue);
+    
+    // 清空表格并重新添加排序后的行
+    tbody.innerHTML = '';
+    rowData.forEach(item => {
+        tbody.appendChild(item.row);
+    });
+    
+}
+
+// 异步计算单个词条毕业度
+async function calculateGraduationAsync(graduationName, calculationFunction) {
+    return new Promise((resolve) => {
+        // 使用requestAnimationFrame让出主线程，提供更好的用户体验
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                try {
+                    calculationFunction();
+                    resolve();
+                } catch (error) {
+                    console.error(`❌ ${graduationName}毕业度计算失败:`, error);
+                    resolve(); // 即使失败也继续
+                }
+            }, 0); // 让出主线程
+        });
+    });
+}
+
+// 更新词条毕业度对比表格
+function updateTraitGraduationTable(firstPanelDamage, secondPanelDamage) {
+    try {
+        // 获取毕业伤害值 - 使用与计算界面相同的逻辑
+        let graduationDamage;
+        if (currentDamageMode === 'custom') {
+            // 自选模式：使用用户自定义的毕业伤害
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+        } else if (currentDamageMode === 'puwu_lao1') {
+            // 普五老一：毕业伤害为2191649
+            graduationDamage = 2191649;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
+            // 燕归断石：按需求设置毕业伤害
+            graduationDamage = 3080124;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
+            // 燕归易水：按需求设置毕业伤害
+            graduationDamage = 3018586;
+        } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
+            // 其他断石类（默认飞隼断石）
+            graduationDamage = 3138065;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
+            // 其他易水类（默认飞隼易水）
+            graduationDamage = 3082418;
+        } else {
+            // 默认值
+            graduationDamage = 3138065;
+        }
+        
+        // 计算第一面板和第二面板的期望毕业度
+        const firstPanelGraduation = (firstPanelDamage / graduationDamage) * 100;
+        const secondPanelGraduation = (secondPanelDamage / graduationDamage) * 100;
+        
+        // 计算大外功的毕业度差值（第二面板期望毕业度 - 第一面板期望毕业度）
+        const graduationDifference = secondPanelGraduation - firstPanelGraduation;
+        
+        // 更新表格中的毕业度显示
+        const graduationElement = document.getElementById('trait-graduation-damage');
+        if (graduationElement) {
+            if (graduationDifference > 0) {
+                graduationElement.textContent = `+${graduationDifference.toFixed(2)}%`;
+                graduationElement.style.color = '#28a745'; // 绿色表示正增长
+            } else if (graduationDifference < 0) {
+                graduationElement.textContent = `${graduationDifference.toFixed(2)}%`;
+                graduationElement.style.color = '#dc3545'; // 红色表示负增长
+            } else {
+                graduationElement.textContent = '0.00%';
+                graduationElement.style.color = '#6c757d'; // 灰色表示无变化
+            }
+        }
+        
+        
+    } catch (error) {
+        console.error('更新词条毕业度对比表格时发生错误:', error);
+    }
+}
+
+// 计算大外功毕业度
+function calculateLargeExternalGraduation(firstPanelDamage) {
+    try {
+        
+        // 获取毕业伤害值 - 使用与计算界面相同的逻辑
+        let graduationDamage;
+        if (currentDamageMode === 'custom') {
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+        } else if (currentDamageMode === 'puwu_lao1') {
+            graduationDamage = 2191649;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
+            graduationDamage = 3080124;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
+            graduationDamage = 3018586;
+        } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
+            graduationDamage = 3138065;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
+            graduationDamage = 3082418;
+        } else {
+            graduationDamage = 3138065;
+        }
+        
+        // 获取当前面板数据
+        const currentPanelData = panelDataManager.getDataFromInputs();
+        
+        // 获取当前排轴数据
+        const currentRotationData = rotationDataManager.getCurrentRotation();
+        
+        if (!currentRotationData || currentRotationData.length === 0) {
+            return;
+        }
+        
+        // 计算大外功第二面板期望伤害（最大外功攻击增加77.8）
+        const largeExternalSecondPanelDamage = calculateLargeExternalSecondPanelDamage(currentPanelData, currentRotationData);
+        
+        
+        // 更新大外功毕业度显示
+        updateLargeExternalGraduationDisplay(firstPanelDamage, largeExternalSecondPanelDamage, graduationDamage);
+        
+    } catch (error) {
+        console.error('计算大外功毕业度时发生错误:', error);
+    }
+}
+
+// 计算大外功第二面板期望伤害（最大外功攻击增加77.8）
+function calculateLargeExternalSecondPanelDamage(currentPanelData, currentRotationData) {
+    try {
+        
+        // 创建修改后的面板数据（最大外功攻击增加77.8）
+        const modifiedPanelData = {
+            ...currentPanelData,
+            externalAttack: {
+                min: currentPanelData.externalAttack.min,
+                max: currentPanelData.externalAttack.max + 77.8
+            }
+        };
+        
+        // 计算修改后的期望伤害
+        const secondPanelDamage = calculateExpectedDamage(modifiedPanelData, currentRotationData);
+        
+        return secondPanelDamage;
+        
+    } catch (error) {
+        console.error('计算大外功第二面板期望伤害时发生错误:', error);
+        return 0;
+    }
+}
+
+// 更新大外功毕业度显示
+function updateLargeExternalGraduationDisplay(firstPanelDamage, secondPanelDamage, graduationDamage) {
+    const element = document.getElementById('trait-graduation-damage');
+    if (!element) {
+        return;
+    }
+    
+    
+    if (firstPanelDamage > 0 && secondPanelDamage > 0) {
+        // 计算第一面板和第二面板的期望毕业度
+        const firstPanelGraduation = (firstPanelDamage / graduationDamage) * 100;
+        const secondPanelGraduation = (secondPanelDamage / graduationDamage) * 100;
+        
+        // 计算毕业度差值（第二面板期望毕业度 - 第一面板期望毕业度）
+        const graduationDifference = secondPanelGraduation - firstPanelGraduation;
+        
+        
+        if (graduationDifference > 0) {
+            element.textContent = `+${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#28a745'; // 绿色表示正增长
+        } else if (graduationDifference < 0) {
+            element.textContent = `${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#dc3545'; // 红色表示负增长
+        } else {
+            element.textContent = '0.00%';
+            element.style.color = '#6c757d'; // 灰色表示无变化
+        }
+    } else {
+        console.log('- 伤害数据无效，显示为"0.00%"');
+        element.textContent = '0.00%';
+        element.style.color = '#6c757d';
+    }
+}
+
+// 计算小外功毕业度
+function calculateSmallExternalGraduation(firstPanelDamage) {
+    try {
+        
+        // 获取毕业伤害值 - 使用与计算界面相同的逻辑
+        let graduationDamage;
+        if (currentDamageMode === 'custom') {
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+        } else if (currentDamageMode === 'puwu_lao1') {
+            graduationDamage = 2191649;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
+            graduationDamage = 3080124;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
+            graduationDamage = 3018586;
+        } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
+            graduationDamage = 3138065;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
+            graduationDamage = 3082418;
+        } else {
+            graduationDamage = 3138065;
+        }
+        
+        // 获取当前面板数据
+        const currentPanelData = panelDataManager.getDataFromInputs();
+        
+        // 获取当前排轴数据
+        const currentRotationData = rotationDataManager.getCurrentRotation();
+        
+        if (!currentRotationData || currentRotationData.length === 0) {
+            return;
+        }
+        
+        // 计算小外功第二面板期望伤害（最小外功攻击增加77.8）
+        const smallExternalSecondPanelDamage = calculateSmallExternalSecondPanelDamage(currentPanelData, currentRotationData);
+        
+        
+        // 更新小外功毕业度显示
+        updateSmallExternalGraduationDisplay(firstPanelDamage, smallExternalSecondPanelDamage, graduationDamage);
+        
+    } catch (error) {
+        console.error('计算小外功毕业度时发生错误:', error);
+    }
+}
+
+// 计算小外功第二面板期望伤害（最小外功攻击增加77.8）
+function calculateSmallExternalSecondPanelDamage(currentPanelData, currentRotationData) {
+    try {
+        
+        // 创建修改后的面板数据（最小外功攻击增加77.8）
+        const modifiedPanelData = {
+            ...currentPanelData,
+            externalAttack: {
+                min: currentPanelData.externalAttack.min + 77.8,
+                max: currentPanelData.externalAttack.max
+            }
+        };
+        
+        // 应用数据验证规则：当最小外功攻击>最大外功攻击时，最大外功攻击=最小外功攻击
+        if (modifiedPanelData.externalAttack.min > modifiedPanelData.externalAttack.max) {
+            modifiedPanelData.externalAttack.max = modifiedPanelData.externalAttack.min;
+        }
+        
+        // 计算修改后的期望伤害
+        const secondPanelDamage = calculateExpectedDamage(modifiedPanelData, currentRotationData);
+        
+        return secondPanelDamage;
+        
+    } catch (error) {
+        console.error('计算小外功第二面板期望伤害时发生错误:', error);
+        return 0;
+    }
+}
+
+// 更新小外功毕业度显示
+function updateSmallExternalGraduationDisplay(firstPanelDamage, secondPanelDamage, graduationDamage) {
+    const element = document.getElementById('trait-graduation-external-min');
+    if (!element) {
+        return;
+    }
+    
+    
+    if (firstPanelDamage > 0 && secondPanelDamage > 0) {
+        // 计算第一面板和第二面板的期望毕业度
+        const firstPanelGraduation = (firstPanelDamage / graduationDamage) * 100;
+        const secondPanelGraduation = (secondPanelDamage / graduationDamage) * 100;
+        
+        // 计算毕业度差值（第二面板期望毕业度 - 第一面板期望毕业度）
+        const graduationDifference = secondPanelGraduation - firstPanelGraduation;
+        
+        
+        if (graduationDifference > 0) {
+            element.textContent = `+${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#28a745'; // 绿色表示正增长
+        } else if (graduationDifference < 0) {
+            element.textContent = `${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#dc3545'; // 红色表示负增长
+        } else {
+            element.textContent = '0.00%';
+            element.style.color = '#6c757d'; // 灰色表示无变化
+        }
+    } else {
+        console.log('- 伤害数据无效，显示为"0.00%"');
+        element.textContent = '0.00%';
+        element.style.color = '#6c757d';
+    }
+}
+
+// 计算大破竹毕业度
+function calculateLargeBreakBambooGraduation(firstPanelDamage) {
+    try {
+        
+        // 获取毕业伤害值 - 使用与计算界面相同的逻辑
+        let graduationDamage;
+        if (currentDamageMode === 'custom') {
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+        } else if (currentDamageMode === 'puwu_lao1') {
+            graduationDamage = 2191649;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
+            graduationDamage = 3080124;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
+            graduationDamage = 3018586;
+        } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
+            graduationDamage = 3138065;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
+            graduationDamage = 3082418;
+        } else {
+            graduationDamage = 3138065;
+        }
+        
+        // 获取当前面板数据
+        const currentPanelData = panelDataManager.getDataFromInputs();
+        
+        // 获取当前排轴数据
+        const currentRotationData = rotationDataManager.getCurrentRotation();
+        
+        if (!currentRotationData || currentRotationData.length === 0) {
+            console.log('⚠️ 排轴数据为空，无法计算大破竹毕业度');
+            return;
+        }
+        
+        // 计算大破竹第二面板期望伤害（最大破竹攻击增加44.2）
+        const largeBreakBambooSecondPanelDamage = calculateLargeBreakBambooSecondPanelDamage(currentPanelData, currentRotationData);
+        
+        console.log('- 第一面板期望伤害:', firstPanelDamage);
+        console.log('- 大破竹第二面板期望伤害:', largeBreakBambooSecondPanelDamage);
+        console.log('- 毕业伤害:', graduationDamage);
+        
+        // 更新大破竹毕业度显示
+        updateLargeBreakBambooGraduationDisplay(firstPanelDamage, largeBreakBambooSecondPanelDamage, graduationDamage);
+        
+    } catch (error) {
+        console.error('计算大破竹毕业度时发生错误:', error);
+    }
+}
+
+// 计算大破竹第二面板期望伤害（最大破竹攻击增加44.2）
+function calculateLargeBreakBambooSecondPanelDamage(currentPanelData, currentRotationData) {
+    try {
+        
+        // 创建修改后的面板数据（最大破竹攻击增加44.2）
+        const modifiedPanelData = {
+            ...currentPanelData,
+            breakBambooAttack: {
+                min: currentPanelData.breakBambooAttack.min,
+                max: currentPanelData.breakBambooAttack.max + 44.2
+            }
+        };
+        
+        // 应用数据验证规则：当最小破竹攻击>最大破竹攻击时，最小破竹攻击=最大破竹攻击
+        if (modifiedPanelData.breakBambooAttack.min > modifiedPanelData.breakBambooAttack.max) {
+            modifiedPanelData.breakBambooAttack.min = modifiedPanelData.breakBambooAttack.max;
+        }
+        
+        
+        // 计算修改后的期望伤害
+        const secondPanelDamage = calculateExpectedDamage(modifiedPanelData, currentRotationData);
+        
+        return secondPanelDamage;
+        
+    } catch (error) {
+        console.error('计算大破竹第二面板期望伤害时发生错误:', error);
+        return 0;
+    }
+}
+
+// 更新大破竹毕业度显示
+function updateLargeBreakBambooGraduationDisplay(firstPanelDamage, secondPanelDamage, graduationDamage) {
+    const element = document.getElementById('trait-graduation-breakbamboo-max');
+    if (!element) {
+        return;
+    }
+    
+    
+    if (firstPanelDamage > 0 && secondPanelDamage > 0) {
+        // 计算第一面板和第二面板的期望毕业度
+        const firstPanelGraduation = (firstPanelDamage / graduationDamage) * 100;
+        const secondPanelGraduation = (secondPanelDamage / graduationDamage) * 100;
+        
+        // 计算毕业度差值（第二面板期望毕业度 - 第一面板期望毕业度）
+        const graduationDifference = secondPanelGraduation - firstPanelGraduation;
+        
+        console.log('- 第一面板毕业度:', firstPanelGraduation.toFixed(2) + '%');
+        console.log('- 第二面板毕业度:', secondPanelGraduation.toFixed(2) + '%');
+        console.log('- 大破竹毕业度差值:', graduationDifference.toFixed(2) + '%');
+        
+        if (graduationDifference > 0) {
+            element.textContent = `+${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#28a745'; // 绿色表示正增长
+        } else if (graduationDifference < 0) {
+            element.textContent = `${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#dc3545'; // 红色表示负增长
+        } else {
+            element.textContent = '0.00%';
+            element.style.color = '#6c757d'; // 灰色表示无变化
+        }
+    } else {
+        console.log('- 伤害数据无效，显示为"0.00%"');
+        element.textContent = '0.00%';
+        element.style.color = '#6c757d';
+    }
+}
+
+// 计算小破竹毕业度
+function calculateSmallBreakBambooGraduation(firstPanelDamage) {
+    try {
+        
+        // 获取毕业伤害值 - 使用与计算界面相同的逻辑
+        let graduationDamage;
+        if (currentDamageMode === 'custom') {
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+        } else if (currentDamageMode === 'puwu_lao1') {
+            graduationDamage = 2191649;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
+            graduationDamage = 3080124;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
+            graduationDamage = 3018586;
+        } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
+            graduationDamage = 3138065;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
+            graduationDamage = 3082418;
+        } else {
+            graduationDamage = 3138065;
+        }
+        
+        // 获取当前面板数据
+        const currentPanelData = panelDataManager.getDataFromInputs();
+        
+        // 获取当前排轴数据
+        const currentRotationData = rotationDataManager.getCurrentRotation();
+        
+        if (!currentRotationData || currentRotationData.length === 0) {
+            console.log('⚠️ 排轴数据为空，无法计算小破竹毕业度');
+            return;
+        }
+        
+        // 计算小破竹第二面板期望伤害（最小破竹攻击增加44.2）
+        const smallBreakBambooSecondPanelDamage = calculateSmallBreakBambooSecondPanelDamage(currentPanelData, currentRotationData);
+        
+        console.log('- 第一面板期望伤害:', firstPanelDamage);
+        console.log('- 小破竹第二面板期望伤害:', smallBreakBambooSecondPanelDamage);
+        console.log('- 毕业伤害:', graduationDamage);
+        
+        // 更新小破竹毕业度显示
+        updateSmallBreakBambooGraduationDisplay(firstPanelDamage, smallBreakBambooSecondPanelDamage, graduationDamage);
+        
+    } catch (error) {
+        console.error('计算小破竹毕业度时发生错误:', error);
+    }
+}
+
+// 计算小破竹第二面板期望伤害（最小破竹攻击增加44.2）
+function calculateSmallBreakBambooSecondPanelDamage(currentPanelData, currentRotationData) {
+    try {
+        
+        // 创建修改后的面板数据（最小破竹攻击增加44.2）
+        const modifiedPanelData = {
+            ...currentPanelData,
+            breakBambooAttack: {
+                min: currentPanelData.breakBambooAttack.min + 44.2,
+                max: currentPanelData.breakBambooAttack.max
+            }
+        };
+        
+        // 应用数据验证规则：当最小破竹攻击>最大破竹攻击时，最大破竹攻击=最小破竹攻击
+        if (modifiedPanelData.breakBambooAttack.min > modifiedPanelData.breakBambooAttack.max) {
+            modifiedPanelData.breakBambooAttack.max = modifiedPanelData.breakBambooAttack.min;
+        }
+        
+        
+        // 计算修改后的期望伤害
+        const secondPanelDamage = calculateExpectedDamage(modifiedPanelData, currentRotationData);
+        
+        return secondPanelDamage;
+        
+    } catch (error) {
+        console.error('计算小破竹第二面板期望伤害时发生错误:', error);
+        return 0;
+    }
+}
+
+// 更新小破竹毕业度显示
+function updateSmallBreakBambooGraduationDisplay(firstPanelDamage, secondPanelDamage, graduationDamage) {
+    const element = document.getElementById('trait-graduation-breakbamboo-min');
+    if (!element) {
+        return;
+    }
+    
+    
+    if (firstPanelDamage > 0 && secondPanelDamage > 0) {
+        // 计算第一面板和第二面板的期望毕业度
+        const firstPanelGraduation = (firstPanelDamage / graduationDamage) * 100;
+        const secondPanelGraduation = (secondPanelDamage / graduationDamage) * 100;
+        
+        // 计算毕业度差值（第二面板期望毕业度 - 第一面板期望毕业度）
+        const graduationDifference = secondPanelGraduation - firstPanelGraduation;
+        
+        console.log('- 第一面板毕业度:', firstPanelGraduation.toFixed(2) + '%');
+        console.log('- 第二面板毕业度:', secondPanelGraduation.toFixed(2) + '%');
+        console.log('- 小破竹毕业度差值:', graduationDifference.toFixed(2) + '%');
+        
+        if (graduationDifference > 0) {
+            element.textContent = `+${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#28a745'; // 绿色表示正增长
+        } else if (graduationDifference < 0) {
+            element.textContent = `${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#dc3545'; // 红色表示负增长
+        } else {
+            element.textContent = '0.00%';
+            element.style.color = '#6c757d'; // 灰色表示无变化
+        }
+    } else {
+        console.log('- 伤害数据无效，显示为"0.00%"');
+        element.textContent = '0.00%';
+        element.style.color = '#6c757d';
+    }
+}
+
+// 计算小裂石毕业度
+function calculateSmallBreakRockGraduation(firstPanelDamage) {
+    try {
+        
+        // 获取毕业伤害值 - 使用与计算界面相同的逻辑
+        let graduationDamage;
+        if (currentDamageMode === 'custom') {
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+        } else if (currentDamageMode === 'puwu_lao1') {
+            graduationDamage = 2191649;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
+            graduationDamage = 3080124;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
+            graduationDamage = 3018586;
+        } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
+            graduationDamage = 3138065;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
+            graduationDamage = 3082418;
+        } else {
+            graduationDamage = 3138065;
+        }
+        
+        // 获取当前面板数据
+        const currentPanelData = panelDataManager.getDataFromInputs();
+        
+        // 获取当前排轴数据
+        const currentRotationData = rotationDataManager.getCurrentRotation();
+        
+        if (!currentRotationData || currentRotationData.length === 0) {
+            console.log('⚠️ 排轴数据为空，无法计算小裂石毕业度');
+            return;
+        }
+        
+        // 计算小裂石第二面板期望伤害（最小裂石攻击增加44.2）
+        const smallBreakRockSecondPanelDamage = calculateSmallBreakRockSecondPanelDamage(currentPanelData, currentRotationData);
+        
+        console.log('- 第一面板期望伤害:', firstPanelDamage);
+        console.log('- 小裂石第二面板期望伤害:', smallBreakRockSecondPanelDamage);
+        console.log('- 毕业伤害:', graduationDamage);
+        
+        // 更新小裂石毕业度显示
+        updateSmallBreakRockGraduationDisplay(firstPanelDamage, smallBreakRockSecondPanelDamage, graduationDamage);
+        
+    } catch (error) {
+        console.error('计算小裂石毕业度时发生错误:', error);
+    }
+}
+
+// 计算小裂石第二面板期望伤害（最小裂石攻击增加44.2）
+function calculateSmallBreakRockSecondPanelDamage(currentPanelData, currentRotationData) {
+    try {
+        
+        // 创建修改后的面板数据（最小裂石攻击增加44.2）
+        const modifiedPanelData = {
+            ...currentPanelData,
+            breakRockAttack: {
+                min: currentPanelData.breakRockAttack.min + 44.2,
+                max: currentPanelData.breakRockAttack.max
+            }
+        };
+        
+        // 应用数据验证规则：当最小裂石攻击>最大裂石攻击时，最大裂石攻击=最小裂石攻击
+        if (modifiedPanelData.breakRockAttack.min > modifiedPanelData.breakRockAttack.max) {
+            modifiedPanelData.breakRockAttack.max = modifiedPanelData.breakRockAttack.min;
+        }
+        
+        
+        // 计算修改后的期望伤害
+        const secondPanelDamage = calculateExpectedDamage(modifiedPanelData, currentRotationData);
+        
+        return secondPanelDamage;
+        
+    } catch (error) {
+        console.error('计算小裂石第二面板期望伤害时发生错误:', error);
+        return 0;
+    }
+}
+
+// 更新小裂石毕业度显示
+function updateSmallBreakRockGraduationDisplay(firstPanelDamage, secondPanelDamage, graduationDamage) {
+    const element = document.getElementById('trait-graduation-breakrock-min');
+    if (!element) {
+        return;
+    }
+    
+    
+    if (firstPanelDamage > 0 && secondPanelDamage > 0) {
+        // 计算第一面板和第二面板的期望毕业度
+        const firstPanelGraduation = (firstPanelDamage / graduationDamage) * 100;
+        const secondPanelGraduation = (secondPanelDamage / graduationDamage) * 100;
+        
+        // 计算毕业度差值（第二面板期望毕业度 - 第一面板期望毕业度）
+        const graduationDifference = secondPanelGraduation - firstPanelGraduation;
+        
+        console.log('- 第一面板毕业度:', firstPanelGraduation.toFixed(2) + '%');
+        console.log('- 第二面板毕业度:', secondPanelGraduation.toFixed(2) + '%');
+        console.log('- 小裂石毕业度差值:', graduationDifference.toFixed(2) + '%');
+        
+        if (graduationDifference > 0) {
+            element.textContent = `+${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#28a745'; // 绿色表示正增长
+        } else if (graduationDifference < 0) {
+            element.textContent = `${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#dc3545'; // 红色表示负增长
+        } else {
+            element.textContent = '0.00%';
+            element.style.color = '#6c757d'; // 灰色表示无变化
+        }
+    } else {
+        console.log('- 伤害数据无效，显示为"0.00%"');
+        element.textContent = '0.00%';
+        element.style.color = '#6c757d';
+    }
+}
+
+// 计算精准率毕业度
+function calculatePrecisionGraduation(firstPanelDamage) {
+    try {
+        
+        // 获取毕业伤害值 - 使用与计算界面相同的逻辑
+        let graduationDamage;
+        if (currentDamageMode === 'custom') {
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+        } else if (currentDamageMode === 'puwu_lao1') {
+            graduationDamage = 2191649;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
+            graduationDamage = 3080124;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
+            graduationDamage = 3018586;
+        } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
+            graduationDamage = 3138065;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
+            graduationDamage = 3082418;
+        } else {
+            graduationDamage = 3138065;
+        }
+        
+        // 获取当前面板数据
+        const currentPanelData = panelDataManager.getDataFromInputs();
+        
+        // 获取当前排轴数据
+        const currentRotationData = rotationDataManager.getCurrentRotation();
+        
+        if (!currentRotationData || currentRotationData.length === 0) {
+            console.log('⚠️ 排轴数据为空，无法计算精准率毕业度');
+            return;
+        }
+        
+        // 计算精准率第二面板期望伤害（精准率增加4.84）
+        const precisionSecondPanelDamage = calculatePrecisionSecondPanelDamage(currentPanelData, currentRotationData);
+        
+        console.log('- 第一面板期望伤害:', firstPanelDamage);
+        console.log('- 精准率第二面板期望伤害:', precisionSecondPanelDamage);
+        console.log('- 毕业伤害:', graduationDamage);
+        
+        // 更新精准率毕业度显示
+        updatePrecisionGraduationDisplay(firstPanelDamage, precisionSecondPanelDamage, graduationDamage);
+        
+    } catch (error) {
+        console.error('计算精准率毕业度时发生错误:', error);
+    }
+}
+
+// 计算精准率第二面板期望伤害（精准率增加4.84）
+function calculatePrecisionSecondPanelDamage(currentPanelData, currentRotationData) {
+    try {
+        
+        // 创建修改后的面板数据（精准率增加4.84）
+        const modifiedPanelData = {
+            ...currentPanelData,
+            precisionRate: currentPanelData.precisionRate + 4.84
+        };
+        
+        console.log('- 修改后精准率:', modifiedPanelData.precisionRate);
+        
+        // 计算修改后的期望伤害
+        const secondPanelDamage = calculateExpectedDamage(modifiedPanelData, currentRotationData);
+        console.log('- 精准率第二面板期望伤害:', secondPanelDamage);
+        
+        return secondPanelDamage;
+        
+    } catch (error) {
+        console.error('计算精准率第二面板期望伤害时发生错误:', error);
+        return 0;
+    }
+}
+
+// 更新精准率毕业度显示
+function updatePrecisionGraduationDisplay(firstPanelDamage, secondPanelDamage, graduationDamage) {
+    const element = document.getElementById('trait-graduation-precision');
+    if (!element) {
+        return;
+    }
+    
+    
+    if (firstPanelDamage > 0 && secondPanelDamage > 0) {
+        // 计算第一面板和第二面板的期望毕业度
+        const firstPanelGraduation = (firstPanelDamage / graduationDamage) * 100;
+        const secondPanelGraduation = (secondPanelDamage / graduationDamage) * 100;
+        
+        // 计算毕业度差值（第二面板期望毕业度 - 第一面板期望毕业度）
+        const graduationDifference = secondPanelGraduation - firstPanelGraduation;
+        
+        console.log('- 第一面板毕业度:', firstPanelGraduation.toFixed(2) + '%');
+        console.log('- 第二面板毕业度:', secondPanelGraduation.toFixed(2) + '%');
+        console.log('- 精准率毕业度差值:', graduationDifference.toFixed(2) + '%');
+        
+        if (graduationDifference > 0) {
+            element.textContent = `+${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#28a745'; // 绿色表示正增长
+        } else if (graduationDifference < 0) {
+            element.textContent = `${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#dc3545'; // 红色表示负增长
+        } else {
+            element.textContent = '0.00%';
+            element.style.color = '#6c757d'; // 灰色表示无变化
+        }
+    } else {
+        console.log('- 伤害数据无效，显示为"0.00%"');
+        element.textContent = '0.00%';
+        element.style.color = '#6c757d';
+    }
+}
+
+// 计算会心率毕业度
+function calculateCriticalGraduation(firstPanelDamage) {
+    try {
+        console.log('🔥 开始计算会心率毕业度:');
+        
+        // 获取毕业伤害值 - 使用与计算界面相同的逻辑
+        let graduationDamage;
+        if (currentDamageMode === 'custom') {
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+        } else if (currentDamageMode === 'puwu_lao1') {
+            graduationDamage = 2191649;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
+            graduationDamage = 3080124;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
+            graduationDamage = 3018586;
+        } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
+            graduationDamage = 3138065;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
+            graduationDamage = 3082418;
+        } else {
+            graduationDamage = 3138065;
+        }
+        
+        // 获取当前面板数据
+        const currentPanelData = panelDataManager.getDataFromInputs();
+        
+        // 获取当前排轴数据
+        const currentRotationData = rotationDataManager.getCurrentRotation();
+        
+        if (!currentRotationData || currentRotationData.length === 0) {
+            console.log('⚠️ 排轴数据为空，无法计算会心率毕业度');
+            return;
+        }
+        
+        // 计算会心率第二面板期望伤害（会心率增加5.45）
+        const criticalSecondPanelDamage = calculateCriticalSecondPanelDamage(currentPanelData, currentRotationData);
+        
+        console.log('- 第一面板期望伤害:', firstPanelDamage);
+        console.log('- 会心率第二面板期望伤害:', criticalSecondPanelDamage);
+        console.log('- 毕业伤害:', graduationDamage);
+        
+        // 更新会心率毕业度显示
+        updateCriticalGraduationDisplay(firstPanelDamage, criticalSecondPanelDamage, graduationDamage);
+        
+    } catch (error) {
+        console.error('计算会心率毕业度时发生错误:', error);
+    }
+}
+
+// 计算会心率第二面板期望伤害（会心率增加5.45）
+function calculateCriticalSecondPanelDamage(currentPanelData, currentRotationData) {
+    try {
+        console.log('🔥 计算会心率第二面板期望伤害:');
+        console.log('- 原始会心率:', currentPanelData.criticalRate);
+        
+        // 创建修改后的面板数据（会心率增加5.45）
+        const modifiedPanelData = {
+            ...currentPanelData,
+            criticalRate: currentPanelData.criticalRate + 5.45
+        };
+        
+        console.log('- 修改后会心率:', modifiedPanelData.criticalRate);
+        
+        // 计算修改后的期望伤害
+        const secondPanelDamage = calculateExpectedDamage(modifiedPanelData, currentRotationData);
+        console.log('- 会心率第二面板期望伤害:', secondPanelDamage);
+        
+        return secondPanelDamage;
+        
+    } catch (error) {
+        console.error('计算会心率第二面板期望伤害时发生错误:', error);
+        return 0;
+    }
+}
+
+// 更新会心率毕业度显示
+function updateCriticalGraduationDisplay(firstPanelDamage, secondPanelDamage, graduationDamage) {
+    const element = document.getElementById('trait-graduation-critical');
+    if (!element) {
+        console.log('⚠️ 未找到会心率毕业度元素');
+        return;
+    }
+    
+    console.log('🔥 更新会心率毕业度显示:');
+    
+    if (firstPanelDamage > 0 && secondPanelDamage > 0) {
+        // 计算第一面板和第二面板的期望毕业度
+        const firstPanelGraduation = (firstPanelDamage / graduationDamage) * 100;
+        const secondPanelGraduation = (secondPanelDamage / graduationDamage) * 100;
+        
+        // 计算毕业度差值（第二面板期望毕业度 - 第一面板期望毕业度）
+        const graduationDifference = secondPanelGraduation - firstPanelGraduation;
+        
+        console.log('- 第一面板毕业度:', firstPanelGraduation.toFixed(2) + '%');
+        console.log('- 第二面板毕业度:', secondPanelGraduation.toFixed(2) + '%');
+        console.log('- 会心率毕业度差值:', graduationDifference.toFixed(2) + '%');
+        
+        if (graduationDifference > 0) {
+            element.textContent = `+${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#28a745'; // 绿色表示正增长
+        } else if (graduationDifference < 0) {
+            element.textContent = `${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#dc3545'; // 红色表示负增长
+        } else {
+            element.textContent = '0.00%';
+            element.style.color = '#6c757d'; // 灰色表示无变化
+        }
+    } else {
+        console.log('- 伤害数据无效，显示为"0.00%"');
+        element.textContent = '0.00%';
+        element.style.color = '#6c757d';
+    }
+}
+
+// 计算会意率毕业度
+function calculateIntentGraduation(firstPanelDamage) {
+    try {
+        console.log('🔥 开始计算会意率毕业度:');
+        
+        // 获取毕业伤害值 - 使用与计算界面相同的逻辑
+        let graduationDamage;
+        if (currentDamageMode === 'custom') {
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+        } else if (currentDamageMode === 'puwu_lao1') {
+            graduationDamage = 2191649;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
+            graduationDamage = 3080124;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
+            graduationDamage = 3018586;
+        } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
+            graduationDamage = 3138065;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
+            graduationDamage = 3082418;
+        } else {
+            graduationDamage = 3138065;
+        }
+        
+        // 获取当前面板数据
+        const currentPanelData = panelDataManager.getDataFromInputs();
+        
+        // 获取当前排轴数据
+        const currentRotationData = rotationDataManager.getCurrentRotation();
+        
+        if (!currentRotationData || currentRotationData.length === 0) {
+            console.log('⚠️ 排轴数据为空，无法计算会意率毕业度');
+            return;
+        }
+        
+        // 计算会意率第二面板期望伤害（会意率增加2.67）
+        const intentSecondPanelDamage = calculateIntentSecondPanelDamage(currentPanelData, currentRotationData);
+        
+        console.log('- 第一面板期望伤害:', firstPanelDamage);
+        console.log('- 会意率第二面板期望伤害:', intentSecondPanelDamage);
+        console.log('- 毕业伤害:', graduationDamage);
+        
+        // 更新会意率毕业度显示
+        updateIntentGraduationDisplay(firstPanelDamage, intentSecondPanelDamage, graduationDamage);
+        
+    } catch (error) {
+        console.error('计算会意率毕业度时发生错误:', error);
+    }
+}
+
+// 计算会意率第二面板期望伤害（会意率增加2.67）
+function calculateIntentSecondPanelDamage(currentPanelData, currentRotationData) {
+    try {
+        console.log('🔥 计算会意率第二面板期望伤害:');
+        console.log('- 原始会意率:', currentPanelData.intentRate);
+        
+        // 创建修改后的面板数据（会意率增加2.67）
+        const modifiedPanelData = {
+            ...currentPanelData,
+            intentRate: currentPanelData.intentRate + 2.67
+        };
+        
+        console.log('- 修改后会意率:', modifiedPanelData.intentRate);
+        
+        // 计算修改后的期望伤害
+        const secondPanelDamage = calculateExpectedDamage(modifiedPanelData, currentRotationData);
+        console.log('- 会意率第二面板期望伤害:', secondPanelDamage);
+        
+        return secondPanelDamage;
+        
+    } catch (error) {
+        console.error('计算会意率第二面板期望伤害时发生错误:', error);
+        return 0;
+    }
+}
+
+// 更新会意率毕业度显示
+function updateIntentGraduationDisplay(firstPanelDamage, secondPanelDamage, graduationDamage) {
+    const element = document.getElementById('trait-graduation-intent');
+    if (!element) {
+        console.log('⚠️ 未找到会意率毕业度元素');
+        return;
+    }
+    
+    console.log('🔥 更新会意率毕业度显示:');
+    
+    if (firstPanelDamage > 0 && secondPanelDamage > 0) {
+        // 计算第一面板和第二面板的期望毕业度
+        const firstPanelGraduation = (firstPanelDamage / graduationDamage) * 100;
+        const secondPanelGraduation = (secondPanelDamage / graduationDamage) * 100;
+        
+        // 计算毕业度差值（第二面板期望毕业度 - 第一面板期望毕业度）
+        const graduationDifference = secondPanelGraduation - firstPanelGraduation;
+        
+        console.log('- 第一面板毕业度:', firstPanelGraduation.toFixed(2) + '%');
+        console.log('- 第二面板毕业度:', secondPanelGraduation.toFixed(2) + '%');
+        console.log('- 会意率毕业度差值:', graduationDifference.toFixed(2) + '%');
+        
+        if (graduationDifference > 0) {
+            element.textContent = `+${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#28a745'; // 绿色表示正增长
+        } else if (graduationDifference < 0) {
+            element.textContent = `${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#dc3545'; // 红色表示负增长
+        } else {
+            element.textContent = '0.00%';
+            element.style.color = '#6c757d'; // 灰色表示无变化
+        }
+    } else {
+        console.log('- 伤害数据无效，显示为"0.00%"');
+        element.textContent = '0.00%';
+        element.style.color = '#6c757d';
+    }
+}
+
+// 计算劲毕业度
+function calculateJingGraduation(firstPanelDamage) {
+    try {
+        console.log('🔥 开始计算劲毕业度:');
+        
+        // 获取毕业伤害值 - 使用与计算界面相同的逻辑
+        let graduationDamage;
+        if (currentDamageMode === 'custom') {
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+        } else if (currentDamageMode === 'puwu_lao1') {
+            graduationDamage = 2191649;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
+            graduationDamage = 3080124;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
+            graduationDamage = 3018586;
+        } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
+            graduationDamage = 3138065;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
+            graduationDamage = 3082418;
+        } else {
+            graduationDamage = 3138065;
+        }
+        
+        // 获取当前面板数据
+        const currentPanelData = panelDataManager.getDataFromInputs();
+        
+        // 获取当前排轴数据
+        const currentRotationData = rotationDataManager.getCurrentRotation();
+        
+        if (!currentRotationData || currentRotationData.length === 0) {
+            console.log('⚠️ 排轴数据为空，无法计算劲毕业度');
+            return;
+        }
+        
+        // 计算劲第二面板期望伤害（外功攻击最小值+11.1，最大值+67.2）
+        const jingSecondPanelDamage = calculateJingSecondPanelDamage(currentPanelData, currentRotationData);
+        
+        console.log('- 第一面板期望伤害:', firstPanelDamage);
+        console.log('- 劲第二面板期望伤害:', jingSecondPanelDamage);
+        console.log('- 毕业伤害:', graduationDamage);
+        
+        // 更新劲毕业度显示
+        updateJingGraduationDisplay(firstPanelDamage, jingSecondPanelDamage, graduationDamage);
+        
+    } catch (error) {
+        console.error('计算劲毕业度时发生错误:', error);
+    }
+}
+
+// 计算劲第二面板期望伤害（外功攻击最小值+11.1，最大值+67.2）
+function calculateJingSecondPanelDamage(currentPanelData, currentRotationData) {
+    try {
+        console.log('🔥 计算劲第二面板期望伤害:');
+        console.log('- 原始外功攻击:', currentPanelData.externalAttack);
+        
+        // 创建修改后的面板数据（外功攻击最小值+11.1，最大值+67.2）
+        const modifiedPanelData = {
+            ...currentPanelData,
+            externalAttack: {
+                min: currentPanelData.externalAttack.min + 11.1,
+                max: currentPanelData.externalAttack.max + 67.2
+            }
+        };
+        
+        console.log('- 修改后外功攻击:', modifiedPanelData.externalAttack);
+        
+        // 计算修改后的期望伤害
+        const secondPanelDamage = calculateExpectedDamage(modifiedPanelData, currentRotationData);
+        console.log('- 劲第二面板期望伤害:', secondPanelDamage);
+        
+        return secondPanelDamage;
+        
+    } catch (error) {
+        console.error('计算劲第二面板期望伤害时发生错误:', error);
+        return 0;
+    }
+}
+
+// 更新劲毕业度显示
+function updateJingGraduationDisplay(firstPanelDamage, secondPanelDamage, graduationDamage) {
+    const element = document.getElementById('trait-graduation-jing');
+    if (!element) {
+        console.log('⚠️ 未找到劲毕业度元素');
+        return;
+    }
+    
+    console.log('🔥 更新劲毕业度显示:');
+    
+    if (firstPanelDamage > 0 && secondPanelDamage > 0) {
+        // 计算第一面板和第二面板的期望毕业度
+        const firstPanelGraduation = (firstPanelDamage / graduationDamage) * 100;
+        const secondPanelGraduation = (secondPanelDamage / graduationDamage) * 100;
+        
+        // 计算毕业度差值（第二面板期望毕业度 - 第一面板期望毕业度）
+        const graduationDifference = secondPanelGraduation - firstPanelGraduation;
+        
+        console.log('- 第一面板毕业度:', firstPanelGraduation.toFixed(2) + '%');
+        console.log('- 第二面板毕业度:', secondPanelGraduation.toFixed(2) + '%');
+        console.log('- 劲毕业度差值:', graduationDifference.toFixed(2) + '%');
+        
+        if (graduationDifference > 0) {
+            element.textContent = `+${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#28a745'; // 绿色表示正增长
+        } else if (graduationDifference < 0) {
+            element.textContent = `${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#dc3545'; // 红色表示负增长
+        } else {
+            element.textContent = '0.00%';
+            element.style.color = '#6c757d'; // 灰色表示无变化
+        }
+    } else {
+        console.log('- 伤害数据无效，显示为"0.00%"');
+        element.textContent = '0.00%';
+        element.style.color = '#6c757d';
+    }
+}
+
+// 计算敏毕业度
+function calculateMinGraduation(firstPanelDamage) {
+    try {
+        console.log('🔥 开始计算敏毕业度:');
+        
+        // 获取毕业伤害值 - 使用与计算界面相同的逻辑
+        let graduationDamage;
+        if (currentDamageMode === 'custom') {
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+        } else if (currentDamageMode === 'puwu_lao1') {
+            graduationDamage = 2191649;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
+            graduationDamage = 3080124;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
+            graduationDamage = 3018586;
+        } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
+            graduationDamage = 3138065;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
+            graduationDamage = 3082418;
+        } else {
+            graduationDamage = 3138065;
+        }
+        
+        // 获取当前面板数据
+        const currentPanelData = panelDataManager.getDataFromInputs();
+        
+        // 获取当前排轴数据
+        const currentRotationData = rotationDataManager.getCurrentRotation();
+        
+        if (!currentRotationData || currentRotationData.length === 0) {
+            console.log('⚠️ 排轴数据为空，无法计算敏毕业度');
+            return;
+        }
+        
+        // 计算敏第二面板期望伤害（外功攻击最小值+44.5，会心率+2.28）
+        const minSecondPanelDamage = calculateMinSecondPanelDamage(currentPanelData, currentRotationData);
+        
+        console.log('- 第一面板期望伤害:', firstPanelDamage);
+        console.log('- 敏第二面板期望伤害:', minSecondPanelDamage);
+        console.log('- 毕业伤害:', graduationDamage);
+        
+        // 更新敏毕业度显示
+        updateMinGraduationDisplay(firstPanelDamage, minSecondPanelDamage, graduationDamage);
+        
+    } catch (error) {
+        console.error('计算敏毕业度时发生错误:', error);
+    }
+}
+
+// 计算敏第二面板期望伤害（外功攻击最小值+44.5，会心率+2.28）
+function calculateMinSecondPanelDamage(currentPanelData, currentRotationData) {
+    try {
+        console.log('🔥 计算敏第二面板期望伤害:');
+        console.log('- 原始外功攻击:', currentPanelData.externalAttack);
+        console.log('- 原始会心率:', currentPanelData.criticalRate);
+        
+        // 创建修改后的面板数据（外功攻击最小值+44.5，会心率+2.28）
+        const modifiedPanelData = {
+            ...currentPanelData,
+            externalAttack: {
+                min: currentPanelData.externalAttack.min + 44.5,
+                max: currentPanelData.externalAttack.max
+            },
+            criticalRate: currentPanelData.criticalRate + 2.28
+        };
+        
+        console.log('- 修改后外功攻击:', modifiedPanelData.externalAttack);
+        console.log('- 修改后会心率:', modifiedPanelData.criticalRate);
+        
+        // 计算修改后的期望伤害
+        const secondPanelDamage = calculateExpectedDamage(modifiedPanelData, currentRotationData);
+        console.log('- 敏第二面板期望伤害:', secondPanelDamage);
+        
+        return secondPanelDamage;
+        
+    } catch (error) {
+        console.error('计算敏第二面板期望伤害时发生错误:', error);
+        return 0;
+    }
+}
+
+// 更新敏毕业度显示
+function updateMinGraduationDisplay(firstPanelDamage, secondPanelDamage, graduationDamage) {
+    const element = document.getElementById('trait-graduation-min');
+    if (!element) {
+        console.log('⚠️ 未找到敏毕业度元素');
+        return;
+    }
+    
+    console.log('🔥 更新敏毕业度显示:');
+    
+    if (firstPanelDamage > 0 && secondPanelDamage > 0) {
+        // 计算第一面板和第二面板的期望毕业度
+        const firstPanelGraduation = (firstPanelDamage / graduationDamage) * 100;
+        const secondPanelGraduation = (secondPanelDamage / graduationDamage) * 100;
+        
+        // 计算毕业度差值（第二面板期望毕业度 - 第一面板期望毕业度）
+        const graduationDifference = secondPanelGraduation - firstPanelGraduation;
+        
+        console.log('- 第一面板毕业度:', firstPanelGraduation.toFixed(2) + '%');
+        console.log('- 第二面板毕业度:', secondPanelGraduation.toFixed(2) + '%');
+        console.log('- 敏毕业度差值:', graduationDifference.toFixed(2) + '%');
+        
+        if (graduationDifference > 0) {
+            element.textContent = `+${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#28a745'; // 绿色表示正增长
+        } else if (graduationDifference < 0) {
+            element.textContent = `${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#dc3545'; // 红色表示负增长
+        } else {
+            element.textContent = '0.00%';
+            element.style.color = '#6c757d'; // 灰色表示无变化
+        }
+    } else {
+        console.log('- 伤害数据无效，显示为"0.00%"');
+        element.textContent = '0.00%';
+        element.style.color = '#6c757d';
+    }
+}
+
+// 计算势毕业度
+function calculateShiGraduation(firstPanelDamage) {
+    try {
+        console.log('🔥 开始计算势毕业度:');
+        
+        // 获取毕业伤害值 - 使用与计算界面相同的逻辑
+        let graduationDamage;
+        if (currentDamageMode === 'custom') {
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+        } else if (currentDamageMode === 'puwu_lao1') {
+            graduationDamage = 2191649;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
+            graduationDamage = 3080124;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
+            graduationDamage = 3018586;
+        } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
+            graduationDamage = 3138065;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
+            graduationDamage = 3082418;
+        } else {
+            graduationDamage = 3138065;
+        }
+        
+        // 获取当前面板数据
+        const currentPanelData = panelDataManager.getDataFromInputs();
+        
+        // 获取当前排轴数据
+        const currentRotationData = rotationDataManager.getCurrentRotation();
+        
+        if (!currentRotationData || currentRotationData.length === 0) {
+            console.log('⚠️ 排轴数据为空，无法计算势毕业度');
+            return;
+        }
+        
+        // 计算势第二面板期望伤害（外功攻击最大值+44.5，会意率+1.14）
+        const shiSecondPanelDamage = calculateShiSecondPanelDamage(currentPanelData, currentRotationData);
+        
+        console.log('- 第一面板期望伤害:', firstPanelDamage);
+        console.log('- 势第二面板期望伤害:', shiSecondPanelDamage);
+        console.log('- 毕业伤害:', graduationDamage);
+        
+        // 更新势毕业度显示
+        updateShiGraduationDisplay(firstPanelDamage, shiSecondPanelDamage, graduationDamage);
+        
+    } catch (error) {
+        console.error('计算势毕业度时发生错误:', error);
+    }
+}
+
+// 计算势第二面板期望伤害（外功攻击最大值+44.5，会意率+1.14）
+function calculateShiSecondPanelDamage(currentPanelData, currentRotationData) {
+    try {
+        console.log('🔥 计算势第二面板期望伤害:');
+        console.log('- 原始外功攻击:', currentPanelData.externalAttack);
+        console.log('- 原始会意率:', currentPanelData.intentRate);
+        
+        // 创建修改后的面板数据（外功攻击最大值+44.5，会意率+1.14）
+        const modifiedPanelData = {
+            ...currentPanelData,
+            externalAttack: {
+                min: currentPanelData.externalAttack.min,
+                max: currentPanelData.externalAttack.max + 44.5
+            },
+            intentRate: currentPanelData.intentRate + 1.14
+        };
+        
+        console.log('- 修改后外功攻击:', modifiedPanelData.externalAttack);
+        console.log('- 修改后会意率:', modifiedPanelData.intentRate);
+        
+        // 计算修改后的期望伤害
+        const secondPanelDamage = calculateExpectedDamage(modifiedPanelData, currentRotationData);
+        console.log('- 势第二面板期望伤害:', secondPanelDamage);
+        
+        return secondPanelDamage;
+        
+    } catch (error) {
+        console.error('计算势第二面板期望伤害时发生错误:', error);
+        return 0;
+    }
+}
+
+// 更新势毕业度显示
+function updateShiGraduationDisplay(firstPanelDamage, secondPanelDamage, graduationDamage) {
+    const element = document.getElementById('trait-graduation-shi');
+    if (!element) {
+        console.log('⚠️ 未找到势毕业度元素');
+        return;
+    }
+    
+    console.log('🔥 更新势毕业度显示:');
+    
+    if (firstPanelDamage > 0 && secondPanelDamage > 0) {
+        // 计算第一面板和第二面板的期望毕业度
+        const firstPanelGraduation = (firstPanelDamage / graduationDamage) * 100;
+        const secondPanelGraduation = (secondPanelDamage / graduationDamage) * 100;
+        
+        // 计算毕业度差值（第二面板期望毕业度 - 第一面板期望毕业度）
+        const graduationDifference = secondPanelGraduation - firstPanelGraduation;
+        
+        console.log('- 第一面板毕业度:', firstPanelGraduation.toFixed(2) + '%');
+        console.log('- 第二面板毕业度:', secondPanelGraduation.toFixed(2) + '%');
+        console.log('- 势毕业度差值:', graduationDifference.toFixed(2) + '%');
+        
+        if (graduationDifference > 0) {
+            element.textContent = `+${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#28a745'; // 绿色表示正增长
+        } else if (graduationDifference < 0) {
+            element.textContent = `${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#dc3545'; // 红色表示负增长
+        } else {
+            element.textContent = '0.00%';
+            element.style.color = '#6c757d'; // 灰色表示无变化
+        }
+    } else {
+        console.log('- 伤害数据无效，显示为"0.00%"');
+        element.textContent = '0.00%';
+        element.style.color = '#6c757d';
+    }
+}
+
+// 计算绳镖武学毕业度
+function calculateShengbiaoGraduation(firstPanelDamage) {
+    try {
+        console.log('🔥 开始计算绳镖武学毕业度:');
+        
+        // 获取毕业伤害值 - 使用与计算界面相同的逻辑
+        let graduationDamage;
+        if (currentDamageMode === 'custom') {
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+        } else if (currentDamageMode === 'puwu_lao1') {
+            graduationDamage = 2191649;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
+            graduationDamage = 3080124;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
+            graduationDamage = 3018586;
+        } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
+            graduationDamage = 3138065;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
+            graduationDamage = 3082418;
+        } else {
+            graduationDamage = 3138065;
+        }
+        
+        // 获取当前面板数据
+        const currentPanelData = panelDataManager.getDataFromInputs();
+        
+        // 获取当前排轴数据
+        const currentRotationData = rotationDataManager.getCurrentRotation();
+        
+        if (!currentRotationData || currentRotationData.length === 0) {
+            console.log('⚠️ 排轴数据为空，无法计算绳镖武学毕业度');
+            return;
+        }
+        
+        // 检查当前绳镖武学增伤是否为0
+        const currentRopeDartBonus = currentPanelData.ropeDartBonus || 0;
+        console.log('- 当前绳镖武学增伤:', currentRopeDartBonus);
+        
+        if (currentRopeDartBonus !== 0) {
+            console.log('⚠️ 当前绳镖武学增伤不为0，不计算绳镖武学毕业度');
+            updateShengbiaoGraduationDisplay(firstPanelDamage, firstPanelDamage, graduationDamage, '条件不满足');
+            return;
+        }
+        
+        // 计算绳镖武学第二面板期望伤害（绳镖武学增伤+6.2）
+        const shengbiaoSecondPanelDamage = calculateShengbiaoSecondPanelDamage(currentPanelData, currentRotationData);
+        
+        console.log('- 第一面板期望伤害:', firstPanelDamage);
+        console.log('- 绳镖武学第二面板期望伤害:', shengbiaoSecondPanelDamage);
+        console.log('- 毕业伤害:', graduationDamage);
+        
+        // 更新绳镖武学毕业度显示
+        updateShengbiaoGraduationDisplay(firstPanelDamage, shengbiaoSecondPanelDamage, graduationDamage);
+        
+    } catch (error) {
+        console.error('计算绳镖武学毕业度时发生错误:', error);
+    }
+}
+
+// 计算绳镖武学第二面板期望伤害（绳镖武学增伤+6.2）
+function calculateShengbiaoSecondPanelDamage(currentPanelData, currentRotationData) {
+    try {
+        console.log('🔥 计算绳镖武学第二面板期望伤害:');
+        console.log('- 原始绳镖武学增伤:', currentPanelData.ropeDartBonus || 0);
+        
+        // 创建修改后的面板数据（绳镖武学增伤+6.2）
+        const modifiedPanelData = {
+            ...currentPanelData,
+            ropeDartBonus: (currentPanelData.ropeDartBonus || 0) + 6.2
+        };
+        
+        console.log('- 修改后绳镖武学增伤:', modifiedPanelData.ropeDartBonus);
+        
+        // 计算修改后的期望伤害
+        const secondPanelDamage = calculateExpectedDamage(modifiedPanelData, currentRotationData);
+        console.log('- 绳镖武学第二面板期望伤害:', secondPanelDamage);
+        
+        return secondPanelDamage;
+        
+    } catch (error) {
+        console.error('计算绳镖武学第二面板期望伤害时发生错误:', error);
+        return 0;
+    }
+}
+
+// 更新绳镖武学毕业度显示
+function updateShengbiaoGraduationDisplay(firstPanelDamage, secondPanelDamage, graduationDamage, reason = null) {
+    const element = document.getElementById('trait-graduation-shengbiao');
+    if (!element) {
+        console.log('⚠️ 未找到绳镖武学毕业度元素');
+        return;
+    }
+    
+    console.log('🔥 更新绳镖武学毕业度显示:');
+    
+    if (reason) {
+        console.log('- 原因:', reason);
+        element.textContent = '-';
+        element.style.color = '#6c757d';
+        return;
+    }
+    
+    if (firstPanelDamage > 0 && secondPanelDamage > 0) {
+        // 计算第一面板和第二面板的期望毕业度
+        const firstPanelGraduation = (firstPanelDamage / graduationDamage) * 100;
+        const secondPanelGraduation = (secondPanelDamage / graduationDamage) * 100;
+        
+        // 计算毕业度差值（第二面板期望毕业度 - 第一面板期望毕业度）
+        const graduationDifference = secondPanelGraduation - firstPanelGraduation;
+        
+        console.log('- 第一面板毕业度:', firstPanelGraduation.toFixed(2) + '%');
+        console.log('- 第二面板毕业度:', secondPanelGraduation.toFixed(2) + '%');
+        console.log('- 绳镖武学毕业度差值:', graduationDifference.toFixed(2) + '%');
+        
+        if (graduationDifference > 0) {
+            element.textContent = `+${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#28a745'; // 绿色表示正增长
+        } else if (graduationDifference < 0) {
+            element.textContent = `${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#dc3545'; // 红色表示负增长
+        } else {
+            element.textContent = '0.00%';
+            element.style.color = '#6c757d'; // 灰色表示无变化
+        }
+    } else {
+        console.log('- 伤害数据无效，显示为"0.00%"');
+        element.textContent = '0.00%';
+        element.style.color = '#6c757d';
+    }
+}
+
+// 计算双刀武学毕业度
+function calculateShuangdaoGraduation(firstPanelDamage) {
+    try {
+        console.log('🔥 开始计算双刀武学毕业度:');
+        
+        // 获取毕业伤害值 - 使用与计算界面相同的逻辑
+        let graduationDamage;
+        if (currentDamageMode === 'custom') {
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+        } else if (currentDamageMode === 'puwu_lao1') {
+            graduationDamage = 2191649;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
+            graduationDamage = 3080124;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
+            graduationDamage = 3018586;
+        } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
+            graduationDamage = 3138065;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
+            graduationDamage = 3082418;
+        } else {
+            graduationDamage = 3138065;
+        }
+        
+        // 获取当前面板数据
+        const currentPanelData = panelDataManager.getDataFromInputs();
+        
+        // 获取当前排轴数据
+        const currentRotationData = rotationDataManager.getCurrentRotation();
+        
+        if (!currentRotationData || currentRotationData.length === 0) {
+            console.log('⚠️ 排轴数据为空，无法计算双刀武学毕业度');
+            return;
+        }
+        
+        // 检查当前双刀武学增伤是否为0
+        const currentDualBladesBonus = currentPanelData.dualBladesBonus || 0;
+        console.log('- 当前双刀武学增伤:', currentDualBladesBonus);
+        
+        if (currentDualBladesBonus !== 0) {
+            console.log('⚠️ 当前双刀武学增伤不为0，不计算双刀武学毕业度');
+            updateShuangdaoGraduationDisplay(firstPanelDamage, firstPanelDamage, graduationDamage, '条件不满足');
+            return;
+        }
+        
+        // 计算双刀武学第二面板期望伤害（双刀武学增伤+6.2）
+        const shuangdaoSecondPanelDamage = calculateShuangdaoSecondPanelDamage(currentPanelData, currentRotationData);
+        
+        console.log('- 第一面板期望伤害:', firstPanelDamage);
+        console.log('- 双刀武学第二面板期望伤害:', shuangdaoSecondPanelDamage);
+        console.log('- 毕业伤害:', graduationDamage);
+        
+        // 更新双刀武学毕业度显示
+        updateShuangdaoGraduationDisplay(firstPanelDamage, shuangdaoSecondPanelDamage, graduationDamage);
+        
+    } catch (error) {
+        console.error('计算双刀武学毕业度时发生错误:', error);
+    }
+}
+
+// 计算双刀武学第二面板期望伤害（双刀武学增伤+6.2）
+function calculateShuangdaoSecondPanelDamage(currentPanelData, currentRotationData) {
+    try {
+        console.log('🔥 计算双刀武学第二面板期望伤害:');
+        console.log('- 原始双刀武学增伤:', currentPanelData.dualBladesBonus || 0);
+        
+        // 创建修改后的面板数据（双刀武学增伤+6.2）
+        const modifiedPanelData = {
+            ...currentPanelData,
+            dualBladesBonus: (currentPanelData.dualBladesBonus || 0) + 6.2
+        };
+        
+        console.log('- 修改后双刀武学增伤:', modifiedPanelData.dualBladesBonus);
+        
+        // 计算修改后的期望伤害
+        const secondPanelDamage = calculateExpectedDamage(modifiedPanelData, currentRotationData);
+        console.log('- 双刀武学第二面板期望伤害:', secondPanelDamage);
+        
+        return secondPanelDamage;
+        
+    } catch (error) {
+        console.error('计算双刀武学第二面板期望伤害时发生错误:', error);
+        return 0;
+    }
+}
+
+// 更新双刀武学毕业度显示
+function updateShuangdaoGraduationDisplay(firstPanelDamage, secondPanelDamage, graduationDamage, reason = null) {
+    const element = document.getElementById('trait-graduation-shuangdao');
+    if (!element) {
+        console.log('⚠️ 未找到双刀武学毕业度元素');
+        return;
+    }
+    
+    console.log('🔥 更新双刀武学毕业度显示:');
+    
+    if (reason) {
+        console.log('- 原因:', reason);
+        element.textContent = '-';
+        element.style.color = '#6c757d';
+        return;
+    }
+    
+    if (firstPanelDamage > 0 && secondPanelDamage > 0) {
+        // 计算第一面板和第二面板的期望毕业度
+        const firstPanelGraduation = (firstPanelDamage / graduationDamage) * 100;
+        const secondPanelGraduation = (secondPanelDamage / graduationDamage) * 100;
+        
+        // 计算毕业度差值（第二面板期望毕业度 - 第一面板期望毕业度）
+        const graduationDifference = secondPanelGraduation - firstPanelGraduation;
+        
+        console.log('- 第一面板毕业度:', firstPanelGraduation.toFixed(2) + '%');
+        console.log('- 第二面板毕业度:', secondPanelGraduation.toFixed(2) + '%');
+        console.log('- 双刀武学毕业度差值:', graduationDifference.toFixed(2) + '%');
+        
+        if (graduationDifference > 0) {
+            element.textContent = `+${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#28a745'; // 绿色表示正增长
+        } else if (graduationDifference < 0) {
+            element.textContent = `${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#dc3545'; // 红色表示负增长
+        } else {
+            element.textContent = '0.00%';
+            element.style.color = '#6c757d'; // 灰色表示无变化
+        }
+    } else {
+        console.log('- 伤害数据无效，显示为"0.00%"');
+        element.textContent = '0.00%';
+        element.style.color = '#6c757d';
+    }
+}
+
+// 计算全武学毕业度
+function calculateQuanwuxueGraduation(firstPanelDamage) {
+    try {
+        console.log('🔥 开始计算全武学毕业度:');
+        
+        // 获取毕业伤害值 - 使用与计算界面相同的逻辑
+        let graduationDamage;
+        if (currentDamageMode === 'custom') {
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+        } else if (currentDamageMode === 'puwu_lao1') {
+            graduationDamage = 2191649;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
+            graduationDamage = 3080124;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
+            graduationDamage = 3018586;
+        } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
+            graduationDamage = 3138065;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
+            graduationDamage = 3082418;
+        } else {
+            graduationDamage = 3138065;
+        }
+        
+        // 获取当前面板数据
+        const currentPanelData = panelDataManager.getDataFromInputs();
+        
+        // 获取当前排轴数据
+        const currentRotationData = rotationDataManager.getCurrentRotation();
+        
+        if (!currentRotationData || currentRotationData.length === 0) {
+            console.log('⚠️ 排轴数据为空，无法计算全武学毕业度');
+            return;
+        }
+        
+        // 检查当前全武学增伤是否<=3.2
+        const currentAllMartialBonus = currentPanelData.allMartialBonus || 0;
+        console.log('- 当前全武学增伤:', currentAllMartialBonus);
+        
+        if (currentAllMartialBonus > 3.2) {
+            console.log('⚠️ 当前全武学增伤>3.2，不计算全武学毕业度');
+            updateQuanwuxueGraduationDisplay(firstPanelDamage, firstPanelDamage, graduationDamage, '条件不满足');
+            return;
+        }
+        
+        // 计算全武学第二面板期望伤害（全武学增伤+3.2）
+        const quanwuxueSecondPanelDamage = calculateQuanwuxueSecondPanelDamage(currentPanelData, currentRotationData);
+        
+        console.log('- 第一面板期望伤害:', firstPanelDamage);
+        console.log('- 全武学第二面板期望伤害:', quanwuxueSecondPanelDamage);
+        console.log('- 毕业伤害:', graduationDamage);
+        
+        // 更新全武学毕业度显示
+        updateQuanwuxueGraduationDisplay(firstPanelDamage, quanwuxueSecondPanelDamage, graduationDamage);
+        
+    } catch (error) {
+        console.error('计算全武学毕业度时发生错误:', error);
+    }
+}
+
+// 计算全武学第二面板期望伤害（全武学增伤+3.2）
+function calculateQuanwuxueSecondPanelDamage(currentPanelData, currentRotationData) {
+    try {
+        console.log('🔥 计算全武学第二面板期望伤害:');
+        console.log('- 原始全武学增伤:', currentPanelData.allMartialBonus || 0);
+        
+        // 创建修改后的面板数据（全武学增伤+3.2）
+        const modifiedPanelData = {
+            ...currentPanelData,
+            allMartialBonus: (currentPanelData.allMartialBonus || 0) + 3.2
+        };
+        
+        console.log('- 修改后全武学增伤:', modifiedPanelData.allMartialBonus);
+        
+        // 计算修改后的期望伤害
+        const secondPanelDamage = calculateExpectedDamage(modifiedPanelData, currentRotationData);
+        console.log('- 全武学第二面板期望伤害:', secondPanelDamage);
+        
+        return secondPanelDamage;
+        
+    } catch (error) {
+        console.error('计算全武学第二面板期望伤害时发生错误:', error);
+        return 0;
+    }
+}
+
+// 更新全武学毕业度显示
+function updateQuanwuxueGraduationDisplay(firstPanelDamage, secondPanelDamage, graduationDamage, reason = null) {
+    const element = document.getElementById('trait-graduation-quanwuxue');
+    if (!element) {
+        console.log('⚠️ 未找到全武学毕业度元素');
+        return;
+    }
+    
+    console.log('🔥 更新全武学毕业度显示:');
+    
+    if (reason) {
+        console.log('- 原因:', reason);
+        element.textContent = '-';
+        element.style.color = '#6c757d';
+        return;
+    }
+    
+    if (firstPanelDamage > 0 && secondPanelDamage > 0) {
+        // 计算第一面板和第二面板的期望毕业度
+        const firstPanelGraduation = (firstPanelDamage / graduationDamage) * 100;
+        const secondPanelGraduation = (secondPanelDamage / graduationDamage) * 100;
+        
+        // 计算毕业度差值（第二面板期望毕业度 - 第一面板期望毕业度）
+        const graduationDifference = secondPanelGraduation - firstPanelGraduation;
+        
+        console.log('- 第一面板毕业度:', firstPanelGraduation.toFixed(2) + '%');
+        console.log('- 第二面板毕业度:', secondPanelGraduation.toFixed(2) + '%');
+        console.log('- 全武学毕业度差值:', graduationDifference.toFixed(2) + '%');
+        
+        if (graduationDifference > 0) {
+            element.textContent = `+${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#28a745'; // 绿色表示正增长
+        } else if (graduationDifference < 0) {
+            element.textContent = `${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#dc3545'; // 红色表示负增长
+        } else {
+            element.textContent = '0.00%';
+            element.style.color = '#6c757d'; // 灰色表示无变化
+        }
+    } else {
+        console.log('- 伤害数据无效，显示为"0.00%"');
+        element.textContent = '0.00%';
+        element.style.color = '#6c757d';
+    }
+}
+
+// 计算首领单位毕业度
+function calculateShoulingGraduation(firstPanelDamage) {
+    try {
+        console.log('🔥 开始计算首领单位毕业度:');
+        
+        // 获取毕业伤害值 - 使用与计算界面相同的逻辑
+        let graduationDamage;
+        if (currentDamageMode === 'custom') {
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+        } else if (currentDamageMode === 'puwu_lao1') {
+            graduationDamage = 2191649;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
+            graduationDamage = 3080124;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
+            graduationDamage = 3018586;
+        } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
+            graduationDamage = 3138065;
+        } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
+            graduationDamage = 3082418;
+        } else {
+            graduationDamage = 3138065;
+        }
+        
+        // 获取当前面板数据
+        const currentPanelData = panelDataManager.getDataFromInputs();
+        
+        // 获取当前排轴数据
+        const currentRotationData = rotationDataManager.getCurrentRotation();
+        
+        if (!currentRotationData || currentRotationData.length === 0) {
+            console.log('⚠️ 排轴数据为空，无法计算首领单位毕业度');
+            return;
+        }
+        
+        // 检查当前首领单位增伤是否<=3.2
+        const currentBossUnitBonus = currentPanelData.bossUnitBonus || 0;
+        console.log('- 当前首领单位增伤:', currentBossUnitBonus);
+        
+        if (currentBossUnitBonus > 3.2) {
+            console.log('⚠️ 当前首领单位增伤>3.2，不计算首领单位毕业度');
+            updateShoulingGraduationDisplay(firstPanelDamage, firstPanelDamage, graduationDamage, '条件不满足');
+            return;
+        }
+        
+        // 计算首领单位第二面板期望伤害（首领单位增伤+3.2）
+        const shoulingSecondPanelDamage = calculateShoulingSecondPanelDamage(currentPanelData, currentRotationData);
+        
+        console.log('- 第一面板期望伤害:', firstPanelDamage);
+        console.log('- 首领单位第二面板期望伤害:', shoulingSecondPanelDamage);
+        console.log('- 毕业伤害:', graduationDamage);
+        
+        // 更新首领单位毕业度显示
+        updateShoulingGraduationDisplay(firstPanelDamage, shoulingSecondPanelDamage, graduationDamage);
+        
+    } catch (error) {
+        console.error('计算首领单位毕业度时发生错误:', error);
+    }
+}
+
+// 计算首领单位第二面板期望伤害（首领单位增伤+3.2）
+function calculateShoulingSecondPanelDamage(currentPanelData, currentRotationData) {
+    try {
+        console.log('🔥 计算首领单位第二面板期望伤害:');
+        console.log('- 原始首领单位增伤:', currentPanelData.bossUnitBonus || 0);
+        
+        // 创建修改后的面板数据（首领单位增伤+3.2）
+        const modifiedPanelData = {
+            ...currentPanelData,
+            bossUnitBonus: (currentPanelData.bossUnitBonus || 0) + 3.2
+        };
+        
+        console.log('- 修改后首领单位增伤:', modifiedPanelData.bossUnitBonus);
+        
+        // 计算修改后的期望伤害
+        const secondPanelDamage = calculateExpectedDamage(modifiedPanelData, currentRotationData);
+        console.log('- 首领单位第二面板期望伤害:', secondPanelDamage);
+        
+        return secondPanelDamage;
+        
+    } catch (error) {
+        console.error('计算首领单位第二面板期望伤害时发生错误:', error);
+        return 0;
+    }
+}
+
+// 更新首领单位毕业度显示
+function updateShoulingGraduationDisplay(firstPanelDamage, secondPanelDamage, graduationDamage, reason = null) {
+    const element = document.getElementById('trait-graduation-shouling');
+    if (!element) {
+        console.log('⚠️ 未找到首领单位毕业度元素');
+        return;
+    }
+    
+    console.log('🔥 更新首领单位毕业度显示:');
+    
+    if (reason) {
+        console.log('- 原因:', reason);
+        element.textContent = '-';
+        element.style.color = '#6c757d';
+        return;
+    }
+    
+    if (firstPanelDamage > 0 && secondPanelDamage > 0) {
+        // 计算第一面板和第二面板的期望毕业度
+        const firstPanelGraduation = (firstPanelDamage / graduationDamage) * 100;
+        const secondPanelGraduation = (secondPanelDamage / graduationDamage) * 100;
+        
+        // 计算毕业度差值（第二面板期望毕业度 - 第一面板期望毕业度）
+        const graduationDifference = secondPanelGraduation - firstPanelGraduation;
+        
+        console.log('- 第一面板毕业度:', firstPanelGraduation.toFixed(2) + '%');
+        console.log('- 第二面板毕业度:', secondPanelGraduation.toFixed(2) + '%');
+        console.log('- 首领单位毕业度差值:', graduationDifference.toFixed(2) + '%');
+        
+        if (graduationDifference > 0) {
+            element.textContent = `+${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#28a745'; // 绿色表示正增长
+        } else if (graduationDifference < 0) {
+            element.textContent = `${graduationDifference.toFixed(2)}%`;
+            element.style.color = '#dc3545'; // 红色表示负增长
+        } else {
+            element.textContent = '0.00%';
+            element.style.color = '#6c757d'; // 灰色表示无变化
+        }
+    } else {
+        console.log('- 伤害数据无效，显示为"0.00%"');
+        element.textContent = '0.00%';
+        element.style.color = '#6c757d';
+    }
+}
 
 // 计算期望总伤害（基于当前页面参数）
-function calculateExpectedDamage() {
-    if (!rotationData || rotationData.length === 0) {
+function calculateExpectedDamage(panelData = null, rotationDataParam = null) {
+    // 获取排轴数据（支持多实例）
+    const currentRotationData = rotationDataParam || rotationDataManager.getCurrentRotation();
+    
+    console.log('🔥 calculateExpectedDamage - 获取的排轴数据:');
+    console.log('- 排轴数据长度:', currentRotationData.length);
+    console.log('- 排轴数据来源:', rotationDataParam ? '参数传入' : 'rotationDataManager');
+    
+    if (!currentRotationData || currentRotationData.length === 0) {
         return 0;
+    }
+    
+    // 获取面板数据（局部变量优先）
+    const currentPanelData = panelData || panelDataManager.getDataFromInputs();
+    
+    console.log('🔥 calculateExpectedDamage - 面板数据来源:', panelData ? '参数传入' : 'panelDataManager');
+    if (panelData) {
+        console.log('🔥 calculateExpectedDamage - 使用传入的面板数据:', {
+            破竹攻击: panelData.breakBambooAttack,
+            外功攻击: panelData.externalAttack,
+            外功穿透: panelData.externalPenetration,
+            BOSS天赋: panelData.bossTalent,
+            是否试剑侠境: panelData.bossTalent === 'trial-sword'
+        });
+    }
+    
+    // 检查排轴数据是否已经包含极乐泣血计算
+    console.log('🔥 calculateExpectedDamage - 检查排轴数据中的极乐泣血信息:');
+    currentRotationData.forEach((skill, index) => {
+        if (skill.name === '极乐泣血') {
+            console.log(`- 极乐泣血[${index}]: 次数=${skill.times}, 层数=${skill.jileLayers}, 是否已计算=${skill.jileExpectedLayers !== undefined}`);
+        }
+    });
+    
+    // 如果排轴数据已经包含极乐泣血计算，直接使用；否则重新计算
+    let rotationDataToUse = currentRotationData;
+    const hasJileCalculation = currentRotationData.some(skill => skill.name === '极乐泣血' && skill.jileExpectedLayers !== undefined);
+    
+    if (!isSimulationMode && !hasJileCalculation) {
+        console.log('🔥 calculateExpectedDamage - 排轴数据未包含极乐泣血计算，重新计算:');
+        rotationDataToUse = calculateJileQixueTimes([...currentRotationData]);
+        console.log('🔥 calculateExpectedDamage - 重新计算后的排轴数据:');
+        rotationDataToUse.forEach((skill, index) => {
+            if (skill.name === '极乐泣血') {
+                console.log(`- 极乐泣血[${index}]: 次数=${skill.times}, 层数=${skill.jileLayers}`);
+            }
+        });
+    } else {
+        console.log('🔥 calculateExpectedDamage - 排轴数据已包含极乐泣血计算，直接使用');
     }
     
     let totalDamage = 0;
     
-    rotationData.forEach(skill => {
+    rotationDataToUse.forEach(skill => {
         if (skill.name && skill.name !== '无') {
-            const damageData = calculateDamage(skill);
+            const damageData = calculateDamage(skill, currentPanelData);
             if (damageData && damageData.totalDamage) {
-                totalDamage += parseFloat(damageData.totalDamage);
+                const times = skill.times || 1;
+                const skillDamage = parseFloat(damageData.totalDamage) * times;
+                totalDamage += skillDamage;
             }
         }
     });
     
+    console.log('🔥 calculateExpectedDamage - 最终总伤害:', totalDamage);
+    
+    // 对比排轴列表伤害列总和
+    const rotationDamageSum = calculateRotationDamageSum();
+    console.log('🔥 排轴列表伤害列总和:', rotationDamageSum);
+    console.log('🔥 差异:', totalDamage - rotationDamageSum);
+    
     return totalDamage;
+}
+
+// 计算第二面板期望伤害（最大外功攻击额外增加77.8）
+function calculateSecondPanelExpectedDamage() {
+    console.log('🔥 calculateSecondPanelExpectedDamage 被调用！');
+    try {
+        // 获取当前排轴数据
+        const currentRotationData = rotationDataManager.getCurrentRotation();
+        
+        if (!currentRotationData || currentRotationData.length === 0) {
+            return 0;
+        }
+        
+        // 获取当前面板数据
+        const currentPanelData = panelDataManager.getDataFromInputs();
+        
+        // 创建第二面板数据（最大外功攻击额外增加77.8，其他增伤条件保持不变）
+        const secondPanelData = {
+            ...currentPanelData,
+            externalAttack: {
+                min: currentPanelData.externalAttack.min,
+                max: currentPanelData.externalAttack.max + 77.8
+            }
+            // 注意：其他所有增伤条件（BUFF、易水歌、符帖、食物等）都保持不变
+        };
+        
+        // 确保第二面板包含所有必要的属性（从默认数据中补充缺失的属性）
+        const defaultData = panelDataManager.getDefaultData();
+        Object.keys(defaultData).forEach(key => {
+            if (secondPanelData[key] === undefined) {
+                secondPanelData[key] = defaultData[key];
+            }
+        });
+        
+        // 检查排轴数据是否已经包含极乐泣血计算
+        console.log('🔥 检查排轴数据中的极乐泣血信息:');
+        currentRotationData.forEach((skill, index) => {
+            if (skill.name === '极乐泣血') {
+                console.log(`- 极乐泣血[${index}]: 次数=${skill.times}, 层数=${skill.jileLayers}, 是否已计算=${skill.jileExpectedLayers !== undefined}`);
+            }
+        });
+        
+        // 如果排轴数据已经包含极乐泣血计算，直接使用；否则重新计算
+        let rotationDataToUse = currentRotationData;
+        const hasJileCalculation = currentRotationData.some(skill => skill.name === '极乐泣血' && skill.jileExpectedLayers !== undefined);
+        
+        if (!isSimulationMode && !hasJileCalculation) {
+            console.log('🔥 排轴数据未包含极乐泣血计算，重新计算:');
+            rotationDataToUse = calculateJileQixueTimes([...currentRotationData]);
+            console.log('🔥 重新计算后的排轴数据:');
+            rotationDataToUse.forEach((skill, index) => {
+                if (skill.name === '极乐泣血') {
+                    console.log(`- 极乐泣血[${index}]: 次数=${skill.times}, 层数=${skill.jileLayers}`);
+                }
+            });
+        } else {
+            console.log('🔥 排轴数据已包含极乐泣血计算，直接使用');
+        }
+        
+        let totalDamage = 0;
+        let firstPanelTotalDamage = 0; // 新增：第一面板总伤害
+        
+        console.log('=== 第二面板详细调试信息 ===');
+        console.log('第一面板外功攻击:', currentPanelData.externalAttack);
+        console.log('第二面板外功攻击:', secondPanelData.externalAttack);
+        console.log('外功攻击差值:', secondPanelData.externalAttack.max - currentPanelData.externalAttack.max);
+        
+        // 新增：第一面板和第二面板的详细属性对比
+        console.log('\n=== 第一面板详细属性 ===');
+        console.log('- 外功攻击:', currentPanelData.externalAttack);
+        console.log('- 外功穿透:', currentPanelData.externalPenetration);
+        console.log('- 属攻穿透:', currentPanelData.elementalPenetration);
+        console.log('- 破竹攻击:', currentPanelData.breakBambooAttack);
+        console.log('- 外功伤害加成:', currentPanelData.externalDamageBonus);
+        console.log('- 属攻伤害加成:', currentPanelData.elementalDamageBonus);
+        console.log('- 会心率:', currentPanelData.criticalRate);
+        console.log('- 会意率:', currentPanelData.intentRate);
+        console.log('- 精准率:', currentPanelData.precisionRate);
+        console.log('- 会心增伤:', currentPanelData.criticalDamageBonus);
+        console.log('- 会意增伤:', currentPanelData.intentDamageBonus);
+        
+        console.log('\n=== 第二面板详细属性 ===');
+        console.log('- 外功攻击:', secondPanelData.externalAttack);
+        console.log('- 外功穿透:', secondPanelData.externalPenetration);
+        console.log('- 属攻穿透:', secondPanelData.elementalPenetration);
+        console.log('- 破竹攻击:', secondPanelData.breakBambooAttack);
+        console.log('- 外功伤害加成:', secondPanelData.externalDamageBonus);
+        console.log('- 属攻伤害加成:', secondPanelData.elementalDamageBonus);
+        console.log('- 会心率:', secondPanelData.criticalRate);
+        console.log('- 会意率:', secondPanelData.intentRate);
+        console.log('- 精准率:', secondPanelData.precisionRate);
+        console.log('- 会心增伤:', secondPanelData.criticalDamageBonus);
+        console.log('- 会意增伤:', secondPanelData.intentDamageBonus);
+        
+        // 对比排轴列表使用的面板数据
+        console.log('\n=== 排轴列表面板数据对比 ===');
+        const rotationTablePanelData = panelDataManager.getDataFromInputs();
+        console.log('排轴列表使用的面板数据:');
+        console.log('- 外功攻击:', rotationTablePanelData.externalAttack);
+        console.log('- 外功穿透:', rotationTablePanelData.externalPenetration);
+        console.log('- 属功穿透:', rotationTablePanelData.elementalPenetration);
+        console.log('- 破竹攻击:', rotationTablePanelData.breakBambooAttack);
+        console.log('- 全武学增伤:', rotationTablePanelData.allMartialBonus);
+        console.log('- 外功增伤:', rotationTablePanelData.externalDamageBonus);
+        console.log('- 属功增伤:', rotationTablePanelData.elementalDamageBonus);
+        console.log('- 装备套装:', rotationTablePanelData.equipmentSet);
+        console.log('- 食物BUFF:', rotationTablePanelData.foodBuff);
+        console.log('- 符帖:', rotationTablePanelData.talisman);
+        console.log('- 制作加成:', rotationTablePanelData.craftingBonus);
+        console.log('- Boss天赋:', rotationTablePanelData.bossTalent);
+        console.log('- Boss防御:', rotationTablePanelData.bossDefense);
+        
+        console.log('\n=== 数据一致性检查 ===');
+        console.log('外功攻击是否一致:', JSON.stringify(currentPanelData.externalAttack) === JSON.stringify(rotationTablePanelData.externalAttack));
+        console.log('外功穿透是否一致:', currentPanelData.externalPenetration === rotationTablePanelData.externalPenetration);
+        console.log('属功穿透是否一致:', currentPanelData.elementalPenetration === rotationTablePanelData.elementalPenetration);
+        console.log('破竹攻击是否一致:', JSON.stringify(currentPanelData.breakBambooAttack) === JSON.stringify(rotationTablePanelData.breakBambooAttack));
+        console.log('全武学增伤是否一致:', currentPanelData.allMartialBonus === rotationTablePanelData.allMartialBonus);
+        console.log('外功增伤是否一致:', currentPanelData.externalDamageBonus === rotationTablePanelData.externalDamageBonus);
+        console.log('属功增伤是否一致:', currentPanelData.elementalDamageBonus === rotationTablePanelData.elementalDamageBonus);
+        console.log('装备套装是否一致:', currentPanelData.equipmentSet === rotationTablePanelData.equipmentSet);
+        console.log('食物BUFF是否一致:', currentPanelData.foodBuff === rotationTablePanelData.foodBuff);
+        console.log('符帖是否一致:', currentPanelData.talisman === rotationTablePanelData.talisman);
+        console.log('制作加成是否一致:', currentPanelData.craftingBonus === rotationTablePanelData.craftingBonus);
+        console.log('Boss天赋是否一致:', currentPanelData.bossTalent === rotationTablePanelData.bossTalent);
+        console.log('Boss防御是否一致:', currentPanelData.bossDefense === rotationTablePanelData.bossDefense);
+        console.log('第二面板其他属性:');
+        console.log('- 外功穿透:', secondPanelData.externalPenetration);
+        console.log('- 属功穿透:', secondPanelData.elementalPenetration);
+        console.log('- 破竹攻击:', secondPanelData.breakBambooAttack);
+        console.log('- 全武学增伤:', secondPanelData.allMartialBonus);
+        console.log('- 外功增伤:', secondPanelData.externalDamageBonus);
+        console.log('- 属功增伤:', secondPanelData.elementalDamageBonus);
+        console.log('- 装备套装:', secondPanelData.equipmentSet);
+        console.log('- 食物BUFF:', secondPanelData.foodBuff);
+        console.log('- 符帖:', secondPanelData.talisman);
+        console.log('- 制作加成:', secondPanelData.craftingBonus);
+        console.log('- Boss天赋:', secondPanelData.bossTalent);
+        console.log('- Boss防御:', secondPanelData.bossDefense);
+        
+        rotationDataToUse.forEach((skill, index) => {
+            if (skill.name && skill.name !== '无') {
+                console.log(`\n--- 技能${index}: ${skill.name} ---`);
+                console.log('技能属性:');
+                console.log('- BUFF名称:', skill.buffName);
+                console.log('- 套装层数:', skill.setLayer);
+                console.log('- 符帖层数:', skill.talismanLayer);
+                console.log('- 易水歌层数:', skill.yishuiLayer);
+                console.log('- 所恨年年层数:', skill.suohenLayer);
+                console.log('- 气窭:', skill.qijie);
+                console.log('- 奶伞:', skill.naisan);
+                console.log('- 易伤:', skill.yishang);
+                console.log('- 使用次数:', skill.times);
+                
+                // 计算第一面板的伤害
+                const firstPanelDamage = calculateDamage(skill, currentPanelData);
+                console.log('第一面板伤害:', firstPanelDamage.totalDamage);
+                
+                // 计算第二面板的伤害
+                const secondPanelDamage = calculateDamage(skill, secondPanelData);
+                console.log('第二面板伤害:', secondPanelDamage.totalDamage);
+                console.log('伤害差值:', secondPanelDamage.totalDamage - firstPanelDamage.totalDamage);
+                
+                // 计算第一面板总伤害（考虑技能使用次数）
+                if (firstPanelDamage && firstPanelDamage.totalDamage) {
+                    const times = skill.times || 1;
+                    const firstPanelSkillDamage = parseFloat(firstPanelDamage.totalDamage) * times;
+                    firstPanelTotalDamage += firstPanelSkillDamage;
+                    console.log(`第一面板技能${index} 总伤害: ${firstPanelSkillDamage} (单次: ${firstPanelDamage.totalDamage} × 次数: ${times})`);
+                }
+                
+                // 新增：详细的伤害类型对比
+                if (debugMode) {
+                    console.log('\n--- 第一面板详细伤害类型 ---');
+                    console.log('- 外功会心伤害:', firstPanelDamage.externalCriticalDamage);
+                    console.log('- 外功会意伤害:', firstPanelDamage.externalIntentDamage);
+                    console.log('- 外功白字伤害:', firstPanelDamage.externalWhiteTextDamage);
+                    console.log('- 外功擦伤伤害:', firstPanelDamage.externalGrazeDamage);
+                    console.log('- 破竹会心伤害:', firstPanelDamage.breakBambooCriticalDamage);
+                    console.log('- 破竹会意伤害:', firstPanelDamage.breakBambooIntentDamage);
+                    console.log('- 破竹白字伤害:', firstPanelDamage.breakBambooWhiteTextDamage);
+                    console.log('- 破竹擦伤伤害:', firstPanelDamage.breakBambooGrazeDamage);
+                    console.log('- 外属会心伤害:', firstPanelDamage.externalElementCriticalDamage);
+                    console.log('- 外属会意伤害:', firstPanelDamage.externalElementIntentDamage);
+                    console.log('- 外属白字伤害:', firstPanelDamage.externalElementWhiteTextDamage);
+                    console.log('- 外属擦伤伤害:', firstPanelDamage.externalElementGrazeDamage);
+                    
+                    console.log('\n--- 第二面板详细伤害类型 ---');
+                    console.log('- 外功会心伤害:', secondPanelDamage.externalCriticalDamage);
+                    console.log('- 外功会意伤害:', secondPanelDamage.externalIntentDamage);
+                    console.log('- 外功白字伤害:', secondPanelDamage.externalWhiteTextDamage);
+                    console.log('- 外功擦伤伤害:', secondPanelDamage.externalGrazeDamage);
+                    console.log('- 破竹会心伤害:', secondPanelDamage.breakBambooCriticalDamage);
+                    console.log('- 破竹会意伤害:', secondPanelDamage.breakBambooIntentDamage);
+                    console.log('- 破竹白字伤害:', secondPanelDamage.breakBambooWhiteTextDamage);
+                    console.log('- 破竹擦伤伤害:', secondPanelDamage.breakBambooGrazeDamage);
+                    console.log('- 外属会心伤害:', secondPanelDamage.externalElementCriticalDamage);
+                    console.log('- 外属会意伤害:', secondPanelDamage.externalElementIntentDamage);
+                    console.log('- 外属白字伤害:', secondPanelDamage.externalElementWhiteTextDamage);
+                    console.log('- 外属擦伤伤害:', secondPanelDamage.externalElementGrazeDamage);
+                    
+                    // 新增：伤害类型差值对比
+                    console.log('\n--- 伤害类型差值对比 ---');
+                    console.log('- 外功会心伤害差值:', secondPanelDamage.externalCriticalDamage - firstPanelDamage.externalCriticalDamage);
+                    console.log('- 外功会意伤害差值:', secondPanelDamage.externalIntentDamage - firstPanelDamage.externalIntentDamage);
+                    console.log('- 外功白字伤害差值:', secondPanelDamage.externalWhiteTextDamage - firstPanelDamage.externalWhiteTextDamage);
+                    console.log('- 外功擦伤伤害差值:', secondPanelDamage.externalGrazeDamage - firstPanelDamage.externalGrazeDamage);
+                    console.log('- 破竹会心伤害差值:', secondPanelDamage.breakBambooCriticalDamage - firstPanelDamage.breakBambooCriticalDamage);
+                    console.log('- 破竹会意伤害差值:', secondPanelDamage.breakBambooIntentDamage - firstPanelDamage.breakBambooIntentDamage);
+                    console.log('- 破竹白字伤害差值:', secondPanelDamage.breakBambooWhiteTextDamage - firstPanelDamage.breakBambooWhiteTextDamage);
+                    console.log('- 破竹擦伤伤害差值:', secondPanelDamage.breakBambooGrazeDamage - firstPanelDamage.breakBambooGrazeDamage);
+                    console.log('- 外属会心伤害差值:', secondPanelDamage.externalElementCriticalDamage - firstPanelDamage.externalElementCriticalDamage);
+                    console.log('- 外属会意伤害差值:', secondPanelDamage.externalElementIntentDamage - firstPanelDamage.externalElementIntentDamage);
+                    console.log('- 外属白字伤害差值:', secondPanelDamage.externalElementWhiteTextDamage - firstPanelDamage.externalElementWhiteTextDamage);
+                    console.log('- 外属擦伤伤害差值:', secondPanelDamage.externalElementGrazeDamage - firstPanelDamage.externalElementGrazeDamage);
+                }
+                
+                if (secondPanelDamage && secondPanelDamage.totalDamage) {
+                    // 获取技能使用次数，默认为1
+                    const times = skill.times || 1;
+                    const skillDamage = parseFloat(secondPanelDamage.totalDamage) * times;
+                    totalDamage += skillDamage;
+                    console.log(`技能${index} 总伤害: ${skillDamage} (单次: ${secondPanelDamage.totalDamage} × 次数: ${times})`);
+                    console.log(`累计总伤害: ${totalDamage}`);
+                } else {
+                    console.log(`技能${index} 伤害数据无效:`, secondPanelDamage);
+                }
+            }
+        });
+        
+        console.log('\n=== 总伤害对比 ===');
+        console.log('第一面板总伤害:', firstPanelTotalDamage);
+        console.log('第二面板总伤害:', totalDamage);
+        console.log('总伤害差值:', totalDamage - firstPanelTotalDamage);
+        return totalDamage;
+        
+    } catch (error) {
+        console.error('计算第二面板期望伤害时发生错误:', error);
+        return 0;
+    }
 }
 
 // 计算模拟总伤害（基于当前页面参数）
@@ -3203,22 +6279,22 @@ function updateDamageStatsDisplay(graduationDamage, expectedDamage, simulationDa
     if (mode === 'custom') {
         // 自选模式：使用用户自定义的毕业伤害
         const customGraduationDamage = document.getElementById('custom-graduation-damage');
-        fixedGraduationDamage = customGraduationDamage ? parseFloat(customGraduationDamage.value) || 3122602 : 3122602;
+        fixedGraduationDamage = customGraduationDamage ? parseFloat(customGraduationDamage.value) || 3138065 : 3138065;
     } else if (mode === 'puwu_lao1') {
-        // 普五老一：毕业伤害为2176108
-        fixedGraduationDamage = 2176108;
+        // 普五老一：毕业伤害为2191649
+        fixedGraduationDamage = 2191649;
     } else if (mode && mode.indexOf('yangui_duanshi') !== -1) {
         // 燕归断石：按需求设置毕业伤害
-        fixedGraduationDamage = 3057228;
+        fixedGraduationDamage = 3080124;
     } else if (mode && mode.indexOf('yangui_yishui') !== -1) {
         // 燕归易水：按需求设置毕业伤害
-        fixedGraduationDamage = 2995793;
+        fixedGraduationDamage = 3018586;
     } else if (mode && mode.indexOf('duanshi') !== -1) {
         // 其他断石类（默认飞隼断石）
-        fixedGraduationDamage = 3122602;
+        fixedGraduationDamage = 3138065;
     } else if (mode && mode.indexOf('yishui') !== -1) {
         // 其他易水类（默认飞隼易水）
-        fixedGraduationDamage = 3065444;
+        fixedGraduationDamage = 3082418;
     }
     
     // 当选择"无"时，除了期望伤害和模拟伤害，其余单元格显示为"-"
@@ -3243,7 +6319,7 @@ function updateDamageStatsDisplay(graduationDamage, expectedDamage, simulationDa
     }
     
     // 计算并更新DPS
-    // 毕业DPS = 3065444 / T
+    // 毕业DPS = 3082418 / T
     const graduationDpsElement = document.getElementById('graduation-dps');
     if (graduationDpsElement) {
         graduationDpsElement.textContent = isNoneMode ? '-' : (fixedGraduationDamage / T).toFixed(2);
@@ -3268,7 +6344,7 @@ function updateDamageStatsDisplay(graduationDamage, expectedDamage, simulationDa
         graduationRateElement.textContent = isNoneMode ? '-' : '100.00%';
     }
     
-    // 期望毕业率 = 期望伤害 / 3065444
+    // 期望毕业率 = 期望伤害 / 3082418
     const expectedRateElement = document.getElementById('expected-rate');
     if (expectedRateElement) {
         if (isNoneMode) {
@@ -3281,7 +6357,7 @@ function updateDamageStatsDisplay(graduationDamage, expectedDamage, simulationDa
         }
     }
     
-    // 模拟毕业率 = 模拟伤害 / 3065444
+    // 模拟毕业率 = 模拟伤害 / 3082418
     const simulationRateElement = document.getElementById('simulation-rate');
     if (simulationRateElement) {
         if (isNoneMode) {
@@ -3293,6 +6369,7 @@ function updateDamageStatsDisplay(graduationDamage, expectedDamage, simulationDa
             simulationRateElement.textContent = '-';
         }
     }
+    
 }
 
 // 初始化实时图表更新功能（已禁用实时更新，改为保存按钮触发）
@@ -3304,77 +6381,6 @@ function initRealTimeChartUpdates() {
     console.log('实时更新功能已禁用，数据更新将在保存按钮点击时触发');
 }
 
-// 从输入框更新panelData数据
-function updatePanelDataFromInputs() {
-    try {
-        // 获取输入框的值，添加错误处理
-        try {
-            panelData.externalAttack.min = parseFloat(document.getElementById('external-attack-min').value) || 0;
-            panelData.externalAttack.max = parseFloat(document.getElementById('external-attack-max').value) || 0;
-        } catch (e) { console.error('外功攻击输入框错误:', e); }
-        
-        try {
-            panelData.ringMetalAttack.min = parseFloat(document.getElementById('ring-metal-attack-min').value) || 0;
-            panelData.ringMetalAttack.max = parseFloat(document.getElementById('ring-metal-attack-max').value) || 0;
-            panelData.breakRockAttack.min = parseFloat(document.getElementById('break-rock-attack-min').value) || 0;
-            panelData.breakRockAttack.max = parseFloat(document.getElementById('break-rock-attack-max').value) || 0;
-            panelData.pullSilkAttack.min = parseFloat(document.getElementById('pull-silk-attack-min').value) || 0;
-            panelData.pullSilkAttack.max = parseFloat(document.getElementById('pull-silk-attack-max').value) || 0;
-            panelData.breakBambooAttack.min = parseFloat(document.getElementById('break-bamboo-attack-min').value) || 0;
-            panelData.breakBambooAttack.max = parseFloat(document.getElementById('break-bamboo-attack-max').value) || 0;
-            
-            panelData.precisionRate = parseFloat(document.getElementById('precision-rate').value.replace('%', '')) || 0;
-            panelData.criticalRate = parseFloat(document.getElementById('critical-rate').value.replace('%', '')) || 0;
-            panelData.intentRate = parseFloat(document.getElementById('intent-rate').value.replace('%', '')) || 0;
-            panelData.directCriticalRate = parseFloat(document.getElementById('direct-critical-rate').value.replace('%', '')) || 0;
-            panelData.directIntentRate = parseFloat(document.getElementById('direct-intent-rate').value.replace('%', '')) || 0;
-            
-            // 获取伤害加成值
-            panelData.criticalDamageBonus = parseFloat(document.getElementById('critical-damage-bonus').value.replace('%', '')) || 0;
-            panelData.intentDamageBonus = parseFloat(document.getElementById('intent-damage-bonus').value.replace('%', '')) || 0;
-            panelData.externalDamageBonus = parseFloat(document.getElementById('external-damage-bonus').value.replace('%', '')) || 0;
-            panelData.elementalDamageBonus = parseFloat(document.getElementById('elemental-damage-bonus').value.replace('%', '')) || 0;
-            
-            // 获取穿透值
-            panelData.externalPenetration = parseFloat(document.getElementById('external-penetration').value) || 0;
-            panelData.elementalPenetration = parseFloat(document.getElementById('elemental-penetration').value) || 0;
-            
-            // 获取装备增伤值
-            panelData.ropeDartBonus = parseFloat(document.getElementById('rope-dart-bonus').value.replace('%', '')) || 0;
-            panelData.dualBladesBonus = parseFloat(document.getElementById('dual-blades-bonus').value.replace('%', '')) || 0;
-            panelData.allMartialBonus = parseFloat(document.getElementById('all-martial-bonus').value.replace('%', '')) || 0;
-            panelData.bossUnitBonus = parseFloat(document.getElementById('boss-unit-bonus').value.replace('%', '')) || 0;
-            panelData.lightStrikeBonus = parseFloat(document.getElementById('light-strike-bonus').value.replace('%', '')) || 0;
-            panelData.mouseBonus = parseFloat(document.getElementById('mouse-bonus').value.replace('%', '')) || 0;
-            
-            // 获取其他增伤值
-            // 优先从DIY页面读取装备选择，如果不存在则从基础面板读取
-            const diyEquipmentSelect = document.getElementById('diy-equipment-select');
-            const basicEquipmentSelect = document.getElementById('equipment-set');
-            if (diyEquipmentSelect) {
-                panelData.equipmentSet = diyEquipmentSelect.value || '无';
-            } else if (basicEquipmentSelect) {
-                panelData.equipmentSet = basicEquipmentSelect.value || '无';
-            } else {
-                panelData.equipmentSet = '无';
-            }
-            panelData.foodBuff = document.getElementById('food-buff').value || '无';
-            panelData.talisman = document.getElementById('talisman').value || '无帖';
-            panelData.craftingBonus = document.getElementById('crafting-bonus').value || '无';
-            // 获取BOSS天赋选择
-            panelData.bossTalent = document.getElementById('boss-talent-select').value || 'wooden-dummy';
-            
-            // 获取Boss防御值
-            panelData.bossDefense = parseFloat(document.getElementById('boss-defense').value) || 405;
-        } catch (e) { console.error('其他输入框错误:', e); }
-        
-        // 注意：山参肉丸子效果将在伤害计算时处理，不修改输入框值
-        // 这样可以保持输入框的独立性，用户手动输入的值不会被自动修改
-        
-    } catch (error) {
-        console.error('更新panelData时发生错误:', error);
-    }
-}
 
 // 修复排轴数据中的BUFF数据同步问题
 function fixRotationDataBuffSync() {
@@ -3426,6 +6432,9 @@ function fixRotationDataBuffSync() {
         }
     });
     
+    // 同步到排轴数据管理器
+    rotationDataManager.updateCurrentRotation(rotationData);
+    
     console.log('BUFF数据同步修复完成');
 }
 
@@ -3439,9 +6448,11 @@ function initSaveRotationButton() {
     }
     
     saveButton.addEventListener('click', async () => {
+        console.log('🖱️ 保存排轴按钮被点击');
         try {
             // 检查是否有排轴数据
             if (!rotationData || rotationData.length === 0) {
+                console.log('⚠️ 没有排轴数据可保存');
                 showNotification('当前没有排轴数据可保存！', 'warning');
             return;
         }
@@ -3692,21 +6703,29 @@ function enterSimulationMode() {
 }
 
 // 计算期望伤害总和（优化版本，不更新表格）
-function calculateExpectedDamageTotal() {
+function calculateExpectedDamageTotal(panelData = null, rotationDataParam = null) {
     let totalDamage = 0;
     
-    // 确保使用当前页面的面板数据进行伤害计算
-    updatePanelDataFromInputs();
+    // 获取面板数据（局部变量优先）
+    const currentPanelData = panelData || panelDataManager.getDataFromInputs();
     
-    // 计算极乐泣血的次数
-    const tempRotationData = calculateJileQixueTimes([...rotationData]);
+    // 获取排轴数据（支持多实例）
+    const currentRotationData = rotationDataParam || rotationDataManager.getCurrentRotation();
+    
+    // 计算极乐泣血的次数（支持独立数据，与排轴表格保持一致）
+    let tempRotationData = currentRotationData;
+    if (!isSimulationMode) {
+        tempRotationData = calculateJileQixueTimes([...currentRotationData]);
+    }
     
     // 直接计算每个技能的伤害，不更新DOM
     tempRotationData.forEach(skill => {
         if (skill.name && skill.name !== '无') {
-            const damageData = calculateDamage(skill);
+            const damageData = calculateDamage(skill, currentPanelData);
             if (damageData && damageData.totalDamage) {
-                totalDamage += parseFloat(damageData.totalDamage);
+                const times = skill.times || 1;
+                const skillDamage = parseFloat(damageData.totalDamage) * times;
+                totalDamage += skillDamage;
             }
         }
     });
@@ -3752,6 +6771,9 @@ function exitSimulationMode() {
     // 启用排轴列表中的所有参数
     enableRotationTableInputs();
     
+    // 确保按钮处于正确状态
+    ensureButtonsEnabled();
+    
     // 重新计算并更新表格
     updateRotationTable();
     
@@ -3767,7 +6789,7 @@ function processRotationForSimulation() {
         const skill = rotationData[i];
         const times = skill.times || 1;
         
-        if (dotSkills.includes(skill.name) || skill.name === "极乐Dot" || skill.name === "年年Dot") {
+        if (GameConfig.skillCategories.dotSkills.includes(skill.name) || skill.name === "极乐Dot" || skill.name === "年年Dot") {
             // Dot技能不进行分离，直接添加
             newRotationData.push(skill);
         } else if (times >= 1) {
@@ -3817,7 +6839,7 @@ function calculateActualProbabilities(skill) {
     }
     
     // 面板会心率=会心率+额外会心率（不超过80%）+直接会心率（可超出80%）（转换为小数）
-    const baseCriticalRate = Math.min((panelData.criticalRate + extraCriticalRate) / 100, 0.8);
+    const baseCriticalRate = Math.min((panelData.criticalRate + extraCriticalRate) / 100, GameConfig.constants.maxCriticalRate);
     const directCriticalRate = panelData.directCriticalRate / 100;
     const criticalRate = baseCriticalRate + directCriticalRate;   
     const intentRate = panelData.intentRate / 100;     // 会意率（转换为小数）
@@ -3825,7 +6847,7 @@ function calculateActualProbabilities(skill) {
     let effectiveCriticalRate, effectiveIntentRate, grazeRate, whiteTextRate;
     
     // 检查是否为Dot技能（在任何模式下都只产生白字伤害）
-    if (dotSkills.includes(skill.name)) {
+    if (GameConfig.skillCategories.dotSkills.includes(skill.name)) {
         // Dot技能只产生白字伤害
         effectiveCriticalRate = 0;
         effectiveIntentRate = 0;
@@ -4003,6 +7025,9 @@ function loadRotationConfig(config) {
     try {
         // 只加载排轴数据，不加载面板数据
         rotationData = [...config.rotationData];
+        
+        // 同步到排轴数据管理器
+        rotationDataManager.updateCurrentRotation(rotationData);
         
         // 加载后修复BUFF数据同步问题
         fixRotationDataBuffSync();
@@ -4290,45 +7315,73 @@ function updateRotationConfigSelect() {
 }
 
 // 计算单个技能的伤害数据（优化版本，带缓存）
-function calculateDamage(skill) {
-    if (!skill || !skill.name || skill.name === '无') {
-        return {
-            totalDamage: 0,
-            externalDamage: 0,
-            breakBambooDamage: 0,
-            externalElementDamage: 0,
-            externalCriticalDamage: 0,
-            externalIntentDamage: 0,
-            externalWhiteTextDamage: 0,
-            externalGrazeDamage: 0,
-            breakBambooCriticalDamage: 0,
-            breakBambooIntentDamage: 0,
-            breakBambooWhiteTextDamage: 0,
-            breakBambooGrazeDamage: 0,
-            externalElementCriticalDamage: 0,
-            externalElementIntentDamage: 0,
-            externalElementWhiteTextDamage: 0,
-            externalElementGrazeDamage: 0
-        };
+// ==================== 重构后的伤害计算函数 ====================
+// ==================== 重构后的伤害计算函数 ====================
+function calculateDamage(skill, panelData = null) {
+    // 开始性能监控
+    performanceMonitor.startTiming();
+    
+    // 输入验证
+    const validation = DataValidator.validateSkillData(skill);
+    if (!validation.isValid) {
+        console.warn('技能数据验证失败:', validation.errors);
+        performanceMonitor.endTiming();
+        return createEmptyDamageResult();
     }
     
-    // 生成缓存键
-    const cacheKey = generateCacheKey(skill, panelData);
+    // 获取面板数据（局部变量优先）
+    const currentPanelData = panelData || panelDataManager.getDataFromInputs();
     
-    // 检查缓存
+    console.log('🔥 calculateDamage - 面板数据来源:', panelData ? '参数传入' : 'panelDataManager');
+    if (panelData) {
+        console.log('🔥 calculateDamage - 使用传入的面板数据:', {
+            技能名称: skill.name,
+            破竹攻击: panelData.breakBambooAttack,
+            外功攻击: panelData.externalAttack,
+            BOSS天赋: panelData.bossTalent,
+            是否试剑侠境: panelData.bossTalent === 'trial-sword'
+        });
+    }
+    
+    // 缓存检查
+    const cacheKey = generateCacheKey(skill, currentPanelData);
     const cachedResult = damageCache.get(cacheKey);
-    if (cachedResult && Date.now() - cachedResult.timestamp < CACHE_EXPIRE_TIME) {
-        return cachedResult.data;
+    if (cachedResult) {
+        performanceMonitor.endTiming();
+        performanceMonitor.updateCacheStats(damageCache.getStats());
+        return cachedResult;
     }
     
     // 清理过期缓存（偶尔执行）
-    if (Math.random() < 0.01) { // 1%的概率执行清理
+    if (Math.random() < 0.01) {
         cleanExpiredCache();
     }
 
-    // 获取技能倍率数据
+    // 获取技能数据
     const skillData = skillRatesData.find(s => s.name === skill.name);
     if (!skillData) {
+        return createEmptyDamageResult();
+    }
+
+    // 使用与第一面板完全相同的计算逻辑
+    console.log('🔥 calculateDamage 调用 calculateDamageWithOriginalLogic，面板数据:');
+    console.log('- 属攻穿透:', currentPanelData.elementalPenetration);
+    console.log('- 外功伤害加成:', currentPanelData.externalDamageBonus);
+    console.log('- 属攻伤害加成:', currentPanelData.elementalDamageBonus);
+    const damageResult = calculateDamageWithOriginalLogic(skill, currentPanelData, skillData);
+    
+    // 保存到缓存
+    damageCache.set(cacheKey, damageResult);
+    
+    // 结束性能监控
+    performanceMonitor.endTiming();
+    performanceMonitor.updateCacheStats(damageCache.getStats());
+    
+    return damageResult;
+}
+
+// ==================== 伤害计算子函数 ====================
+function createEmptyDamageResult() {
         return {
             totalDamage: 0,
             externalDamage: 0,
@@ -4349,16 +7402,23 @@ function calculateDamage(skill) {
         };
     }
 
-    // 获取BUFF数据
-    const buffInfo = buffData.find(b => b.name === (skill.buffName || '无'));
-    let generalBonus = buffInfo ? buffInfo.generalBonus : 0;
-    let criticalBonus = buffInfo ? buffInfo.criticalBonus : 0;
-    const externalPenetration = buffInfo ? buffInfo.externalPenetration : 0;
-    const extraCriticalRate = buffInfo ? buffInfo.extraCriticalRate : 0;
-
-    // 应用各种增伤效果（简化版本，只包含主要逻辑）
-    // 绳镖武学增伤
-    if (skill.name === "鼠鼠生威" || skill.name === "牵绳引刃") {
+// 使用与第一面板完全相同的计算逻辑
+function calculateDamageWithOriginalLogic(skill, panelData, skillData) {
+    console.log('🔥 calculateDamageWithOriginalLogic 接收到的面板数据:');
+    console.log('- 属攻穿透:', panelData.elementalPenetration);
+    console.log('- 外功伤害加成:', panelData.externalDamageBonus);
+    console.log('- 属攻伤害加成:', panelData.elementalDamageBonus);
+    
+    // 使用选中的BUFF增伤表数据
+    let generalBonus = skill.buffName && skill.buffName !== '无' ? skill.generalBonus : 0;
+    let criticalBonus = skill.buffName && skill.buffName !== '无' ? skill.criticalBonus : 0;
+    const externalPenetration = skill.buffName && skill.buffName !== '无' ? skill.externalPenetration : 0;
+    const extraCriticalRate = skill.buffName && skill.buffName !== '无' ? skill.extraCriticalRate : 0;
+    let talismanIntentBonus = 0; // 用于存储会意帖的增伤
+    let talismanElementalDamageBonus = 0; // 用于存储真气属攻帖的属攻伤害加成，对破竹伤害和外属伤害都生效
+    
+    // 绳镖武学增伤：仅对"鼠鼠生威"和"牵绳引刃"两个技能生效
+    if (GameConfig.skillCategories.ropeDartSkills.includes(skill.name)) {
         generalBonus += panelData.ropeDartBonus;
     }
     
@@ -4367,57 +7427,773 @@ function calculateDamage(skill) {
         generalBonus += 80;
     }
     
-    // 双刀武学增伤
-    const dualBladesSkills = ["白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2", "红刀A2(1/2)", "红刀A3", "红刀A4", "红刀A4(5/7)", "红刀A5", "痴障"];
-    if (dualBladesSkills.includes(skill.name)) {
+    // 双刀武学增伤：适用于白刀技能A1至A4、红刀技能A1至A5以及痴障技能
+    if (GameConfig.skillCategories.dualBladesSkills.includes(skill.name)) {
         generalBonus += panelData.dualBladesBonus;
     }
     
-    // 全武学增伤
-    const allMartialSkills = ["鼠鼠生威", "牵绳引刃", "白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2", "红刀A2(1/2)", "红刀A3", "红刀A4", "红刀A4(5/7)", "红刀A5", "痴障"];
-    if (allMartialSkills.includes(skill.name)) {
+    // 全武学增伤：适用于绳镖武学、双刀武学、易水歌和极乐泣血技能
+    if (GameConfig.skillCategories.allMartialSkills.includes(skill.name)) {
         generalBonus += panelData.allMartialBonus;
     }
     
+    // 首领单位增伤：适用于技能表中所有技能
+    if (skill.name && skill.name !== '无') {
+        generalBonus += panelData.bossUnitBonus;
+    }
+    
+    // 技能级别符帖增伤（基于单个技能设置）
+    if (skill.talismanLayer && skill.talismanLayer !== '无帖') {
+        switch(skill.talismanLayer) {
+            case '会心帖':
+                criticalBonus += 10; // 10%会心增伤
+                break;
+            case '会意帖':
+                talismanIntentBonus += 10; // 10%会意增伤
+                break;
+            case '奇术帖':
+                // 奇术帖只对特定技能生效
+                const qishuSkills = ['骑龙回马一段', '骑龙回马二段', '箫声千浪炸', '箫声千浪(炸前)', '箫声千浪(炸后)', '清风霁月'];
+                if (qishuSkills.includes(skill.name)) {
+                    generalBonus += 15; // 15%通用增伤
+                }
+                break;
+            case '承欢帖':
+                generalBonus += 20; // 20%通用增伤
+                break;
+            case '真气会心帖':
+                criticalBonus += 10; // 10%会心增伤
+                break;
+            case '真气会意帖':
+                talismanIntentBonus += 10; // 10%会意增伤
+                break;
+            case '真气属攻帖':
+                talismanElementalDamageBonus += 15; // 15%属攻伤害加成，对破竹伤害和外属伤害都生效
+                break;
+            default:
+                break;
+        }
+    }
+    
+    // 天工增伤
+    if (panelData.craftingBonus === '天工火') {
+        // 天工火：1.5%通用增伤
+        generalBonus += 1.5;
+        console.log('🔥 天工火增伤应用: +1.5%');
+    } else if (panelData.craftingBonus === '天工毒') {
+        // 天工毒：1%通用增伤
+        generalBonus += 1;
+        console.log('🔥 天工毒增伤应用: +1%');
+    }
+    console.log('🔥 当前天工:', panelData.craftingBonus, '总通用增伤:', generalBonus + '%');
+    
+    // Boss天赋增伤
+    let bossTalentBonus = 0;
+    if (panelData.bossTalent === 'trial-sword') {
+        bossTalentBonus = 15; // 试剑/侠境增加15%通用增伤
+        console.log('🔥 BOSS天赋增伤应用:', bossTalentBonus + '%');
+    }
+    generalBonus += bossTalentBonus;
+    console.log('🔥 当前BOSS天赋:', panelData.bossTalent, '增伤:', bossTalentBonus + '%', '总通用增伤:', generalBonus + '%');
+    
+    // 鼠鼠定音增伤：仅适用于鼠鼠生威技能，独立计算
+    // 鼠鼠生威技能有额外独立的1.3倍全部伤害（1.24倍外功伤害已归类为额外外功伤害加成）
+    const mouseGeneralBonus = skill.name === "鼠鼠生威" ? (1 + panelData.mouseBonus / 100) * 1.3 : 1;
+    
+    // 强效轻击增伤：仅适用于红刀A1-A5技能，独立计算
+    const lightStrikeBonus = GameConfig.skillCategories.redBladeSkills.includes(skill.name) ? (1 + panelData.lightStrikeBonus / 100) : 1;
+    
     // 红刀A1-A5属攻穿透+10：仅适用于红刀A1-A5技能
-    const redBladeSkills = ["红刀A1", "红刀A2", "红刀A2(1/2)", "红刀A3", "红刀A4", "红刀A4(5/7)", "红刀A5"];
-    const redBladeElementalPenetration = redBladeSkills.includes(skill.name) ? 10 : 0;
+    const redBladeElementalPenetration = GameConfig.skillCategories.redBladeSkills.includes(skill.name) ? GameConfig.constants.redBladeElementalPenetration : 0;
+    
+    // 获取面板数据
+    const precisionRate = panelData.precisionRate / 100; // 精准率（转换为小数）
+    // 面板会心率=会心率+额外会心率（不超过80%）+直接会心率（可超出80%）（转换为小数）
+    const baseCriticalRate = Math.min((panelData.criticalRate + extraCriticalRate) / 100, GameConfig.constants.maxCriticalRate);
+    const directCriticalRate = panelData.directCriticalRate / 100;
+    const criticalRate = baseCriticalRate + directCriticalRate;   
+    const intentRate = panelData.intentRate / 100;     // 会意率（转换为小数）
+    
+    // 计算生效会心率、生效会意率、擦伤率和白字率
+    let effectiveCriticalRate, effectiveIntentRate, grazeRate, whiteTextRate;
+    
+    // 检查是否为Dot技能（在任何模式下都只产生白字伤害）
+    if (GameConfig.skillCategories.dotSkills.includes(skill.name)) {
+        // Dot技能只产生白字伤害
+        effectiveCriticalRate = 0;
+        effectiveIntentRate = 0;
+        grazeRate = 0;
+        whiteTextRate = 1;
+    } else if (isSimulationMode) {
+        // 模拟模式下为每行独立计算随机概率
+        const rowProbabilities = calculateRandomProbabilityForRow(skill);
+        effectiveCriticalRate = rowProbabilities.effectiveCriticalRate;
+        effectiveIntentRate = rowProbabilities.effectiveIntentRate;
+        grazeRate = rowProbabilities.grazeRate;
+        whiteTextRate = rowProbabilities.whiteTextRate;
+    } else {
+        // 正常计算概率
+        if (criticalRate + intentRate < 1) {
+            // 会心 + 会意 < 100% 时
+            if (precisionRate >= 1) {
+                // 精准率 = 100%
+                effectiveCriticalRate = criticalRate;
+                effectiveIntentRate = intentRate;
+                grazeRate = 0;
+            } else {
+                // 精准率 < 100%
+                effectiveCriticalRate = precisionRate * criticalRate;
+                effectiveIntentRate = intentRate;
+                grazeRate = (1 - precisionRate) * (1 - intentRate);
+            }
+        } else {
+            // 会心 + 会意 ≥ 100% 时
+            if (precisionRate >= 1) {
+                // 精准率 = 100%
+                effectiveCriticalRate = 1 - intentRate;
+                effectiveIntentRate = intentRate;
+                grazeRate = 0;
+            } else {
+                // 精准率 < 100%
+                effectiveCriticalRate = precisionRate * (1 - intentRate);
+                effectiveIntentRate = intentRate;
+                grazeRate = (1 - precisionRate) * (1 - intentRate);
+            }
+        }
+        
+        // 计算白字率（既不触发会心/会意，也不触发擦伤的概率）
+        whiteTextRate = 1 - effectiveCriticalRate - effectiveIntentRate - grazeRate;
+    }
+    
+    // 计算飞隼套装对外功攻击的加成
+    let feisuiBonus = 0;
+    // 使用原始外功攻击值计算飞隼套装加成（如果存在）
+    const baseExternalAttack = panelData.originalExternalAttack || panelData.externalAttack;
+    
+    if (panelData.equipmentSet === '飞隼' && skill.setLayer && skill.setLayer !== '无') {
+        switch(skill.setLayer) {
+            case '1层':
+                feisuiBonus = 0.02; // 2%
+                break;
+            case '2层':
+                feisuiBonus = 0.04; // 4%
+                break;
+            case '3层':
+                feisuiBonus = 0.06; // 6%
+                break;
+            case '4层':
+                feisuiBonus = 0.08; // 8%
+                break;
+            case '满层':
+                feisuiBonus = 0.10; // 10%
+                break;
+            default:
+                feisuiBonus = 0;
+        }
+    }
+    
+    // 计算额外外功伤害加成（包括燕归套和鼠鼠生威）
+    let extraExternalDamageBonus = 0;
+    
+    // 燕归套的外功增伤归类为额外外功伤害加成
+    const yanguiSkills = ["白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2", "红刀A2(1/2)", "红刀A3", "红刀A4", "红刀A4(5/7)", "红刀A5", "鼠鼠生威"];
+    if (panelData.equipmentSet === '燕归' && skill.setLayer && skill.setLayer !== '无' && yanguiSkills.includes(skill.name)) {
+        switch(skill.setLayer) {
+            case '10%外功增伤':
+                extraExternalDamageBonus += 10; // 10%额外外功伤害加成
+                break;
+            case '12.5%外功增伤':
+                extraExternalDamageBonus += 12.5; // 12.5%额外外功伤害加成
+                break;
+            default:
+                break;
+        }
+    }
+    
+    // 鼠鼠生威的1.24倍增伤归类为额外外功伤害加成（24%）
+    if (skill.name === "鼠鼠生威") {
+        extraExternalDamageBonus += 24; // 1.24倍 = 24%额外外功伤害加成
+    }
+    
+    // 计算时雨套的会心增伤
+    // 时雨套对所有技能生效
+    if (panelData.equipmentSet === '时雨' && skill.setLayer && skill.setLayer !== '无') {
+        switch(skill.setLayer) {
+            case '10%会心增伤':
+                criticalBonus += 10; // 10%
+                break;
+            case '25%会心增伤':
+                criticalBonus += 25; // 25%
+                break;
+            default:
+                break;
+        }
+    }
+    
+    // 计算岳山套的通用增伤
+    // 岳山套对所有技能生效
+    if (panelData.equipmentSet === '岳山' && skill.setLayer && skill.setLayer !== '无') {
+        switch(skill.setLayer) {
+            case '10%通用增伤':
+                generalBonus += 10; // 10%
+                break;
+            case '9%通用增伤':
+                generalBonus += 9; // 9%
+                break;
+            case '8%通用增伤':
+                generalBonus += 8; // 8%
+                break;
+            case '7%通用增伤':
+                generalBonus += 7; // 7%
+                break;
+            case '6%通用增伤':
+                generalBonus += 6; // 6%
+                break;
+            case '5%通用增伤':
+                generalBonus += 5; // 5%
+                break;
+            default:
+                break;
+        }
+    }
+    
+    // 计算新燕归套的增伤效果
+    // 新燕归套对特定技能生效（与燕归套相同的技能范围）
+    let newYanguiBreakBambooBonus = 0; // 新燕归套装破竹增伤
+    if (panelData.equipmentSet === '新燕归' && skill.setLayer && skill.setLayer !== '无' && yanguiSkills.includes(skill.name)) {
+        switch(skill.setLayer) {
+            case '12%通用增伤':
+                generalBonus += 12; // 12%通用增伤
+                break;
+            case '12%通用+10%破竹增伤':
+                generalBonus += 12; // 12%通用增伤
+                newYanguiBreakBambooBonus = 10; // 10%破竹增伤
+                break;
+            default:
+                break;
+        }
+    }
+    
+    // 应用飞隼套装加成后的外功攻击值
+    const externalAttackWithFeisui = {
+        min: baseExternalAttack.min * (1 + feisuiBonus),
+        max: baseExternalAttack.max * (1 + feisuiBonus)
+    };
+    
+    // 如果有山参肉丸子效果，需要将其加成应用到飞隼套装加成后的值上
+    if (panelData.foodBuff === '涮鱼') {
+        externalAttackWithFeisui.min += 120;
+        externalAttackWithFeisui.max += 240;
+        console.log('🔥 涮鱼增益应用: 外功攻击+120~240');
+    }
+    
+    // 计算外功攻击值（模拟模式下使用随机值，Dot技能除外）
+    let avgExternalAttack;
+    if (isSimulationMode && !GameConfig.skillCategories.dotSkills.includes(skill.name)) {
+        // 在最小值到最大值之间随机选取一个整数
+        avgExternalAttack = Math.floor(Math.random() * (externalAttackWithFeisui.max - externalAttackWithFeisui.min + 1)) + externalAttackWithFeisui.min;
+    } else {
+        // 正常模式下使用平均值
+        avgExternalAttack = (externalAttackWithFeisui.min + externalAttackWithFeisui.max) / 2;
+    }
+    
+    // 计算破竹攻击值
+    let avgBreakBambooAttack;
+    if (isSimulationMode && !GameConfig.skillCategories.dotSkills.includes(skill.name)) {
+        // 在最小值到最大值之间随机选取一个整数
+        avgBreakBambooAttack = Math.floor(Math.random() * (panelData.breakBambooAttack.max - panelData.breakBambooAttack.min + 1)) + panelData.breakBambooAttack.min;
+    } else {
+        // 正常模式下使用平均值
+        avgBreakBambooAttack = (panelData.breakBambooAttack.min + panelData.breakBambooAttack.max) / 2;
+    }
+    
+    // 计算外属攻击值（鸣金、裂石、牵丝）
+    let avgRingMetalAttack, avgBreakRockAttack, avgPullSilkAttack;
+    if (isSimulationMode && !GameConfig.skillCategories.dotSkills.includes(skill.name)) {
+        // 在最小值到最大值之间随机选取一个整数
+        avgRingMetalAttack = Math.floor(Math.random() * (panelData.ringMetalAttack.max - panelData.ringMetalAttack.min + 1)) + panelData.ringMetalAttack.min;
+        avgBreakRockAttack = Math.floor(Math.random() * (panelData.breakRockAttack.max - panelData.breakRockAttack.min + 1)) + panelData.breakRockAttack.min;
+        avgPullSilkAttack = Math.floor(Math.random() * (panelData.pullSilkAttack.max - panelData.pullSilkAttack.min + 1)) + panelData.pullSilkAttack.min;
+    } else {
+        // 正常模式下使用平均值
+        avgRingMetalAttack = (panelData.ringMetalAttack.min + panelData.ringMetalAttack.max) / 2;
+        avgBreakRockAttack = (panelData.breakRockAttack.min + panelData.breakRockAttack.max) / 2;
+        avgPullSilkAttack = (panelData.pullSilkAttack.min + panelData.pullSilkAttack.max) / 2;
+    }
+    
+    // 计算所恨年年的减防和增伤效果
+    let suohenDefenseReduction = 0;
+    let suohenExternalPenetration = 0;
+    if (skill.suohenLayer && skill.suohenLayer !== '0层') {
+        switch(skill.suohenLayer) {
+            case '1层':
+                suohenDefenseReduction = 1.2; // 1.2%BOSS防御减少
+                break;
+            case '2层':
+                suohenDefenseReduction = 2.4; // 2.4%BOSS防御减少
+                break;
+            case '3层':
+                suohenDefenseReduction = 3.6; // 3.6%BOSS防御减少
+                break;
+            case '4层':
+                suohenDefenseReduction = 4.8; // 4.8%BOSS防御减少
+                break;
+            case '满层':
+                suohenDefenseReduction = 6.0; // 6.0%BOSS防御减少
+                suohenExternalPenetration = 10; // 满层时额外增加10点外功穿透
+                break;
+        }
+    }
+    
+    // 计算Boss防御值
+    let effectiveBossDefense = panelData.bossDefense;
+    
+    // 先应用技能的10%减防（刀法技能）
+    if (GameConfig.skillCategories.bladeSkills.includes(skill.name)) {
+        effectiveBossDefense = effectiveBossDefense * 0.9;
+    }
+    
+    // 再应用所恨年年的减防效果
+    if (suohenDefenseReduction > 0) {
+        effectiveBossDefense = effectiveBossDefense * (1 - suohenDefenseReduction / 100);
+    }
+    
+    // 计算易水歌的增伤效果
+    let yishuiGeneralBonus = 0;
+    let yishuiExternalPenetration = 0;
+    if (skill.yishuiLayer && skill.yishuiLayer !== '0层') {
+        switch(skill.yishuiLayer) {
+            case '1层':
+                yishuiGeneralBonus = 1; // 1%通用增伤
+                yishuiExternalPenetration = 2; // 2点外功穿透
+                break;
+            case '2层':
+                yishuiGeneralBonus = 2; // 2%通用增伤
+                yishuiExternalPenetration = 4; // 4点外功穿透
+                break;
+            case '3层':
+                yishuiGeneralBonus = 3; // 3%通用增伤
+                yishuiExternalPenetration = 6; // 6点外功穿透
+                break;
+            case '4层':
+                yishuiGeneralBonus = 4; // 4%通用增伤
+                yishuiExternalPenetration = 8; // 8点外功穿透
+                break;
+            case '满层':
+                yishuiGeneralBonus = 5; // 5%通用增伤
+                yishuiExternalPenetration = 10; // 10点外功穿透
+                break;
+        }
+    }
+    
+    // 将易水歌增伤加入到通用增伤中
+    generalBonus += yishuiGeneralBonus;
+    
+    // 计算气窭、奶伞、易伤的增伤效果
+    if (skill.qijie === '是') {
+        generalBonus += 10; // 气窭增加10%通用增伤
+    }
+    if (skill.naisan === '是') {
+        generalBonus += 20; // 奶伞增加20%通用增伤
+    }
+    if (skill.yishang === '是') {
+        generalBonus += 8; // 易伤增加8%通用增伤
+    }
+    
+    // 计算外功会心伤害（包含所恨年年的外功穿透和外功伤害加成）
+    console.log('🔥 计算外功会心伤害时使用的参数:');
+    console.log('- 外功伤害加成:', panelData.externalDamageBonus);
+    console.log('- 外功穿透:', panelData.externalPenetration);
+    const externalCriticalDamage = ((avgExternalAttack - effectiveBossDefense) * skillData.externalRate + skillData.fixedExternal) * 
+                                  (1 + (panelData.externalPenetration + externalPenetration + yishuiExternalPenetration + suohenExternalPenetration) / 200) * effectiveCriticalRate * 
+                                  (1 + (panelData.criticalDamageBonus + criticalBonus) / 100) * (1 + (panelData.externalDamageBonus + extraExternalDamageBonus) / 100) * 
+                                  (1 + generalBonus / 100) * mouseGeneralBonus * lightStrikeBonus;
+    
+    // 计算外功会意伤害（使用飞隼套装加成后的最大值，与排轴列表保持一致）
+    console.log('🔥 修复外功会意伤害计算 - 使用飞隼套装加成后的最大值攻击:', externalAttackWithFeisui.max);
+    const externalIntentDamage = ((externalAttackWithFeisui.max - effectiveBossDefense) * skillData.externalRate + skillData.fixedExternal) * 
+                                (1 + (panelData.externalPenetration + externalPenetration + yishuiExternalPenetration + suohenExternalPenetration) / 200) * effectiveIntentRate * 
+                                (1 + (panelData.intentDamageBonus + talismanIntentBonus) / 100) * (1 + (panelData.externalDamageBonus + extraExternalDamageBonus) / 100) * 
+                                (1 + generalBonus / 100) * mouseGeneralBonus * lightStrikeBonus;
+    
+    // 计算外功白字伤害
+    const externalWhiteTextDamage = ((avgExternalAttack - effectiveBossDefense) * skillData.externalRate + skillData.fixedExternal) * 
+                                   (1 + (panelData.externalPenetration + externalPenetration + yishuiExternalPenetration + suohenExternalPenetration) / 200) * whiteTextRate * 
+                                   (1 + (panelData.externalDamageBonus + extraExternalDamageBonus) / 100) * 
+                                   (1 + generalBonus / 100) * mouseGeneralBonus * lightStrikeBonus;
+    
+    // 计算外功擦伤伤害
+    const externalGrazeDamage = ((avgExternalAttack - effectiveBossDefense) * skillData.externalRate + skillData.fixedExternal) * 
+                               (1 + (panelData.externalPenetration + externalPenetration + yishuiExternalPenetration + suohenExternalPenetration) / 200) * grazeRate * 
+                               (1 + (panelData.externalDamageBonus + extraExternalDamageBonus) / 100) * 
+                               (1 + generalBonus / 100) * mouseGeneralBonus * lightStrikeBonus;
+    
+    // 计算破竹会心伤害
+    console.log('🔥 计算破竹会心伤害时使用的参数:');
+    console.log('- 属攻穿透:', panelData.elementalPenetration);
+    console.log('- 属攻伤害加成:', panelData.elementalDamageBonus);
+    const breakBambooCriticalDamage = (avgBreakBambooAttack * skillData.breakBambooRate + skillData.fixedBreakBamboo) * 
+                                     (1 + (panelData.elementalPenetration + redBladeElementalPenetration) / 200) * effectiveCriticalRate * 
+                                     (1 + (panelData.criticalDamageBonus + criticalBonus) / 100) * GameConfig.constants.breakBambooMultiplier * (1 + (panelData.elementalDamageBonus + newYanguiBreakBambooBonus + talismanElementalDamageBonus) / 100) * 
+                                     (1 + generalBonus / 100) * mouseGeneralBonus * lightStrikeBonus;
+    
+    // 计算破竹会意伤害（使用最大值，与排轴列表保持一致）
+    console.log('🔥 修复破竹会意伤害计算 - 使用最大值攻击:', panelData.breakBambooAttack.max);
+    const breakBambooIntentDamage = (panelData.breakBambooAttack.max * skillData.breakBambooRate + skillData.fixedBreakBamboo) * 
+                                   (1 + (panelData.elementalPenetration + redBladeElementalPenetration) / 200) * effectiveIntentRate * 
+                                   (1 + (panelData.intentDamageBonus + talismanIntentBonus) / 100) * GameConfig.constants.breakBambooMultiplier * (1 + (panelData.elementalDamageBonus + newYanguiBreakBambooBonus + talismanElementalDamageBonus) / 100) * 
+                                   (1 + generalBonus / 100) * mouseGeneralBonus * lightStrikeBonus;
+    
+    // 计算破竹白字伤害
+    const breakBambooWhiteTextDamage = (avgBreakBambooAttack * skillData.breakBambooRate + skillData.fixedBreakBamboo) * 
+                                      (1 + (panelData.elementalPenetration + redBladeElementalPenetration) / 200) * whiteTextRate * GameConfig.constants.breakBambooMultiplier * (1 + (panelData.elementalDamageBonus + newYanguiBreakBambooBonus + talismanElementalDamageBonus) / 100) * 
+                                      (1 + generalBonus / 100) * mouseGeneralBonus * lightStrikeBonus;
+    
+    // 计算破竹擦伤伤害
+    const breakBambooGrazeDamage = (avgBreakBambooAttack * skillData.breakBambooRate + skillData.fixedBreakBamboo) * 
+                                  (1 + (panelData.elementalPenetration + redBladeElementalPenetration) / 200) * grazeRate * GameConfig.constants.breakBambooMultiplier * (1 + (panelData.elementalDamageBonus + newYanguiBreakBambooBonus + talismanElementalDamageBonus) / 100) * 
+                                  (1 + generalBonus / 100) * mouseGeneralBonus * lightStrikeBonus;
+    
+    // 计算外属会心伤害（使用平均值，与排轴列表保持一致）
+    console.log('🔥 修复外属会心伤害计算 - 使用平均值攻击:');
+    console.log('- 鸣金攻击:', avgRingMetalAttack);
+    console.log('- 裂石攻击:', avgBreakRockAttack);
+    console.log('- 牵丝攻击:', avgPullSilkAttack);
+    const externalElementCriticalDamage = (avgRingMetalAttack * skillData.externalElementRate) * 
+                                        effectiveCriticalRate * (1 + (panelData.criticalDamageBonus + criticalBonus) / 100) * 
+                                        (1 + generalBonus / 100) * (1 + talismanElementalDamageBonus / 100) * 
+                                        mouseGeneralBonus * lightStrikeBonus +
+                                        (avgBreakRockAttack * skillData.externalElementRate) * 
+                                        effectiveCriticalRate * (1 + (panelData.criticalDamageBonus + criticalBonus) / 100) * 
+                                        (1 + generalBonus / 100) * (1 + talismanElementalDamageBonus / 100) * 
+                                        mouseGeneralBonus * lightStrikeBonus +
+                                        (avgPullSilkAttack * skillData.externalElementRate) * 
+                                        effectiveCriticalRate * (1 + (panelData.criticalDamageBonus + criticalBonus) / 100) * 
+                                        (1 + generalBonus / 100) * (1 + talismanElementalDamageBonus / 100) * 
+                                        mouseGeneralBonus * lightStrikeBonus;
+    
+    // 计算外属会意伤害（使用最大值，与排轴列表保持一致）
+    console.log('🔥 修复外属会意伤害计算 - 使用最大值攻击:');
+    console.log('- 鸣金攻击:', panelData.ringMetalAttack.max);
+    console.log('- 裂石攻击:', panelData.breakRockAttack.max);
+    console.log('- 牵丝攻击:', panelData.pullSilkAttack.max);
+    const externalElementIntentDamage = (panelData.ringMetalAttack.max * skillData.externalElementRate) * 
+                                       effectiveIntentRate * (1 + (panelData.intentDamageBonus + talismanIntentBonus) / 100) * 
+                                       (1 + generalBonus / 100) * (1 + talismanElementalDamageBonus / 100) * 
+                                       mouseGeneralBonus * lightStrikeBonus +
+                                       (panelData.breakRockAttack.max * skillData.externalElementRate) * 
+                                       effectiveIntentRate * (1 + (panelData.intentDamageBonus + talismanIntentBonus) / 100) * 
+                                       (1 + generalBonus / 100) * (1 + talismanElementalDamageBonus / 100) * 
+                                       mouseGeneralBonus * lightStrikeBonus +
+                                       (panelData.pullSilkAttack.max * skillData.externalElementRate) * 
+                                       effectiveIntentRate * (1 + (panelData.intentDamageBonus + talismanIntentBonus) / 100) * 
+                                       (1 + generalBonus / 100) * (1 + talismanElementalDamageBonus / 100) * 
+                                       mouseGeneralBonus * lightStrikeBonus;
+    
+    // 计算外属白字伤害（使用平均值，与排轴列表保持一致）
+    console.log('🔥 修复外属白字伤害计算 - 使用平均值攻击:');
+    console.log('- 鸣金攻击:', avgRingMetalAttack);
+    console.log('- 裂石攻击:', avgBreakRockAttack);
+    console.log('- 牵丝攻击:', avgPullSilkAttack);
+    const externalElementWhiteTextDamage = (avgRingMetalAttack * skillData.externalElementRate) * 
+                                         whiteTextRate * (1 + generalBonus / 100) * (1 + talismanElementalDamageBonus / 100) * 
+                                         mouseGeneralBonus * lightStrikeBonus +
+                                         (avgBreakRockAttack * skillData.externalElementRate) * 
+                                         whiteTextRate * (1 + generalBonus / 100) * (1 + talismanElementalDamageBonus / 100) * 
+                                         mouseGeneralBonus * lightStrikeBonus +
+                                         (avgPullSilkAttack * skillData.externalElementRate) * 
+                                         whiteTextRate * (1 + generalBonus / 100) * (1 + talismanElementalDamageBonus / 100) * 
+                                         mouseGeneralBonus * lightStrikeBonus;
+    
+    // 计算外属擦伤伤害（使用最小值，与排轴列表保持一致）
+    console.log('🔥 修复外属擦伤伤害计算 - 使用最小值攻击:');
+    console.log('- 鸣金攻击:', panelData.ringMetalAttack.min);
+    console.log('- 裂石攻击:', panelData.breakRockAttack.min);
+    console.log('- 牵丝攻击:', panelData.pullSilkAttack.min);
+    const externalElementGrazeDamage = (panelData.ringMetalAttack.min * skillData.externalElementRate) * 
+                                      grazeRate * (1 + generalBonus / 100) * (1 + talismanElementalDamageBonus / 100) * 
+                                      mouseGeneralBonus * lightStrikeBonus +
+                                      (panelData.breakRockAttack.min * skillData.externalElementRate) * 
+                                      grazeRate * (1 + generalBonus / 100) * (1 + talismanElementalDamageBonus / 100) * 
+                                      mouseGeneralBonus * lightStrikeBonus +
+                                      (panelData.pullSilkAttack.min * skillData.externalElementRate) * 
+                                      grazeRate * (1 + generalBonus / 100) * (1 + talismanElementalDamageBonus / 100) * 
+                                      mouseGeneralBonus * lightStrikeBonus;
+    
+    // 计算总伤害（所有类型伤害之和）
+    const totalDamage = externalCriticalDamage + externalIntentDamage + externalWhiteTextDamage + externalGrazeDamage +
+                       breakBambooCriticalDamage + breakBambooIntentDamage + breakBambooWhiteTextDamage + breakBambooGrazeDamage +
+                       externalElementCriticalDamage + externalElementIntentDamage + externalElementWhiteTextDamage + externalElementGrazeDamage;
+    
+    // 调试信息：显示详细计算过程
+    if (skill.name && skill.name !== '无') {
+        console.log(`\n=== ${skill.name} 详细计算过程 ===`);
+        console.log('面板数据:');
+        console.log('- 外功攻击:', panelData.externalAttack);
+        console.log('- 外功穿透:', panelData.externalPenetration);
+        console.log('- 属功穿透:', panelData.elementalPenetration);
+        console.log('- 破竹攻击:', panelData.breakBambooAttack);
+        console.log('- 全武学增伤:', panelData.allMartialBonus);
+        console.log('- 外功增伤:', panelData.externalDamageBonus);
+        console.log('- 属功增伤:', panelData.elementalDamageBonus);
+        console.log('- 装备套装:', panelData.equipmentSet);
+        console.log('- 食物BUFF:', panelData.foodBuff);
+        console.log('- 符帖:', panelData.talisman);
+        console.log('- 制作加成:', panelData.craftingBonus);
+        console.log('- Boss天赋:', panelData.bossTalent);
+        console.log('- Boss防御:', panelData.bossDefense);
+        
+        console.log('技能属性:');
+        console.log('- BUFF名称:', skill.buffName);
+        console.log('- 套装层数:', skill.setLayer);
+        console.log('- 符帖层数:', skill.talismanLayer);
+        console.log('- 易水歌层数:', skill.yishuiLayer);
+        console.log('- 所恨年年层数:', skill.suohenLayer);
+        console.log('- 气窭:', skill.qijie);
+        console.log('- 奶伞:', skill.naisan);
+        console.log('- 易伤:', skill.yishang);
+        
+        console.log('计算过程:');
+        console.log('- 通用增伤:', generalBonus);
+        console.log('- 会心增伤:', criticalBonus);
+        console.log('- 外功穿透:', externalPenetration);
+        console.log('- 额外会心率:', extraCriticalRate);
+        console.log('- 易水歌通用增伤:', yishuiGeneralBonus);
+        console.log('- 易水歌外功穿透:', yishuiExternalPenetration);
+        console.log('- 所恨年年减防:', suohenDefenseReduction);
+        console.log('- 所恨年年外功穿透:', suohenExternalPenetration);
+        console.log('- 有效Boss防御:', effectiveBossDefense);
+        console.log('- 平均外功攻击:', avgExternalAttack);
+        console.log('- 平均破竹攻击:', avgBreakBambooAttack);
+        console.log('- 平均属功攻击:', avgRingMetalAttack);
+        
+        console.log('伤害计算:');
+        console.log('- 外功会心伤害:', externalCriticalDamage);
+        console.log('- 外功会意伤害:', externalIntentDamage);
+        console.log('- 外功白字伤害:', externalWhiteTextDamage);
+        console.log('- 外功擦伤伤害:', externalGrazeDamage);
+        console.log('- 破竹会心伤害:', breakBambooCriticalDamage);
+        console.log('- 破竹会意伤害:', breakBambooIntentDamage);
+        console.log('- 破竹白字伤害:', breakBambooWhiteTextDamage);
+        console.log('- 破竹擦伤伤害:', breakBambooGrazeDamage);
+        console.log('- 属功会心伤害:', externalElementCriticalDamage);
+        console.log('- 属功会意伤害:', externalElementIntentDamage);
+        console.log('- 属功白字伤害:', externalElementWhiteTextDamage);
+        console.log('- 属功擦伤伤害:', externalElementGrazeDamage);
+        console.log('- 总伤害:', totalDamage);
+    }
+    
+    return {
+        totalDamage: totalDamage,
+        externalDamage: (avgExternalAttack - effectiveBossDefense) * skillData.externalRate + skillData.fixedExternal,
+        breakBambooDamage: avgBreakBambooAttack * skillData.breakBambooRate + skillData.fixedBreakBamboo,
+        externalElementDamage: avgRingMetalAttack * skillData.externalElementRate,
+        externalCriticalDamage,
+        externalIntentDamage,
+        externalWhiteTextDamage,
+        externalGrazeDamage,
+        breakBambooCriticalDamage,
+        breakBambooIntentDamage,
+        breakBambooWhiteTextDamage,
+        breakBambooGrazeDamage,
+        externalElementCriticalDamage,
+        externalElementIntentDamage,
+        externalElementWhiteTextDamage,
+        externalElementGrazeDamage,
+        effectiveCriticalRate,
+        effectiveIntentRate,
+        whiteTextRate,
+        grazeRate
+    };
+}
+
+function calculateBaseData(skill, skillData) {
+    return {
+        skillName: skill.name,
+        skillData: skillData,
+        buffName: skill.buffName || '无',
+        skillSetLayer: skill.setLayer || '无',
+        skillTalismanLayer: skill.talismanLayer || '无帖',
+        skillYishui: skill.yishui || '未设置',
+        skillSuohen: skill.suohen || '未设置',
+        skillQijie: skill.qijie || '否',
+        skillNaisan: skill.naisan || '否',
+        skillYishang: skill.yishang || '否'
+    };
+}
+
+function calculateBuffData(skill) {
+    const buffInfo = buffData.find(b => b.name === (skill.buffName || '无'));
+    return {
+        generalBonus: buffInfo ? buffInfo.generalBonus : 0,
+        criticalBonus: buffInfo ? buffInfo.criticalBonus : 0,
+        externalPenetration: buffInfo ? buffInfo.externalPenetration : 0,
+        extraCriticalRate: buffInfo ? buffInfo.extraCriticalRate : 0
+    };
+}
+
+function calculateAttackValues(panelData) {
+    return {
+        externalAttack: (panelData.externalAttack.min + panelData.externalAttack.max) / 2,
+        breakBambooAttack: (panelData.breakBambooAttack.min + panelData.breakBambooAttack.max) / 2,
+        ringMetalAttack: (panelData.ringMetalAttack.min + panelData.ringMetalAttack.max) / 2,
+        breakRockAttack: (panelData.breakRockAttack.min + panelData.breakRockAttack.max) / 2,
+        pullSilkAttack: (panelData.pullSilkAttack.min + panelData.pullSilkAttack.max) / 2,
+        externalElementAttack: 0 // 将在下面计算
+    };
+}
+
+function calculateBaseDamage(baseData, attackValues, skillData, panelData) {
+    // 计算外属攻击
+    attackValues.externalElementAttack = attackValues.ringMetalAttack + attackValues.breakRockAttack + attackValues.pullSilkAttack;
+    
+    return {
+        external: (attackValues.externalAttack - panelData.bossDefense) * skillData.externalRate + skillData.fixedExternal,
+        breakBamboo: attackValues.breakBambooAttack * skillData.breakBambooRate + skillData.fixedBreakBamboo,
+        externalElement: attackValues.externalElementAttack * skillData.externalElementRate
+    };
+}
+
+function calculateMultipliers(baseData, buffData, panelData) {
+    // 计算各种增伤效果
+    let generalBonus = buffData.generalBonus;
+    
+    // 应用技能特殊效果
+    const skillEffects = GameConfig.skillEffects[baseData.skillName];
+    if (skillEffects) {
+        generalBonus += skillEffects.generalBonus;
+    }
+    
+    // 鼠鼠生威技能额外80%通用增伤
+    if (baseData.skillName === "鼠鼠生威") {
+        generalBonus += 80;
+    }
+    
+    // 应用装备增伤
+    if (GameConfig.skillCategories.ropeDartSkills.includes(baseData.skillName)) {
+        generalBonus += panelData.ropeDartBonus;
+    }
+    
+    if (GameConfig.skillCategories.dualBladesSkills.includes(baseData.skillName)) {
+        generalBonus += panelData.dualBladesBonus;
+    }
+    
+    if (GameConfig.skillCategories.allMartialSkills.includes(baseData.skillName)) {
+        generalBonus += panelData.allMartialBonus;
+    }
+    
+    // 红刀技能特殊效果
+    const redBladeElementalPenetration = GameConfig.skillCategories.redBladeSkills.includes(baseData.skillName) ? 
+        GameConfig.constants.redBladeElementalPenetration : 0;
     
     // 首领单位增伤
     generalBonus += panelData.bossUnitBonus;
 
-    // 计算基础攻击值
-    const externalAttack = (panelData.externalAttack.min + panelData.externalAttack.max) / 2;
-    const breakBambooAttack = (panelData.breakBambooAttack.min + panelData.breakBambooAttack.max) / 2;
-    // 外属攻击 = 鸣金攻击 + 裂石攻击 + 牵丝攻击
-    const ringMetalAttack = (panelData.ringMetalAttack.min + panelData.ringMetalAttack.max) / 2;
-    const breakRockAttack = (panelData.breakRockAttack.min + panelData.breakRockAttack.max) / 2;
-    const pullSilkAttack = (panelData.pullSilkAttack.min + panelData.pullSilkAttack.max) / 2;
-    const externalElementAttack = ringMetalAttack + breakRockAttack + pullSilkAttack;
+    // 强效轻击增伤
+    generalBonus += panelData.lightStrikeBonus;
+    
+    // 鼠鼠定音增伤
+    generalBonus += panelData.mouseBonus;
+    
+    // 符帖增伤
+    if (baseData.skillTalismanLayer && baseData.skillTalismanLayer !== '无帖') {
+        switch(baseData.skillTalismanLayer) {
+            case '奇术帖':
+                const qishuSkills = ['骑龙回马一段', '骑龙回马二段', '箫声千浪炸', '箫声千浪(炸前)', '箫声千浪(炸后)', '清风霁月'];
+                if (qishuSkills.includes(baseData.skillName)) {
+                    generalBonus += 15; // 15%通用增伤
+                }
+                break;
+            case '承欢帖':
+                generalBonus += 20; // 20%通用增伤
+                break;
+        }
+    }
+    
+    // 天工增伤
+    if (panelData.craftingBonus === '天工火') {
+        generalBonus += 1.5; // 1.5%通用增伤
+    } else if (panelData.craftingBonus === '天工毒') {
+        generalBonus += 1; // 1%通用增伤
+    }
+    
+    // Boss天赋增伤
+    if (panelData.bossTalent === 'trial-sword') {
+        generalBonus += 15; // 试剑/侠境增加15%通用增伤
+        console.log('🔥 calculateMultipliers - BOSS天赋增伤应用: +15%');
+    }
+    console.log('🔥 calculateMultipliers - 当前BOSS天赋:', panelData.bossTalent, '总通用增伤:', generalBonus + '%');
+    
+    // 套装增伤
+    if (panelData.equipmentSet === '岳山' && baseData.skillSetLayer && baseData.skillSetLayer !== '无') {
+        switch(baseData.skillSetLayer) {
+            case '10%通用增伤': generalBonus += 10; break;
+            case '9%通用增伤': generalBonus += 9; break;
+            case '8%通用增伤': generalBonus += 8; break;
+            case '7%通用增伤': generalBonus += 7; break;
+            case '6%通用增伤': generalBonus += 6; break;
+            case '5%通用增伤': generalBonus += 5; break;
+        }
+    }
+    
+    if (panelData.equipmentSet === '新燕归' && baseData.skillSetLayer && baseData.skillSetLayer !== '无') {
+        switch(baseData.skillSetLayer) {
+            case '12%通用增伤': generalBonus += 12; break;
+            case '12%通用+10%破竹增伤': generalBonus += 12; break;
+        }
+    }
+    
+    // 易水歌增伤
+    if (baseData.skillYishui === '满层') {
+        generalBonus += 20; // 易水歌满层增加20%通用增伤
+    }
+    
+    // 所恨年年增伤
+    if (baseData.skillSuohen === '满层') {
+        generalBonus += 15; // 所恨年年满层增加15%通用增伤
+    }
+    
+    // 气竭、奶伞、易伤增伤
+    if (baseData.skillQijie === '是') {
+        generalBonus += 10; // 气竭增加10%通用增伤
+    }
+    if (baseData.skillNaisan === '是') {
+        generalBonus += 20; // 奶伞增加20%通用增伤
+    }
+    if (baseData.skillYishang === '是') {
+        generalBonus += 8; // 易伤增加8%通用增伤
+    }
 
-    // 计算基础伤害
-    const baseExternalDamage = (externalAttack - panelData.bossDefense) * skillData.externalRate + skillData.fixedExternal;
-    const baseBreakBambooDamage = breakBambooAttack * skillData.breakBambooRate + skillData.fixedBreakBamboo;
-    const baseExternalElementDamage = externalElementAttack * skillData.externalElementRate;
+    return {
+        general: 1 + generalBonus / 100,
+        critical: 1 + buffData.criticalBonus / 100,
+        externalPenetration: 1 + buffData.externalPenetration / 200,
+        elementalPenetration: 1 + (panelData.elementalPenetration + redBladeElementalPenetration) / 200
+    };
+}
 
-    // 计算增伤系数
-    const generalMultiplier = 1 + generalBonus / 100;
-    const criticalMultiplier = 1 + criticalBonus / 100;
-    const externalPenetrationMultiplier = 1 + externalPenetration / 200;
-    const elementalPenetrationMultiplier = 1 + (panelData.elementalPenetration + redBladeElementalPenetration) / 200;
+function calculateFinalDamage(baseDamage, multipliers, panelData) {
+    // 应用外功伤害加成和属攻伤害加成
+    const externalDamageMultiplier = 1 + panelData.externalDamageBonus / 100;
+    const elementalDamageMultiplier = 1 + panelData.elementalDamageBonus / 100;
+    
+    return {
+        external: baseDamage.external * multipliers.general * multipliers.externalPenetration * externalDamageMultiplier,
+        breakBamboo: baseDamage.breakBamboo * multipliers.general * multipliers.elementalPenetration * GameConfig.constants.breakBambooMultiplier * elementalDamageMultiplier,
+        externalElement: baseDamage.externalElement * multipliers.general * multipliers.elementalPenetration * elementalDamageMultiplier
+    };
+}
 
-    // 计算最终伤害
-    const externalDamage = baseExternalDamage * generalMultiplier * externalPenetrationMultiplier;
-    const breakBambooDamage = baseBreakBambooDamage * generalMultiplier * elementalPenetrationMultiplier * 1.5;
-    const externalElementDamage = baseExternalElementDamage * generalMultiplier * elementalPenetrationMultiplier;
-
-    // 计算总伤害
-    const totalDamage = externalDamage + breakBambooDamage + externalElementDamage;
-
-    // 计算各种类型的伤害（简化版本）
-    const criticalRate = Math.min((panelData.criticalRate + extraCriticalRate) / 100, 0.8) + panelData.directCriticalRate / 100;
+function calculateProbabilityData(buffData, panelData) {
+    const criticalRate = Math.min((panelData.criticalRate + buffData.extraCriticalRate) / 100, GameConfig.constants.maxCriticalRate) + panelData.directCriticalRate / 100;
     const intentRate = panelData.intentRate / 100;
     const precisionRate = panelData.precisionRate / 100;
+    
+    return { criticalRate, intentRate, precisionRate };
+}
+
+function calculateExpectedDamageFromFinalDamage(finalDamage, probabilityData, multipliers) {
+    const { criticalRate, intentRate, precisionRate } = probabilityData;
 
     // 计算有效概率
         let effectiveCriticalRate, effectiveIntentRate, grazeRate, whiteTextRate;
@@ -4447,48 +8223,45 @@ function calculateDamage(skill) {
         whiteTextRate = 1 - effectiveCriticalRate - effectiveIntentRate - grazeRate;
         
     // 计算各类型伤害
-    const externalCriticalDamage = externalDamage * effectiveCriticalRate * criticalMultiplier;
-    const externalIntentDamage = externalDamage * effectiveIntentRate * criticalMultiplier;
-    const externalWhiteTextDamage = externalDamage * whiteTextRate;
-    const externalGrazeDamage = externalDamage * grazeRate;
+    const externalCriticalDamage = finalDamage.external * effectiveCriticalRate * multipliers.critical;
+    const externalIntentDamage = finalDamage.external * effectiveIntentRate * multipliers.critical;
+    const externalWhiteTextDamage = finalDamage.external * whiteTextRate;
+    const externalGrazeDamage = finalDamage.external * grazeRate;
 
-    const breakBambooCriticalDamage = breakBambooDamage * effectiveCriticalRate * criticalMultiplier;
-    const breakBambooIntentDamage = breakBambooDamage * effectiveIntentRate * criticalMultiplier;
-    const breakBambooWhiteTextDamage = breakBambooDamage * whiteTextRate;
-    const breakBambooGrazeDamage = breakBambooDamage * grazeRate;
+    const breakBambooCriticalDamage = finalDamage.breakBamboo * effectiveCriticalRate * multipliers.critical;
+    const breakBambooIntentDamage = finalDamage.breakBamboo * effectiveIntentRate * multipliers.critical;
+    const breakBambooWhiteTextDamage = finalDamage.breakBamboo * whiteTextRate;
+    const breakBambooGrazeDamage = finalDamage.breakBamboo * grazeRate;
 
-    const externalElementCriticalDamage = externalElementDamage * effectiveCriticalRate * criticalMultiplier;
-    const externalElementIntentDamage = externalElementDamage * effectiveIntentRate * criticalMultiplier;
-    const externalElementWhiteTextDamage = externalElementDamage * whiteTextRate;
-    const externalElementGrazeDamage = externalElementDamage * grazeRate;
+    const externalElementCriticalDamage = finalDamage.externalElement * effectiveCriticalRate * multipliers.critical;
+    const externalElementIntentDamage = finalDamage.externalElement * effectiveIntentRate * multipliers.critical;
+    const externalElementWhiteTextDamage = finalDamage.externalElement * whiteTextRate;
+    const externalElementGrazeDamage = finalDamage.externalElement * grazeRate;
     
-    // 计算结果
-    const result = {
-        totalDamage: totalDamage,
-        externalDamage: externalDamage,
-        breakBambooDamage: breakBambooDamage,
-        externalElementDamage: externalElementDamage,
-        externalCriticalDamage: externalCriticalDamage,
-        externalIntentDamage: externalIntentDamage,
-        externalWhiteTextDamage: externalWhiteTextDamage,
-        externalGrazeDamage: externalGrazeDamage,
-        breakBambooCriticalDamage: breakBambooCriticalDamage,
-        breakBambooIntentDamage: breakBambooIntentDamage,
-        breakBambooWhiteTextDamage: breakBambooWhiteTextDamage,
-        breakBambooGrazeDamage: breakBambooGrazeDamage,
-        externalElementCriticalDamage: externalElementCriticalDamage,
-        externalElementIntentDamage: externalElementIntentDamage,
-        externalElementWhiteTextDamage: externalElementWhiteTextDamage,
-        externalElementGrazeDamage: externalElementGrazeDamage
+    // 计算期望总伤害（各种概率下的伤害加权平均）
+    const totalExpectedDamage = 
+        externalCriticalDamage + externalIntentDamage + externalWhiteTextDamage + externalGrazeDamage +
+        breakBambooCriticalDamage + breakBambooIntentDamage + breakBambooWhiteTextDamage + breakBambooGrazeDamage +
+        externalElementCriticalDamage + externalElementIntentDamage + externalElementWhiteTextDamage + externalElementGrazeDamage;
+    
+    return {
+        totalDamage: totalExpectedDamage,
+        externalDamage: finalDamage.external,
+        breakBambooDamage: finalDamage.breakBamboo,
+        externalElementDamage: finalDamage.externalElement,
+        externalCriticalDamage,
+        externalIntentDamage,
+        externalWhiteTextDamage,
+        externalGrazeDamage,
+        breakBambooCriticalDamage,
+        breakBambooIntentDamage,
+        breakBambooWhiteTextDamage,
+        breakBambooGrazeDamage,
+        externalElementCriticalDamage,
+        externalElementIntentDamage,
+        externalElementWhiteTextDamage,
+        externalElementGrazeDamage
     };
-    
-    // 保存到缓存
-    damageCache.set(cacheKey, {
-        data: result,
-        timestamp: Date.now()
-    });
-    
-    return result;
 }
 
 // 图表相关变量
@@ -5262,7 +9035,7 @@ function updateSkillDamageChart() {
             if (originalSkillName === '极乐泣血') {
                 totalHit = Math.round(skillTimes * 100) / 100; // 极乐泣血显示技能次数，保留2位小数
             } else {
-                totalHit = skillHit * skillTimes; // 其他技能显示Hit数
+                totalHit = Math.round(skillHit * skillTimes * 100) / 100; // 其他技能显示Hit数，保留2位小数避免浮点数精度问题
             }
             
             // 调试信息
@@ -5507,7 +9280,6 @@ function updateElementalStatsFromBreakBamboo() {
     const niyuBonus = (niyuCheckbox && niyuCheckbox.checked) ? 6 : 0;
     
     // 计算最终属攻穿透：破竹攻击加成 + 泥鱼心法加成 + 技能特殊加成（红刀A1-A5+10）
-    const redBladeSkills = ["红刀A1", "红刀A2", "红刀A2(1/2)", "红刀A3", "红刀A4", "红刀A4(5/7)", "红刀A5"];
     const skillBonus = 0; // 这里需要根据当前技能判断，暂时设为0
     const finalElementalPenetration = elementalPenetrationFromBreakBamboo + niyuBonus + skillBonus;
     
@@ -5647,54 +9419,56 @@ function importDiyToBasic() {
 
 
 
-// 更新panelData对象（从输入框获取值）
+// ==================== 废弃的全局数据更新函数 ====================
+/** @deprecated 使用 panelDataManager.getDataFromInputs() 替代 */
 function updatePanelDataFromInputs() {
-    try {
-        // 清空伤害计算缓存（面板数据变化时）
-        damageCache.clear();
-        
-        // 更新战斗属性
-        panelData.externalAttack.min = parseFloat(document.getElementById('external-attack-min').value) || 0;
-        panelData.externalAttack.max = parseFloat(document.getElementById('external-attack-max').value) || 0;
-        panelData.precisionRate = parseFloat(document.getElementById('precision-rate').value) || 0;
-        panelData.criticalRate = parseFloat(document.getElementById('critical-rate').value) || 0;
-        panelData.intentRate = parseFloat(document.getElementById('intent-rate').value) || 0;
-        panelData.directCriticalRate = parseFloat(document.getElementById('direct-critical-rate').value) || 0;
-        panelData.directIntentRate = parseFloat(document.getElementById('direct-intent-rate').value) || 0;
-        
-        // 更新攻击属性
-        panelData.ringMetalAttack.min = parseFloat(document.getElementById('ring-metal-attack-min').value) || 0;
-        panelData.ringMetalAttack.max = parseFloat(document.getElementById('ring-metal-attack-max').value) || 0;
-        panelData.breakRockAttack.min = parseFloat(document.getElementById('break-rock-attack-min').value) || 0;
-        panelData.breakRockAttack.max = parseFloat(document.getElementById('break-rock-attack-max').value) || 0;
-        panelData.pullSilkAttack.min = parseFloat(document.getElementById('pull-silk-attack-min').value) || 0;
-        panelData.pullSilkAttack.max = parseFloat(document.getElementById('pull-silk-attack-max').value) || 0;
-        panelData.breakBambooAttack.min = parseFloat(document.getElementById('break-bamboo-attack-min').value) || 0;
-        panelData.breakBambooAttack.max = parseFloat(document.getElementById('break-bamboo-attack-max').value) || 0;
-        
-        // 更新伤害加成
-        panelData.criticalDamageBonus = parseFloat(document.getElementById('critical-damage-bonus').value) || 0;
-        panelData.intentDamageBonus = parseFloat(document.getElementById('intent-damage-bonus').value) || 0;
-        panelData.externalDamageBonus = parseFloat(document.getElementById('external-damage-bonus').value) || 0;
-        panelData.elementalDamageBonus = parseFloat(document.getElementById('elemental-damage-bonus').value) || 0;
-        panelData.externalPenetration = parseFloat(document.getElementById('external-penetration').value) || 0;
-        panelData.elementalPenetration = parseFloat(document.getElementById('elemental-penetration').value) || 0;
-        
-        // 更新装备增伤
-        panelData.ropeDartBonus = parseFloat(document.getElementById('rope-dart-bonus').value) || 0;
-        panelData.dualBladesBonus = parseFloat(document.getElementById('dual-blades-bonus').value) || 0;
-        panelData.allMartialBonus = parseFloat(document.getElementById('all-martial-bonus').value) || 0;
-        panelData.bossUnitBonus = parseFloat(document.getElementById('boss-unit-bonus').value) || 0;
-        panelData.lightStrikeBonus = parseFloat(document.getElementById('light-strike-bonus').value) || 0;
-        panelData.mouseBonus = parseFloat(document.getElementById('mouse-bonus').value) || 0;
-        
-        
-        console.log('panelData对象已更新');
-        
-    } catch (error) {
-        console.error('更新panelData对象时发生错误:', error);
-        throw error;
-    }
+    console.warn('updatePanelDataFromInputs() 已废弃，请使用 panelDataManager.getDataFromInputs()');
+    // 为了向后兼容，保留基本功能
+    const data = panelDataManager.getDataFromInputs();
+    panelDataManager.updateData(data);
+    return data;
+}
+
+// ==================== 辅助函数 ====================
+function showValidationErrors(errors) {
+    // 创建错误提示元素
+    const errorContainer = document.getElementById('validation-errors') || createErrorContainer();
+    errorContainer.innerHTML = errors.map(error => `<div class="error-message">${error}</div>`).join('');
+    errorContainer.style.display = 'block';
+    
+    // 3秒后自动隐藏
+    setTimeout(() => {
+        errorContainer.style.display = 'none';
+    }, 3000);
+}
+
+function showErrorMessage(message) {
+    // 创建通用错误提示
+    const errorContainer = document.getElementById('validation-errors') || createErrorContainer();
+    errorContainer.innerHTML = `<div class="error-message">${message}</div>`;
+    errorContainer.style.display = 'block';
+    
+    setTimeout(() => {
+        errorContainer.style.display = 'none';
+    }, 3000);
+}
+
+function createErrorContainer() {
+    const container = document.createElement('div');
+    container.id = 'validation-errors';
+    container.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #ff4444;
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        z-index: 10000;
+        display: none;
+    `;
+    document.body.appendChild(container);
+    return container;
 }
 
 // 初始化DIY快速输入功能
@@ -7859,5 +11633,306 @@ function createValidationHandler(attackName, minInput, maxInput) {
         }, 1000); // 1秒延迟
     };
 }
+
+// 为面板数据变化添加监听器，确保期望2伤害实时更新
+function setupPanelDataChangeListeners() {
+    try {
+        console.log('开始设置面板数据变化监听器...');
+        
+        // 定义所有面板数据相关的输入框ID
+        const panelInputIds = [
+            // 战斗属性
+            'external-attack-min',
+            'external-attack-max',
+            'precision-rate',
+            'critical-rate',
+            'intent-rate',
+            'direct-critical-rate',
+            'direct-intent-rate',
+            
+            // 攻击属性
+            'ring-metal-attack-min',
+            'ring-metal-attack-max',
+            'break-rock-attack-min',
+            'break-rock-attack-max',
+            'pull-silk-attack-min',
+            'pull-silk-attack-max',
+            'break-bamboo-attack-min',
+            'break-bamboo-attack-max',
+            
+            // 伤害加成
+            'critical-damage-bonus',
+            'intent-damage-bonus',
+            'external-penetration',
+            'elemental-penetration',
+            'external-damage-bonus',
+            'elemental-damage-bonus',
+            
+            // 武学增伤
+            'rope-dart-bonus',
+            'dual-blades-bonus',
+            'all-martial-bonus',
+            'boss-unit-bonus',
+            'light-strike-bonus',
+            'mouse-bonus',
+            
+            // 装备和BUFF
+            'equipment-set',
+            'food-buff',
+            'talisman',
+            'crafting-bonus',
+            'boss-talent',
+            'boss-defense'
+        ];
+        
+        // 移除面板输入框的实时计算监听器
+        // 现在只有点击计算按钮时才会进行计算
+        console.log('面板输入框实时计算已禁用，只有点击计算按钮时才会进行计算');
+        
+        // 移除特殊输入框的调试监听器
+        console.log('特殊输入框调试监听器已移除');
+        
+        console.log('面板数据变化监听器设置完成');
+        
+    } catch (error) {
+        console.error('设置面板数据变化监听器时发生错误:', error);
+    }
+}
+
+// 高级缓存管理器
+class AdvancedCacheManager {
+    constructor() {
+        this.cache = new Map();
+        this.maxSize = 1000; // 最大缓存条目数
+        this.accessCount = new Map(); // 访问次数统计
+    }
+    
+    // 生成缓存键
+    generateKey(panelData, rotationData, calculationType) {
+        const panelKey = JSON.stringify({
+            externalAttack: panelData.externalAttack,
+            externalPenetration: panelData.externalPenetration,
+            elementalPenetration: panelData.elementalPenetration,
+            breakBambooAttack: panelData.breakBambooAttack,
+            externalDamageBonus: panelData.externalDamageBonus,
+            elementalDamageBonus: panelData.elementalDamageBonus,
+            criticalRate: panelData.criticalRate,
+            intentRate: panelData.intentRate,
+            precisionRate: panelData.precisionRate
+        });
+        
+        const rotationKey = JSON.stringify(rotationData.map(skill => ({
+            name: skill.name,
+            times: skill.times,
+            buffName: skill.buffName,
+            setLayer: skill.setLayer
+        })));
+        
+        return `${calculationType}_${panelKey}_${rotationKey}`;
+    }
+    
+    // 获取缓存
+    get(key) {
+        if (this.cache.has(key)) {
+            // 更新访问次数
+            this.accessCount.set(key, (this.accessCount.get(key) || 0) + 1);
+            return this.cache.get(key);
+        }
+        return null;
+    }
+    
+    // 设置缓存
+    set(key, value) {
+        // 如果缓存已满，删除最少访问的条目
+        if (this.cache.size >= this.maxSize) {
+            this.evictLeastUsed();
+        }
+        
+        this.cache.set(key, value);
+        this.accessCount.set(key, 1);
+    }
+    
+    // 删除最少访问的条目
+    evictLeastUsed() {
+        let leastUsedKey = null;
+        let minAccess = Infinity;
+        
+        for (const [key, access] of this.accessCount) {
+            if (access < minAccess) {
+                minAccess = access;
+                leastUsedKey = key;
+            }
+        }
+        
+        if (leastUsedKey) {
+            this.cache.delete(leastUsedKey);
+            this.accessCount.delete(leastUsedKey);
+        }
+    }
+    
+    // 清除缓存
+    clear() {
+        this.cache.clear();
+        this.accessCount.clear();
+    }
+    
+    // 获取缓存统计
+    getStats() {
+        return {
+            size: this.cache.size,
+            maxSize: this.maxSize,
+            hitRate: this.calculateHitRate()
+        };
+    }
+    
+    calculateHitRate() {
+        // 简化的命中率计算
+        return this.cache.size > 0 ? 0.8 : 0; // 假设80%命中率
+    }
+}
+
+// 创建全局缓存管理器
+const advancedCacheManager = new AdvancedCacheManager();
+
+// 防抖的伤害统计更新函数（已禁用实时计算）
+let damageStatsUpdateTimeout;
+function debouncedUpdateDamageStats() {
+    console.log('面板数据变化监听器被触发！');
+    
+    // 清除缓存，确保使用最新的面板数据
+    damageCache.clear();
+    advancedCacheManager.clear();
+    console.log('🔥 已清除伤害计算缓存，确保使用最新面板数据');
+    
+    // 注意：实时计算已禁用，这里不再执行计算
+    console.log('实时计算已禁用，只有点击计算按钮时才会进行计算');
+}
+
+// UI加载状态管理
+function showCalculationLoading() {
+    // 显示加载状态
+    const loadingElement = document.getElementById('calculation-loading');
+    if (loadingElement) {
+        loadingElement.style.display = 'block';
+    }
+    
+    // 禁用计算按钮
+    const calculateBtn = document.getElementById('simulation-btn');
+    if (calculateBtn) {
+        calculateBtn.disabled = true;
+        calculateBtn.textContent = '计算中...';
+    }
+    
+    // 显示进度条
+    showProgressBar();
+}
+
+function hideCalculationLoading() {
+    // 隐藏加载状态
+    const loadingElement = document.getElementById('calculation-loading');
+    if (loadingElement) {
+        loadingElement.style.display = 'none';
+    }
+    
+    // 启用计算按钮
+    const calculateBtn = document.getElementById('simulation-btn');
+    if (calculateBtn) {
+        calculateBtn.disabled = false;
+        calculateBtn.textContent = '模拟\n计算';
+    }
+    
+    // 隐藏进度条
+    hideProgressBar();
+}
+
+function showCalculationError(error) {
+    console.error('计算错误:', error);
+    
+    // 显示错误信息
+    const errorElement = document.getElementById('calculation-error');
+    if (errorElement) {
+        errorElement.textContent = `计算失败: ${error.message}`;
+        errorElement.style.display = 'block';
+        
+        // 3秒后自动隐藏错误信息
+        setTimeout(() => {
+            errorElement.style.display = 'none';
+        }, 3000);
+    }
+}
+
+// 进度条管理
+function showProgressBar() {
+    const progressContainer = document.getElementById('progress-container');
+    if (progressContainer) {
+        progressContainer.style.display = 'block';
+    }
+}
+
+function hideProgressBar() {
+    const progressContainer = document.getElementById('progress-container');
+    if (progressContainer) {
+        progressContainer.style.display = 'none';
+    }
+}
+
+// 获取毕业伤害值
+function getGraduationDamage() {
+    if (currentDamageMode === 'custom') {
+        return parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+    } else if (currentDamageMode === 'puwu_lao1') {
+        return 2191649;
+    } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
+        return 3080124;
+    } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
+        return 3018586;
+    } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
+        return 3138065;
+    } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
+        return 3082418;
+    } else {
+        return 3138065;
+    }
+}
+
+// 强制更新期望2伤害（用于调试）
+function forceUpdateExpected2() {
+    console.log('🔥 强制更新期望2伤害！');
+    try {
+        updateDamageStatsTable();
+    } catch (error) {
+        console.error('强制更新期望2伤害时发生错误:', error);
+    }
+}
+
+// 暴露到全局作用域，方便调试
+window.forceUpdateExpected2 = forceUpdateExpected2;
+
+// 调试缓存键生成
+function debugCacheKey(skill, panelData) {
+    const cacheKey = generateCacheKey(skill, panelData);
+    console.log('🔥 缓存键调试信息:');
+    console.log('- 技能名称:', skill.name);
+    console.log('- 属攻穿透:', panelData.elementalPenetration);
+    console.log('- 外功伤害加成:', panelData.externalDamageBonus);
+    console.log('- 属攻伤害加成:', panelData.elementalDamageBonus);
+    console.log('- 生成的缓存键:', cacheKey);
+    return cacheKey;
+}
+
+window.debugCacheKey = debugCacheKey;
+
+// 调试开关
+let debugMode = false;
+function toggleDebugMode() {
+    debugMode = !debugMode;
+    console.log(`🔥 调试模式已${debugMode ? '开启' : '关闭'}`);
+    return debugMode;
+}
+
+window.toggleDebugMode = toggleDebugMode;
+window.debugMode = debugMode;
+
+// 排序功能已删除
 
 

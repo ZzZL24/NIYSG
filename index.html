@@ -28,6 +28,330 @@
       <!-- Chart.js 图表库（CDN） -->
       <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <style>
+        /* 移动端响应式设计 */
+        @media (max-width: 768px) {
+            /* 整体布局调整 */
+            body {
+                font-size: 14px;
+                padding: 5px;
+            }
+            
+            .container {
+                padding: 5px;
+                margin: 0;
+            }
+            
+            /* 标签页导航调整 */
+            .tab-nav {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .tab-nav button {
+                padding: 8px 12px;
+                font-size: 12px;
+                min-width: auto;
+                flex: 1;
+            }
+            
+            /* 表格容器调整 */
+            .table-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .table-container table {
+                min-width: 600px;
+                font-size: 12px;
+            }
+            
+            .table-container table th,
+            .table-container table td {
+                padding: 4px 2px;
+                height: 32px;
+            }
+            
+            /* 输入框调整 */
+            input[type="number"], 
+            input[type="text"], 
+            select {
+                font-size: 12px;
+                padding: 4px 6px;
+                min-width: 50px;
+            }
+            
+            /* 按钮调整 */
+            .action-btn {
+                padding: 6px 10px;
+                font-size: 12px;
+                margin: 2px;
+            }
+            
+            /* 配置区域调整 */
+            .config-section {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .config-row {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .config-item {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+            
+            /* 图表容器调整 */
+            .chart-container {
+                height: 300px;
+                margin: 10px 0;
+            }
+            
+            /* 词条毕业度表格调整 */
+            .trait-graduation-table-container {
+                overflow-x: auto;
+            }
+            
+            .trait-graduation-table {
+                min-width: 400px;
+                font-size: 12px;
+            }
+            
+            .trait-graduation-table th,
+            .trait-graduation-table td {
+                padding: 4px 6px;
+                font-size: 12px;
+            }
+            
+            /* 注意说明文本调整 */
+            .trait-graduation-table-container > div:last-child {
+                font-size: 11px;
+                padding: 8px;
+                margin-top: 10px;
+            }
+            
+            /* 模式选择器调整 */
+            .mode-selector {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .mode-select {
+                width: 100%;
+                font-size: 12px;
+                padding: 6px 8px;
+            }
+            
+            /* 自定义模式配置调整 */
+            .custom-mode-config {
+                width: 100%;
+            }
+            
+            .graduation-input {
+                width: 100%;
+                font-size: 12px;
+            }
+            
+            /* 排轴表格调整 */
+            #rotation-table {
+                font-size: 11px;
+            }
+            
+            #rotation-table th,
+            #rotation-table td {
+                padding: 2px 4px;
+                height: 28px;
+            }
+            
+            /* 技能选择下拉框调整 */
+            #rotation-table select {
+                font-size: 11px;
+                padding: 2px 4px;
+            }
+            
+            /* 数值输入框调整 */
+            .table-times-input {
+                width: 50px;
+                font-size: 11px;
+                padding: 2px 4px;
+            }
+            
+            /* 图表图例调整 */
+            .chart-legend {
+                font-size: 10px;
+                flex-wrap: wrap;
+            }
+            
+            .chart-legend-item {
+                margin: 2px 4px;
+                padding: 2px 6px;
+            }
+        }
+        
+        /* 超小屏幕适配 */
+        @media (max-width: 480px) {
+            body {
+                font-size: 12px;
+                padding: 2px;
+            }
+            
+            .container {
+                padding: 2px;
+            }
+            
+            .tab-nav button {
+                padding: 6px 8px;
+                font-size: 11px;
+            }
+            
+            .table-container table {
+                min-width: 500px;
+                font-size: 10px;
+            }
+            
+            .table-container table th,
+            .table-container table td {
+                padding: 2px 1px;
+                height: 28px;
+            }
+            
+            input[type="number"], 
+            input[type="text"], 
+            select {
+                font-size: 10px;
+                padding: 2px 4px;
+                min-width: 40px;
+            }
+            
+            .action-btn {
+                padding: 4px 8px;
+                font-size: 10px;
+            }
+            
+            .trait-graduation-table {
+                min-width: 350px;
+                font-size: 10px;
+            }
+            
+            .trait-graduation-table th,
+            .trait-graduation-table td {
+                padding: 2px 4px;
+                font-size: 10px;
+            }
+            
+            #rotation-table {
+                font-size: 9px;
+            }
+            
+            #rotation-table th,
+            #rotation-table td {
+                padding: 1px 2px;
+                height: 24px;
+            }
+            
+            .table-times-input {
+                width: 40px;
+                font-size: 9px;
+                padding: 1px 2px;
+            }
+        }
+        
+        /* 移动端触摸优化 */
+        @media (max-width: 768px) {
+            /* 触摸友好的按钮 */
+            .action-btn, 
+            .tab-nav button,
+            button {
+                min-height: 44px;
+                min-width: 44px;
+                touch-action: manipulation;
+            }
+            
+            /* 输入框触摸优化 */
+            input[type="number"], 
+            input[type="text"], 
+            select {
+                min-height: 44px;
+                touch-action: manipulation;
+            }
+            
+            /* 表格滚动优化 */
+            .table-container {
+                -webkit-overflow-scrolling: touch;
+                scroll-behavior: smooth;
+            }
+            
+            /* 防止双击缩放 */
+            * {
+                touch-action: manipulation;
+            }
+            
+            /* 图表容器触摸优化 */
+            .chart-container {
+                touch-action: pan-x pan-y;
+            }
+            
+            /* 长按选择优化 */
+            .table-container table td {
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+            }
+            
+            /* 输入框保持可选择 */
+            input, select, textarea {
+                -webkit-user-select: text;
+                -moz-user-select: text;
+                -ms-user-select: text;
+                user-select: text;
+            }
+        }
+        
+        /* 横屏适配 */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .tab-nav {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+            
+            .tab-nav button {
+                flex: 1;
+                min-width: 80px;
+            }
+            
+            .chart-container {
+                height: 250px;
+            }
+            
+            .table-container table {
+                min-width: 800px;
+            }
+        }
+        
+        /* 加载动画 */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .spinner {
+            animation: spin 1s linear infinite;
+        }
+        
+        /* 进度条动画 */
+        #progress-bar {
+            transition: width 0.3s ease;
+        }
+        
+        /* 计算按钮禁用状态 */
+        .action-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
         /* 调整表格行高 */
         .table-container table th,
         .table-container table td {
@@ -700,14 +1024,93 @@
                     <div style="padding: 10px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; color: #856404; font-size: 14px; text-align: center;">
                         <strong>参考了Violetta和yoka两位大佬的表格，然后稍微加了点功能。纯AI写的，可能有些潜在问题，仅供参考。</strong>
                     </div>
-                    <!-- 说明栏附加内容：毕业率计算与实战差异说明 -->
-                    <div style="margin-top: 10px; background: #fff8e1; border: 1px solid #ffeaa7; border-radius: 6px; color: #5c4404; font-size: 15px; padding: 12px; line-height: 1.6; text-align: left; font-family: 'Microsoft YaHei','Heiti SC','SimHei',sans-serif; font-weight: 600;">
-                        <div class="title-stars" style="text-align: center; color: #ffc107; font-size: 18px; line-height: 1; margin: 4px 0 6px 0;">★ ★ ★</div>
-                        <ul class="explain-points" style="margin: 6px 0 0; padding-left: 1.2em;">
-                            <li>期望计算的总伤害与实际打桩存在差异；后续若有大佬提供竞速实战轴，能缩小差距。</li>
-                            <li>毕业率计算并非为了给出绝对准确的伤害数值，而是通过统一技能循环轴作为参照，便于横向比较不同玩家的面板差异，及纵向对标自身与版本最高标准之间的差距。</li>
-                            <li>单项技能的误差控制在千分之几，来源于计算精度取舍和面板小数点省略；仅“箫音千浪（炸后）”与“易水歌6”差异较明显，主要因官方基础面板数据存在偏差。</li>
-                        </ul>
+                    
+                    <!-- 词条毕业度对比表格 -->
+                    <div class="trait-graduation-table-container" style="margin-top: 15px;">
+                        <h4 style="margin-bottom: 12px; color: #2c3e50; font-size: 16px; font-weight: 600; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">单词条毕业度提升</h4>
+                        <table id="trait-graduation-table" class="trait-graduation-table" style="width: 100%; border-collapse: collapse; border: 1px solid #ddd; font-size: 14px;">
+                            <thead>
+                                <tr style="background-color: #f5f5f5;">
+                                    <th style="padding: 6px; border: 1px solid #ddd; text-align: center; font-weight: bold; font-size: 14px;">词条</th>
+                                    <th style="padding: 6px; border: 1px solid #ddd; text-align: center; font-weight: bold; font-size: 14px;">毕业度</th>
+                                </tr>
+                            </thead>
+                            <tbody id="trait-graduation-tbody">
+                                <tr>
+                                    <td style="padding: 6px; border: 1px solid #ddd; text-align: center; font-size: 14px; color: #000;"><strong>大外功</strong><span style="color: #0000FF;">(77.8)</span></td>
+                                    <td id="trait-graduation-damage" style="padding: 6px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #000; font-size: 14px;">0.00%</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 6px; border: 1px solid #ddd; text-align: center; font-size: 14px; color: #000;"><strong>小外功</strong><span style="color: #0000FF;">(77.8)</span></td>
+                                    <td id="trait-graduation-external-min" style="padding: 6px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #000; font-size: 14px;">0.00%</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 6px; border: 1px solid #ddd; text-align: center; font-size: 14px; color: #000;"><strong>大破竹</strong><span style="color: #0000FF;">(44.2)</span></td>
+                                    <td id="trait-graduation-breakbamboo-max" style="padding: 6px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #000; font-size: 14px;">0.00%</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 6px; border: 1px solid #ddd; text-align: center; font-size: 14px; color: #000;"><strong>小破竹</strong><span style="color: #0000FF;">(44.2)</span></td>
+                                    <td id="trait-graduation-breakbamboo-min" style="padding: 6px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #000; font-size: 14px;">0.00%</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 6px; border: 1px solid #ddd; text-align: center; font-size: 14px; color: #000;"><strong>小裂石</strong><span style="color: #0000FF;">(44.2)</span></td>
+                                    <td id="trait-graduation-breakrock-min" style="padding: 6px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #000; font-size: 14px;">0.00%</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 6px; border: 1px solid #ddd; text-align: center; font-size: 14px; color: #000;"><strong>精准率</strong><span style="color: #0000FF;">(4.84)</span></td>
+                                    <td id="trait-graduation-precision" style="padding: 6px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #000; font-size: 14px;">0.00%</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 6px; border: 1px solid #ddd; text-align: center; font-size: 14px; color: #000;"><strong>会心率</strong><span style="color: #0000FF;">(5.45)</span></td>
+                                    <td id="trait-graduation-critical" style="padding: 6px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #000; font-size: 14px;">0.00%</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 6px; border: 1px solid #ddd; text-align: center; font-size: 14px; color: #000;"><strong>会意率</strong><span style="color: #0000FF;">(2.67)</span></td>
+                                    <td id="trait-graduation-intent" style="padding: 6px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #000; font-size: 14px;">0.00%</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 6px; border: 1px solid #ddd; text-align: center; font-size: 14px; color: #000;"><strong>劲</strong><span style="color: #0000FF;">(11.1&&67.2)</span></td>
+                                    <td id="trait-graduation-jing" style="padding: 6px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #000; font-size: 14px;">0.00%</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 6px; border: 1px solid #ddd; text-align: center; font-size: 14px; color: #000;"><strong>敏</strong><span style="color: #0000FF;">(44.5&&2.28)</span></td>
+                                    <td id="trait-graduation-min" style="padding: 6px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #000; font-size: 14px;">0.00%</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 6px; border: 1px solid #ddd; text-align: center; font-size: 14px; color: #000;"><strong>势</strong><span style="color: #0000FF;">(44.5&&1.14)</span></td>
+                                    <td id="trait-graduation-shi" style="padding: 6px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #000; font-size: 14px;">0.00%</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 6px; border: 1px solid #ddd; text-align: center; font-size: 14px; color: #000;"><strong>绳镖武学</strong><span style="color: #0000FF;">(6.2)</span></td>
+                                    <td id="trait-graduation-shengbiao" style="padding: 6px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #000; font-size: 14px;">0.00%</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 6px; border: 1px solid #ddd; text-align: center; font-size: 14px; color: #000;"><strong>双刀武学</strong><span style="color: #0000FF;">(6.2)</span></td>
+                                    <td id="trait-graduation-shuangdao" style="padding: 6px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #000; font-size: 14px;">0.00%</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 6px; border: 1px solid #ddd; text-align: center; font-size: 14px; color: #000;"><strong>全武学</strong><span style="color: #0000FF;">(3.2)</span></td>
+                                    <td id="trait-graduation-quanwuxue" style="padding: 6px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #000; font-size: 14px;">0.00%</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 6px; border: 1px solid #ddd; text-align: center; font-size: 14px; color: #000;"><strong>首领单位</strong><span style="color: #0000FF;">(3.2)</span></td>
+                                    <td id="trait-graduation-shouling" style="padding: 6px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #000; font-size: 14px;">0.00%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- 注意说明文本 -->
+                    <div style="margin-top: 15px; padding: 12px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; font-size: 14px; color: #6c757d; line-height: 1.5;">
+                        <div style="margin-bottom: 10px; font-weight: bold;">
+                            <strong>注意：</strong>
+                        </div>
+                        <div style="margin-bottom: 8px; font-weight: bold;">
+                            1. 敏和小破竹未考虑武学天赋，会意未考虑飞隼情况，上述结果仅供参考；若手动删减一个词条，表格显示的结果会更准确。
+                        </div>
+                        <div style="font-weight: bold;">
+                            2. 因数据量较大，暂未支持实时计算；若结果显示存疑，可点击空格（计算键）重新计算。
+                        </div>
                     </div>
                 </div>
             </div>
@@ -747,7 +1150,7 @@
                         
                         <!-- 套装切换说明 -->
                         <div class="equipment-switch-notice">
-                            <span class="notice-text">飞隼易水和燕归易水采用的是同一个轴的模板，只是套装效果进行了更改；断石同理。<br>木桩轴和竞速轴切换时，需到基础信息页面手动切换BOSS天赋。<br>竞速轴，燕归和飞隼用的同一毕业度；所以燕归大概少2%左右。</span>
+                            <span class="notice-text">飞隼和燕归采用的是同一个轴的模板，只是套装效果进行了更改；断石同理。所以燕归总体会比飞隼少2%左右。<br>木桩轴和竞速轴切换时，需到基础信息页面手动切换BOSS天赋。</span>
                         </div>
                         
                         <!-- 右侧：自选模式配置区域 -->
@@ -758,7 +1161,7 @@
                                         <i class="config-icon">🎯</i>
                                         毕业伤害
                                     </label>
-                                    <input type="number" id="custom-graduation-damage" value="3122602" min="0" step="1000" class="config-input graduation-input">
+                                    <input type="number" id="custom-graduation-damage" value="3138065" min="0" step="1000" class="config-input graduation-input">
                                 </div>
                                 
                                 <div class="config-item">
@@ -794,6 +1197,26 @@
                             </div>
                             <span class="rotation-disclaimer">打桩轴为理想轴仅用于测算自身毕业率，实战有所出入</span>
                         </div>
+                        <!-- 加载状态指示器 -->
+                        <div id="calculation-loading" style="display: none; text-align: center; padding: 20px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; margin-bottom: 10px;">
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                <div class="spinner" style="width: 20px; height: 20px; border: 2px solid #f3f3f3; border-top: 2px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                                <span style="color: #007bff; font-weight: bold;">正在计算中...</span>
+                            </div>
+                        </div>
+                        
+                        <!-- 错误信息显示 -->
+                        <div id="calculation-error" style="display: none; text-align: center; padding: 10px; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 6px; margin-bottom: 10px; color: #721c24;">
+                        </div>
+                        
+                        <!-- 进度条容器 -->
+                        <div id="progress-container" style="display: none; margin-bottom: 10px;">
+                            <div style="background: #e9ecef; border-radius: 10px; height: 6px; overflow: hidden;">
+                                <div id="progress-bar" style="background: linear-gradient(90deg, #007bff, #28a745); height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+                            </div>
+                            <div id="progress-text" style="text-align: center; margin-top: 5px; font-size: 12px; color: #6c757d;"></div>
+                        </div>
+                        
                         <table id="damage-stats-table" class="damage-stats-table enhanced-table">
                             <thead>
                                 <tr>
