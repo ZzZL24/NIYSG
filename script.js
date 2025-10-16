@@ -400,7 +400,8 @@ class PanelDataManager {
         updateSelectValue('crafting-bonus', tempData, 'craftingBonus', '无');
         updateSelectValue('boss-talent-select', tempData, 'bossTalent', 'wooden-dummy');
         
-        // 更新Boss防御
+        // 更新Boss防御 - 强制设置为96级BOSS(405)
+        tempData.bossDefense = 405;
         updateValue('boss-defense', tempData, 'bossDefense', 405);
         
         // 调试：验证BOSS天赋获取
@@ -2832,7 +2833,7 @@ function handleSetLayerHeaderChange(e) {
 
 
 // 统一的保存功能函数
-function performSave() {
+async function performSave() {
     try {
         console.log('执行保存操作（通过按钮点击或键盘快捷键）');
         
@@ -2846,6 +2847,36 @@ function performSave() {
         showNotification('基础信息保存成功！排轴列表已更新');
         showSaveButtonSuccess('save-panel-btn');
         console.log('保存完成，数据已更新，排轴列表已刷新');
+        
+        // 触发词条毕业度计算
+        console.log('🔥 空格键触发词条毕业度计算...');
+        
+        // 显示加载状态
+        showCalculationLoading();
+        
+        try {
+            // 获取当前期望伤害
+            const rotationDamageSum = calculateRotationDamageSum();
+            let expectedDamage;
+            
+            if (isSimulationMode) {
+                const expectedElement = document.getElementById('expected-damage');
+                expectedDamage = expectedElement ? parseFloat(expectedElement.textContent) || 0 : rotationDamageSum;
+            } else {
+                expectedDamage = rotationDamageSum;
+            }
+            
+            // 计算词条毕业度
+            await calculateAllGraduationsAsync(expectedDamage);
+            
+            console.log('✅ 词条毕业度计算完成！');
+            
+        } catch (error) {
+            console.error('计算词条毕业度时发生错误:', error);
+            showCalculationError(error);
+        } finally {
+            hideCalculationLoading();
+        }
         
     } catch (error) {
         console.error('保存过程中发生错误:', error);
@@ -3026,8 +3057,8 @@ function collectAndSavePanelData() {
                         // 数值类型，移除%符号
                         panelData[key] = parseFloat(value.replace('%', '')) || 0;
                     } else if (key === 'bossDefense') {
-                        // Boss防御
-                        panelData[key] = parseFloat(value) || 405;
+                        // Boss防御 - 强制设置为96级BOSS(405)
+                        panelData[key] = 405;
                     } else {
                         // 字符串类型（包括craftingBonus等下拉框）
                         panelData[key] = value || (key === 'equipmentSet' ? '无' : '');
@@ -3619,6 +3650,9 @@ function initDamageStatsTable() {
     // 为面板数据变化添加监听器，确保期望2伤害实时更新
     setupPanelDataChangeListeners();
     
+    // 验证并修正BOSS防御数据
+    validateAndFixBossDefense();
+    
     // 移除排轴表格变化的实时监听器
     console.log('排轴表格变化实时监听器已禁用');
     
@@ -3840,14 +3874,20 @@ async function updateDamageStatsTable() {
 async function calculateAllGraduationsAsync(expectedDamage) {
     debugLog('🚀 开始分两批计算...', 1);
     
+    // 清空第二面板显示
+    clearSecondPanelDisplay();
+    
     // 第1批：基础面板计算
     debugLog('📊 第1批：基础面板计算...', 1);
+    updateProgressBar(10, '计算基础面板...');
     await calculateBasePanelAsync(expectedDamage);
     
     // 第2批：所有词条毕业度面板计算
     debugLog('🔧 第2批：词条毕业度面板计算...', 1);
+    updateProgressBar(30, '计算词条毕业度...');
     await calculateTraitPanelsAsync(expectedDamage);
     
+    updateProgressBar(100, '计算完成！');
     debugLog('✅ 分两批计算完成！', 1);
 }
 
@@ -3900,6 +3940,10 @@ async function calculateTraitPanelsAsync(expectedDamage) {
     const internalBatchSize = 5;
     for (let i = 0; i < graduationTasks.length; i += internalBatchSize) {
         const batch = graduationTasks.slice(i, i + internalBatchSize);
+        const batchProgress = 30 + (i / graduationTasks.length) * 60; // 30% 到 90%
+        const batchNames = batch.map(task => task.name).join('、');
+        
+        updateProgressBar(batchProgress, `计算${batchNames}毕业度...`);
         
         await Promise.all(
             batch.map(task => calculateGraduationAsync(task.name, task.func))
@@ -3910,6 +3954,7 @@ async function calculateTraitPanelsAsync(expectedDamage) {
     }
     
     // 计算完成后进行排序
+    updateProgressBar(95, '排序结果...');
     sortTraitGraduationTable();
     
 }
@@ -11634,6 +11679,19 @@ function createValidationHandler(attackName, minInput, maxInput) {
     };
 }
 
+// 强制设置BOSS防御为96级BOSS(405)
+function validateAndFixBossDefense() {
+    try {
+        const bossDefenseSelect = document.getElementById('boss-defense');
+        if (bossDefenseSelect) {
+            bossDefenseSelect.value = '405';
+            console.log('✅ BOSS防御已强制设置为96级BOSS(405)');
+        }
+    } catch (error) {
+        console.error('设置BOSS防御时发生错误:', error);
+    }
+}
+
 // 为面板数据变化添加监听器，确保期望2伤害实时更新
 function setupPanelDataChangeListeners() {
     try {
@@ -11816,11 +11874,21 @@ function showCalculationLoading() {
         loadingElement.style.display = 'block';
     }
     
-    // 禁用计算按钮
-    const calculateBtn = document.getElementById('simulation-btn');
-    if (calculateBtn) {
-        calculateBtn.disabled = true;
-        calculateBtn.textContent = '计算中...';
+    // 禁用所有计算按钮
+    const simulationBtn = document.getElementById('simulation-btn');
+    if (simulationBtn) {
+        simulationBtn.disabled = true;
+        simulationBtn.textContent = '计算中...';
+    }
+    
+    const basicInfoBtn = document.getElementById('save-panel-btn');
+    if (basicInfoBtn) {
+        basicInfoBtn.disabled = true;
+        basicInfoBtn.innerHTML = `
+            <span class="button-text">计算中...</span>
+        `;
+        basicInfoBtn.style.opacity = '0.6';
+        basicInfoBtn.style.cursor = 'not-allowed';
     }
     
     // 显示进度条
@@ -11834,11 +11902,25 @@ function hideCalculationLoading() {
         loadingElement.style.display = 'none';
     }
     
-    // 启用计算按钮
-    const calculateBtn = document.getElementById('simulation-btn');
-    if (calculateBtn) {
-        calculateBtn.disabled = false;
-        calculateBtn.textContent = '模拟\n计算';
+    // 启用所有计算按钮
+    const simulationBtn = document.getElementById('simulation-btn');
+    if (simulationBtn) {
+        simulationBtn.disabled = false;
+        simulationBtn.textContent = '模拟\n计算';
+    }
+    
+    const basicInfoBtn = document.getElementById('save-panel-btn');
+    if (basicInfoBtn) {
+        basicInfoBtn.disabled = false;
+        basicInfoBtn.innerHTML = `
+            <span class="button-text">计算</span>
+            <span class="keyboard-hint">
+                <span class="keyboard-icon">⌨</span>
+                <span class="keyboard-text">空格</span>
+            </span>
+        `;
+        basicInfoBtn.style.opacity = '1';
+        basicInfoBtn.style.cursor = 'pointer';
     }
     
     // 隐藏进度条
@@ -11866,6 +11948,7 @@ function showProgressBar() {
     const progressContainer = document.getElementById('progress-container');
     if (progressContainer) {
         progressContainer.style.display = 'block';
+        updateProgressBar(0, '准备计算...');
     }
 }
 
@@ -11874,6 +11957,48 @@ function hideProgressBar() {
     if (progressContainer) {
         progressContainer.style.display = 'none';
     }
+}
+
+function updateProgressBar(percentage, text) {
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    
+    if (progressBar) {
+        progressBar.style.width = Math.min(100, Math.max(0, percentage)) + '%';
+    }
+    
+    if (progressText) {
+        progressText.textContent = text || `${Math.round(percentage)}%`;
+    }
+}
+
+// 清空第二面板显示
+function clearSecondPanelDisplay() {
+    const graduationElements = [
+        'trait-graduation-damage',
+        'trait-graduation-external-min',
+        'trait-graduation-breakbamboo-max',
+        'trait-graduation-breakbamboo-min',
+        'trait-graduation-breakrock-min',
+        'trait-graduation-precision',
+        'trait-graduation-critical',
+        'trait-graduation-intent',
+        'trait-graduation-jing',
+        'trait-graduation-min',
+        'trait-graduation-shi',
+        'trait-graduation-shengbiao',
+        'trait-graduation-shuangdao',
+        'trait-graduation-quanwuxue',
+        'trait-graduation-shouling'
+    ];
+    
+    graduationElements.forEach(elementId => {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.textContent = '0.00%';
+            element.style.color = '#6c757d'; // 灰色表示无变化
+        }
+    });
 }
 
 // 获取毕业伤害值

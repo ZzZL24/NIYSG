@@ -789,7 +789,7 @@
                 <button class="tab-button" data-tab="rotation">计算界面</button>
                 <button class="tab-button" data-tab="damage-stats">伤害统计</button>
                 <button class="tab-button" data-tab="trait-diy">词条DIY</button>
-                <button class="tab-button" data-tab="skill-buff-data">技能增益表</button>
+                <button class="tab-button" data-tab="skill-buff-data">数据参考</button>
           </div>
         
         <!-- 基础信息标签页内容 -->
@@ -955,7 +955,9 @@
                         <h4 style="margin: 10px 0 5px 0;">其他增伤</h4>
                         <div class="input-row" style="padding: 2px 0;">
                             <label for="boss-defense">BOSS防御:</label>
-                            <input type="number" id="boss-defense" value="405" min="0" readonly>
+                            <select id="boss-defense" class="select-input enhanced-select">
+                                <option value="405" selected>96级BOSS</option>
+                            </select>
                         </div>
                         <div class="input-row" style="padding: 2px 0;">
                             <label for="boss-talent-select">BOSS天赋:</label>
@@ -1150,7 +1152,7 @@
                         
                         <!-- 套装切换说明 -->
                         <div class="equipment-switch-notice">
-                            <span class="notice-text">飞隼和燕归采用的是同一个轴的模板，只是套装效果进行了更改；断石同理。所以燕归总体会比飞隼少2%左右。<br>木桩轴和竞速轴切换时，需到基础信息页面手动切换BOSS天赋。</span>
+                            <span class="notice-text"><strong>飞隼和燕归采用的是同一个轴的模板，只是套装效果进行了更改；断石同理。所以燕归总体会比飞隼少2%左右。</strong><br><span style="color: #dc3545; font-weight: bold; background-color: #fff3cd; padding: 4px 8px; border-radius: 4px; border-left: 4px solid #ffc107;">⚠️ 木桩轴和竞速轴切换时，需到基础信息页面手动切换BOSS天赋。</span></span>
                         </div>
                         
                         <!-- 右侧：自选模式配置区域 -->
@@ -1820,11 +1822,11 @@
             
         </div>
         
-        <!-- 技能增益表标签页内容 -->
+        <!-- 数据参考标签页内容 -->
         <div id="skill-buff-data" class="tab-content">
+            <h2>数据参考</h2>
             
             <div class="formula-section">
-                <h3>伤害计算公式</h3>
                 <div class="formula-container">
                     <p>总伤害计算公式如下：</p>
                     <div class="latex-formula">
