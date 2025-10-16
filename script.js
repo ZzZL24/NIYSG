@@ -1001,52 +1001,6 @@ function showConfirmDialog(message, title = '确认操作') {
     });
 }
 
-// 扩展错误过滤函数
-function filterExtensionErrors(message) {
-    return message.includes('Extension context invalidated') ||
-           message.includes('content_script.js') ||
-           message.includes('Extension context') ||
-           message.includes('runtime.lastError') ||
-           message.includes('Unchecked runtime.lastError') ||
-           message.includes('A listener indicated an asynchronous response');
-}
-
-// 全局错误处理 - 过滤扩展相关错误
-window.addEventListener('error', function(event) {
-    if (event.message && filterExtensionErrors(event.message)) {
-        event.preventDefault();
-        return false;
-    }
-});
-
-// 处理未捕获的Promise错误 - 过滤扩展相关错误
-window.addEventListener('unhandledrejection', function(event) {
-    if (event.reason && event.reason.message && filterExtensionErrors(event.reason.message)) {
-        event.preventDefault();
-        return false;
-    }
-});
-
-// 重写console.error来过滤所有扩展相关错误
-const originalConsoleError = console.error;
-console.error = function(...args) {
-    const message = args.join(' ');
-    if (filterExtensionErrors(message)) {
-        return; // 静默处理扩展错误
-    }
-    originalConsoleError.apply(console, args);
-};
-
-// 重写console.warn来过滤所有扩展相关警告
-const originalConsoleWarn = console.warn;
-console.warn = function(...args) {
-    const message = args.join(' ');
-    if (filterExtensionErrors(message)) {
-        return; // 静默处理扩展警告
-    }
-    originalConsoleWarn.apply(console, args);
-};
-
 // 页面加载完成后执行
 
 document.addEventListener('DOMContentLoaded', function() {
