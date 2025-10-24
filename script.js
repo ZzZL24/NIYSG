@@ -40,10 +40,10 @@ const GameConfig = {
     // 技能分类配置
     skillCategories: {
         ropeDartSkills: ["鼠鼠生威", "牵绳引刃"],
-        dualBladesSkills: ["白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2", "红刀A2(1/2)", "红刀A3", "红刀A4", "红刀A4(5/7)", "红刀A5", "痴障"],
-        allMartialSkills: ["鼠鼠生威", "牵绳引刃", "白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2", "红刀A2(1/2)", "红刀A3", "红刀A4", "红刀A4(5/7)", "红刀A5", "痴障", "易水歌", "极乐泣血"],
-        redBladeSkills: ["红刀A1", "红刀A2", "红刀A2(1/2)", "红刀A3", "红刀A4", "红刀A4(5/7)", "红刀A5"],
-        bladeSkills: ["白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2", "红刀A2(1/2)", "红刀A3", "红刀A4", "红刀A4(5/7)", "红刀A5"],
+        dualBladesSkills: ["白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2", "红刀A3", "红刀A4", "红刀A5", "痴障"],
+        allMartialSkills: ["鼠鼠生威", "牵绳引刃", "白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2", "红刀A3", "红刀A4", "红刀A5", "痴障", "易水歌", "极乐泣血"],
+        redBladeSkills: ["红刀A1", "红刀A2", "红刀A3", "红刀A4", "红刀A5"],
+        bladeSkills: ["白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2", "红刀A3", "红刀A4", "红刀A5"],
         dotSkills: ["天工火Dot", "天工毒Dot", "火·厚积薄发"]
     },
     
@@ -226,11 +226,9 @@ const skillRatesData = [
     { name: "白刀A3", externalRate: 0.5772, fixedExternal: 161, breakBambooRate: 0.5772, fixedBreakBamboo: 87, externalElementRate: 0.5772, hit: 2 },
     { name: "白刀A4", externalRate: 0.5082, fixedExternal: 142, breakBambooRate: 0.5082, fixedBreakBamboo: 77, externalElementRate: 0.5082, hit: 2 },
     { name: "红刀A1", externalRate: 0.6472, fixedExternal: 180, breakBambooRate: 0.6472, fixedBreakBamboo: 98, externalElementRate: 0.6472, hit: 2 },
-    { name: "红刀A2", externalRate: 0.9012, fixedExternal: 250, breakBambooRate: 0.9012, fixedBreakBamboo: 136, externalElementRate: 0.9012, hit: 2 },
-    { name: "红刀A2(1/2)", externalRate: 0.4506, fixedExternal: 125, breakBambooRate: 0.4506, fixedBreakBamboo: 68, externalElementRate: 0.4506, hit: 1 },
+    { name: "红刀A2", externalRate: 0.9012, fixedExternal: 250, breakBambooRate: 0.9012, fixedBreakBamboo: 136, externalElementRate: 0.9012, hit: 1 },
     { name: "红刀A3", externalRate: 1.4455, fixedExternal: 401, breakBambooRate: 1.4455, fixedBreakBamboo: 218, externalElementRate: 1.4455, hit: 8 },
     { name: "红刀A4", externalRate: 1.7358, fixedExternal: 481, breakBambooRate: 1.7358, fixedBreakBamboo: 262, externalElementRate: 1.7358, hit: 7 },
-    { name: "红刀A4(5/7)", externalRate: 1.215, fixedExternal: 336.7, breakBambooRate: 1.215, fixedBreakBamboo: 183.4, externalElementRate: 1.215, hit: 5 },
     { name: "红刀A5", externalRate: 2.5342, fixedExternal: 702, breakBambooRate: 2.5342, fixedBreakBamboo: 382, externalElementRate: 2.5342, hit: 5 },
     { name: "痴障", externalRate: 1.3548, fixedExternal: 376, breakBambooRate: 1.3548, fixedBreakBamboo: 205, externalElementRate: 1.3548, hit: 6 },
     { name: "十字斩", externalRate: 3.3028, fixedExternal: 914, breakBambooRate: 3.3028, fixedBreakBamboo: 498, externalElementRate: 3.3028, hit: 8 },
@@ -240,8 +238,7 @@ const skillRatesData = [
     { name: "骑龙回马一段", externalRate: 3.1956, fixedExternal: 459, breakBambooRate: 3.1956, fixedBreakBamboo: 0, externalElementRate: 3.1956, hit: 1 },
     { name: "骑龙回马二段", externalRate: 3.9058, fixedExternal: 561, breakBambooRate: 3.9058, fixedBreakBamboo: 0, externalElementRate: 3.9058, hit: 1 },
     { name: "箫声千浪炸", externalRate: 3.919, fixedExternal: 830, breakBambooRate: 3.919, fixedBreakBamboo: 0, externalElementRate: 3.919, hit: 1 },
-    { name: "箫声千浪(炸前)", externalRate: 1.4696, fixedExternal: 310, breakBambooRate: 1.4696, fixedBreakBamboo: 0, externalElementRate: 1.4696, hit: 1 },
-    { name: "箫声千浪(炸后)", externalRate: 1.3098, fixedExternal: 0, breakBambooRate: 1.3098, fixedBreakBamboo: 0, externalElementRate: 1.3098, hit: 1 },
+    { name: "箫声千浪", externalRate: 1.4696, fixedExternal: 310, breakBambooRate: 1.4696, fixedBreakBamboo: 0, externalElementRate: 1.4696, hit: 1 },
     { name: "清风霁月", externalRate: 0.9539, fixedExternal: 467, breakBambooRate: 0.9539, fixedBreakBamboo: 0, externalElementRate: 0.9539, hit: 1 },
     { name: "极乐泣血", externalRate: 2, fixedExternal: 0, breakBambooRate: 0, fixedBreakBamboo: 0, externalElementRate: 0, hit: 0 },
     { name: "易水歌", externalRate: 1, fixedExternal: 0, breakBambooRate: 0.6667, fixedBreakBamboo: 0, externalElementRate: 1, hit: 1 },
@@ -290,13 +287,13 @@ class PanelDataManager {
     
     getDefaultData() {
         return {
-    externalAttack: { min: 1299, max: 3602 },
+    externalAttack: { min: 1351, max: 3602 },
     breakBambooAttack: { min: 365, max: 655 },
     ringMetalAttack: { min: 0, max: 0 },
             breakRockAttack: { min: 0, max: 0 },
             pullSilkAttack: { min: 0, max: 0 },
-    precisionRate: 100,
-    criticalRate: 68.2,
+    precisionRate: 98.8,
+    criticalRate: 68.8,
     intentRate: 18.8,
     directCriticalRate: 4.6,
     directIntentRate: 0.0,
@@ -320,7 +317,7 @@ class PanelDataManager {
     craftingBonus: '天工火',
     bossTalent: 'wooden-dummy',
     // Boss防御
-    bossDefense: 405
+    bossDefense: 407
 };
     }
     
@@ -400,9 +397,9 @@ class PanelDataManager {
         updateSelectValue('crafting-bonus', tempData, 'craftingBonus', '无');
         updateSelectValue('boss-talent-select', tempData, 'bossTalent', 'wooden-dummy');
         
-        // 更新Boss防御 - 强制设置为96级BOSS(405)
-        tempData.bossDefense = 405;
-        updateValue('boss-defense', tempData, 'bossDefense', 405);
+        // 更新Boss防御 - 强制设置为96级BOSS(407)
+        tempData.bossDefense = 407;
+        updateValue('boss-defense', tempData, 'bossDefense', 407);
         
         // 调试：验证BOSS天赋获取
         debugLog('🔥 getDataFromInputs - BOSS天赋获取验证:', 2);
@@ -1070,6 +1067,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 加载基础信息默认值
     loadPanelDataDefaults();
+    
+    // 确保BOSS防御被正确设置
+    validateAndFixBossDefense();
     
     // 确保按钮处于正确状态
     ensureButtonsEnabled();
@@ -2092,7 +2092,7 @@ function updateRotationTable(rotationDataParam = null) {
                         break;
                     case '奇术帖':
                         // 奇术帖只对特定技能生效
-                        const qishuSkills = ['骑龙回马一段', '骑龙回马二段', '箫声千浪炸', '箫声千浪(炸前)', '箫声千浪(炸后)', '清风霁月'];
+                        const qishuSkills = ['骑龙回马一段', '骑龙回马二段', '箫声千浪炸', '箫声千浪', '清风霁月'];
                         if (qishuSkills.includes(skill.name)) {
                             generalBonus += 15; // 15%通用增伤
                         }
@@ -2230,7 +2230,7 @@ function updateRotationTable(rotationDataParam = null) {
             let extraExternalDamageBonus = 0;
             
             // 燕归套的外功增伤归类为额外外功伤害加成
-            const yanguiSkills = ["白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2", "红刀A2(1/2)", "红刀A3", "红刀A4", "红刀A4(5/7)", "红刀A5", "鼠鼠生威"];
+            const yanguiSkills = ["白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2", "红刀A3", "红刀A4", "红刀A5", "鼠鼠生威"];
             if (panelData.equipmentSet === '燕归' && skill.setLayer && skill.setLayer !== '无' && yanguiSkills.includes(skill.name)) {
                 switch(skill.setLayer) {
                     case '10%外功增伤':
@@ -3027,8 +3027,8 @@ function collectAndSavePanelData() {
                         // 数值类型，移除%符号
                         panelData[key] = parseFloat(value.replace('%', '')) || 0;
                     } else if (key === 'bossDefense') {
-                        // Boss防御 - 强制设置为96级BOSS(405)
-                        panelData[key] = 405;
+                        // Boss防御 - 强制设置为96级BOSS(407)
+                        panelData[key] = 407;
                     } else {
                         // 字符串类型（包括craftingBonus等下拉框）
                         panelData[key] = value || (key === 'equipmentSet' ? '无' : '');
@@ -3097,7 +3097,7 @@ function savePanelDataAsDefaults() {
             talisman: panelData.talisman || '无',
             craftingBonus: panelData.craftingBonus || '无',
             bossTalent: panelData.bossTalent || 'wooden-dummy',
-            bossDefense: panelData.bossDefense || 405,
+            bossDefense: panelData.bossDefense || 407,
             
             // 保存时间戳
             timestamp: Date.now()
@@ -3425,7 +3425,7 @@ function getDefaultPanelData() {
         talisman: '无帖',
         craftingBonus: '无',
         bossTalent: 'wooden-dummy',
-        bossDefense: 405
+        bossDefense: 407
     };
 }
 
@@ -3742,7 +3742,7 @@ function initCustomModeConfig() {
         if (!customGraduationDamage || !customTValue) return;
         
         // 获取用户输入的值
-        const graduationDamage = parseFloat(customGraduationDamage.value) || 3138065;
+        const graduationDamage = parseFloat(customGraduationDamage.value) || 3267719;
         const tValue = parseFloat(customTValue.value) || 60;
         
         // 更新全局变量
@@ -3993,25 +3993,25 @@ function updateTraitGraduationTable(firstPanelDamage, secondPanelDamage) {
         let graduationDamage;
         if (currentDamageMode === 'custom') {
             // 自选模式：使用用户自定义的毕业伤害
-            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            // 普五老一：毕业伤害为2191649
-            graduationDamage = 2191649;
+            // 普五老一：毕业伤害为2293803
+            graduationDamage = 2293803;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
             // 燕归断石：按需求设置毕业伤害
-            graduationDamage = 3080124;
+            graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
             // 燕归易水：按需求设置毕业伤害
-            graduationDamage = 3018586;
+            graduationDamage = 3190110;
         } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
             // 其他断石类（默认飞隼断石）
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
             // 其他易水类（默认飞隼易水）
-            graduationDamage = 3082418;
+            graduationDamage = 3250948;
         } else {
             // 默认值
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         }
         
         // 计算第一面板和第二面板的期望毕业度
@@ -4049,19 +4049,19 @@ function calculateLargeExternalGraduation(firstPanelDamage) {
         // 获取毕业伤害值 - 使用与计算界面相同的逻辑
         let graduationDamage;
         if (currentDamageMode === 'custom') {
-            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2191649;
+            graduationDamage = 2293803;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
-            graduationDamage = 3080124;
+            graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
-            graduationDamage = 3018586;
+            graduationDamage = 3190110;
         } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
-            graduationDamage = 3082418;
+            graduationDamage = 3250948;
         } else {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         }
         
         // 获取当前面板数据
@@ -4151,19 +4151,19 @@ function calculateSmallExternalGraduation(firstPanelDamage) {
         // 获取毕业伤害值 - 使用与计算界面相同的逻辑
         let graduationDamage;
         if (currentDamageMode === 'custom') {
-            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2191649;
+            graduationDamage = 2293803;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
-            graduationDamage = 3080124;
+            graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
-            graduationDamage = 3018586;
+            graduationDamage = 3190110;
         } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
-            graduationDamage = 3082418;
+            graduationDamage = 3250948;
         } else {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         }
         
         // 获取当前面板数据
@@ -4258,19 +4258,19 @@ function calculateLargeBreakBambooGraduation(firstPanelDamage) {
         // 获取毕业伤害值 - 使用与计算界面相同的逻辑
         let graduationDamage;
         if (currentDamageMode === 'custom') {
-            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2191649;
+            graduationDamage = 2293803;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
-            graduationDamage = 3080124;
+            graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
-            graduationDamage = 3018586;
+            graduationDamage = 3190110;
         } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
-            graduationDamage = 3082418;
+            graduationDamage = 3250948;
         } else {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         }
         
         // 获取当前面板数据
@@ -4366,19 +4366,19 @@ function calculateSmallBreakBambooGraduation(firstPanelDamage) {
         // 获取毕业伤害值 - 使用与计算界面相同的逻辑
         let graduationDamage;
         if (currentDamageMode === 'custom') {
-            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2191649;
+            graduationDamage = 2293803;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
-            graduationDamage = 3080124;
+            graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
-            graduationDamage = 3018586;
+            graduationDamage = 3190110;
         } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
-            graduationDamage = 3082418;
+            graduationDamage = 3250948;
         } else {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         }
         
         // 获取当前面板数据
@@ -4474,19 +4474,19 @@ function calculateSmallBreakRockGraduation(firstPanelDamage) {
         // 获取毕业伤害值 - 使用与计算界面相同的逻辑
         let graduationDamage;
         if (currentDamageMode === 'custom') {
-            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2191649;
+            graduationDamage = 2293803;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
-            graduationDamage = 3080124;
+            graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
-            graduationDamage = 3018586;
+            graduationDamage = 3190110;
         } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
-            graduationDamage = 3082418;
+            graduationDamage = 3250948;
         } else {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         }
         
         // 获取当前面板数据
@@ -4582,19 +4582,19 @@ function calculatePrecisionGraduation(firstPanelDamage) {
         // 获取毕业伤害值 - 使用与计算界面相同的逻辑
         let graduationDamage;
         if (currentDamageMode === 'custom') {
-            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2191649;
+            graduationDamage = 2293803;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
-            graduationDamage = 3080124;
+            graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
-            graduationDamage = 3018586;
+            graduationDamage = 3190110;
         } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
-            graduationDamage = 3082418;
+            graduationDamage = 3250948;
         } else {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         }
         
         // 获取当前面板数据
@@ -4683,19 +4683,19 @@ function calculateCriticalGraduation(firstPanelDamage) {
         // 获取毕业伤害值 - 使用与计算界面相同的逻辑
         let graduationDamage;
         if (currentDamageMode === 'custom') {
-            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2191649;
+            graduationDamage = 2293803;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
-            graduationDamage = 3080124;
+            graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
-            graduationDamage = 3018586;
+            graduationDamage = 3190110;
         } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
-            graduationDamage = 3082418;
+            graduationDamage = 3250948;
         } else {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         }
         
         // 获取当前面板数据
@@ -4782,19 +4782,19 @@ function calculateIntentGraduation(firstPanelDamage) {
         // 获取毕业伤害值 - 使用与计算界面相同的逻辑
         let graduationDamage;
         if (currentDamageMode === 'custom') {
-            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2191649;
+            graduationDamage = 2293803;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
-            graduationDamage = 3080124;
+            graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
-            graduationDamage = 3018586;
+            graduationDamage = 3190110;
         } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
-            graduationDamage = 3082418;
+            graduationDamage = 3250948;
         } else {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         }
         
         // 获取当前面板数据
@@ -4881,19 +4881,19 @@ function calculateJingGraduation(firstPanelDamage) {
         // 获取毕业伤害值 - 使用与计算界面相同的逻辑
         let graduationDamage;
         if (currentDamageMode === 'custom') {
-            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2191649;
+            graduationDamage = 2293803;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
-            graduationDamage = 3080124;
+            graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
-            graduationDamage = 3018586;
+            graduationDamage = 3190110;
         } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
-            graduationDamage = 3082418;
+            graduationDamage = 3250948;
         } else {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         }
         
         // 获取当前面板数据
@@ -4983,19 +4983,19 @@ function calculateMinGraduation(firstPanelDamage) {
         // 获取毕业伤害值 - 使用与计算界面相同的逻辑
         let graduationDamage;
         if (currentDamageMode === 'custom') {
-            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2191649;
+            graduationDamage = 2293803;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
-            graduationDamage = 3080124;
+            graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
-            graduationDamage = 3018586;
+            graduationDamage = 3190110;
         } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
-            graduationDamage = 3082418;
+            graduationDamage = 3250948;
         } else {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         }
         
         // 获取当前面板数据
@@ -5087,19 +5087,19 @@ function calculateShiGraduation(firstPanelDamage) {
         // 获取毕业伤害值 - 使用与计算界面相同的逻辑
         let graduationDamage;
         if (currentDamageMode === 'custom') {
-            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2191649;
+            graduationDamage = 2293803;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
-            graduationDamage = 3080124;
+            graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
-            graduationDamage = 3018586;
+            graduationDamage = 3190110;
         } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
-            graduationDamage = 3082418;
+            graduationDamage = 3250948;
         } else {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         }
         
         // 获取当前面板数据
@@ -5191,19 +5191,19 @@ function calculateShengbiaoGraduation(firstPanelDamage) {
         // 获取毕业伤害值 - 使用与计算界面相同的逻辑
         let graduationDamage;
         if (currentDamageMode === 'custom') {
-            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2191649;
+            graduationDamage = 2293803;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
-            graduationDamage = 3080124;
+            graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
-            graduationDamage = 3018586;
+            graduationDamage = 3190110;
         } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
-            graduationDamage = 3082418;
+            graduationDamage = 3250948;
         } else {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         }
         
         // 获取当前面板数据
@@ -5306,19 +5306,19 @@ function calculateShuangdaoGraduation(firstPanelDamage) {
         // 获取毕业伤害值 - 使用与计算界面相同的逻辑
         let graduationDamage;
         if (currentDamageMode === 'custom') {
-            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2191649;
+            graduationDamage = 2293803;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
-            graduationDamage = 3080124;
+            graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
-            graduationDamage = 3018586;
+            graduationDamage = 3190110;
         } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
-            graduationDamage = 3082418;
+            graduationDamage = 3250948;
         } else {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         }
         
         // 获取当前面板数据
@@ -5421,19 +5421,19 @@ function calculateQuanwuxueGraduation(firstPanelDamage) {
         // 获取毕业伤害值 - 使用与计算界面相同的逻辑
         let graduationDamage;
         if (currentDamageMode === 'custom') {
-            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2191649;
+            graduationDamage = 2293803;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
-            graduationDamage = 3080124;
+            graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
-            graduationDamage = 3018586;
+            graduationDamage = 3190110;
         } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
-            graduationDamage = 3082418;
+            graduationDamage = 3250948;
         } else {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         }
         
         // 获取当前面板数据
@@ -5536,19 +5536,19 @@ function calculateShoulingGraduation(firstPanelDamage) {
         // 获取毕业伤害值 - 使用与计算界面相同的逻辑
         let graduationDamage;
         if (currentDamageMode === 'custom') {
-            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+            graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2191649;
+            graduationDamage = 2293803;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
-            graduationDamage = 3080124;
+            graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
-            graduationDamage = 3018586;
+            graduationDamage = 3190110;
         } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
-            graduationDamage = 3082418;
+            graduationDamage = 3250948;
         } else {
-            graduationDamage = 3138065;
+            graduationDamage = 3267719;
         }
         
         // 获取当前面板数据
@@ -6064,22 +6064,22 @@ function updateDamageStatsDisplay(graduationDamage, expectedDamage, simulationDa
     if (mode === 'custom') {
         // 自选模式：使用用户自定义的毕业伤害
         const customGraduationDamage = document.getElementById('custom-graduation-damage');
-        fixedGraduationDamage = customGraduationDamage ? parseFloat(customGraduationDamage.value) || 3138065 : 3138065;
+        fixedGraduationDamage = customGraduationDamage ? parseFloat(customGraduationDamage.value) || 3267719 : 3267719;
     } else if (mode === 'puwu_lao1') {
-        // 普五老一：毕业伤害为2191649
-        fixedGraduationDamage = 2191649;
+        // 普五老一：毕业伤害为2293803
+        fixedGraduationDamage = 2293803;
     } else if (mode && mode.indexOf('yangui_duanshi') !== -1) {
         // 燕归断石：按需求设置毕业伤害
-        fixedGraduationDamage = 3080124;
+        fixedGraduationDamage = 3227036;
     } else if (mode && mode.indexOf('yangui_yishui') !== -1) {
         // 燕归易水：按需求设置毕业伤害
-        fixedGraduationDamage = 3018586;
+        fixedGraduationDamage = 3190110;
     } else if (mode && mode.indexOf('duanshi') !== -1) {
         // 其他断石类（默认飞隼断石）
-        fixedGraduationDamage = 3138065;
+        fixedGraduationDamage = 3267719;
     } else if (mode && mode.indexOf('yishui') !== -1) {
         // 其他易水类（默认飞隼易水）
-        fixedGraduationDamage = 3082418;
+        fixedGraduationDamage = 3250948;
     }
     
     // 当选择"无"时，除了期望伤害和模拟伤害，其余单元格显示为"-"
@@ -6104,7 +6104,7 @@ function updateDamageStatsDisplay(graduationDamage, expectedDamage, simulationDa
     }
     
     // 计算并更新DPS
-    // 毕业DPS = 3082418 / T
+    // 毕业DPS = 3250948 / T
     const graduationDpsElement = document.getElementById('graduation-dps');
     if (graduationDpsElement) {
         graduationDpsElement.textContent = isNoneMode ? '-' : (fixedGraduationDamage / T).toFixed(2);
@@ -6129,7 +6129,7 @@ function updateDamageStatsDisplay(graduationDamage, expectedDamage, simulationDa
         graduationRateElement.textContent = isNoneMode ? '-' : '100.00%';
     }
     
-    // 期望毕业率 = 期望伤害 / 3082418
+    // 期望毕业率 = 期望伤害 / 3250948
     const expectedRateElement = document.getElementById('expected-rate');
     if (expectedRateElement) {
         if (isNoneMode) {
@@ -6142,7 +6142,7 @@ function updateDamageStatsDisplay(graduationDamage, expectedDamage, simulationDa
         }
     }
     
-    // 模拟毕业率 = 模拟伤害 / 3082418
+    // 模拟毕业率 = 模拟伤害 / 3250948
     const simulationRateElement = document.getElementById('simulation-rate');
     if (simulationRateElement) {
         if (isNoneMode) {
@@ -7219,7 +7219,7 @@ function calculateDamageWithOriginalLogic(skill, panelData, skillData) {
                 break;
             case '奇术帖':
                 // 奇术帖只对特定技能生效
-                const qishuSkills = ['骑龙回马一段', '骑龙回马二段', '箫声千浪炸', '箫声千浪(炸前)', '箫声千浪(炸后)', '清风霁月'];
+                const qishuSkills = ['骑龙回马一段', '骑龙回马二段', '箫声千浪炸', '箫声千浪', '清风霁月'];
                 if (qishuSkills.includes(skill.name)) {
                     generalBonus += 15; // 15%通用增伤
                 }
@@ -7357,7 +7357,7 @@ function calculateDamageWithOriginalLogic(skill, panelData, skillData) {
     let extraExternalDamageBonus = 0;
     
     // 燕归套的外功增伤归类为额外外功伤害加成
-    const yanguiSkills = ["白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2", "红刀A2(1/2)", "红刀A3", "红刀A4", "红刀A4(5/7)", "红刀A5", "鼠鼠生威"];
+    const yanguiSkills = ["白刀A1", "白刀A2", "白刀A3", "白刀A4", "红刀A1", "红刀A2", "红刀A3", "红刀A4", "红刀A5", "鼠鼠生威"];
     if (panelData.equipmentSet === '燕归' && skill.setLayer && skill.setLayer !== '无' && yanguiSkills.includes(skill.name)) {
         switch(skill.setLayer) {
             case '10%外功增伤':
@@ -7780,7 +7780,7 @@ function calculateMultipliers(baseData, buffData, panelData) {
     if (baseData.skillTalismanLayer && baseData.skillTalismanLayer !== '无帖') {
         switch(baseData.skillTalismanLayer) {
             case '奇术帖':
-                const qishuSkills = ['骑龙回马一段', '骑龙回马二段', '箫声千浪炸', '箫声千浪(炸前)', '箫声千浪(炸后)', '清风霁月'];
+                const qishuSkills = ['骑龙回马一段', '骑龙回马二段', '箫声千浪炸', '箫声千浪', '清风霁月'];
                 if (qishuSkills.includes(baseData.skillName)) {
                     generalBonus += 15; // 15%通用增伤
                 }
@@ -8006,8 +8006,15 @@ function initChartsIfNeeded() {
 function initDamageTypeChart() {
     const ctx = document.getElementById('damageTypeChart');
     if (!ctx) return;
-
-    damageTypeChart = new Chart(ctx, {
+    
+    // 检查Chart是否可用
+    if (typeof Chart === 'undefined' && typeof window.Chart === 'undefined') {
+        console.error('Chart.js 未正确加载');
+        return;
+    }
+    
+    const ChartConstructor = window.Chart || Chart;
+    damageTypeChart = new ChartConstructor(ctx, {
         type: 'doughnut',
         data: {
             labels: ['外功伤害', '破竹伤害', '外属伤害'],
@@ -8049,8 +8056,15 @@ function initDamageTypeChart() {
 function initCritTypeChart() {
     const ctx = document.getElementById('critTypeChart');
     if (!ctx) return;
-
-    critTypeChart = new Chart(ctx, {
+    
+    // 检查Chart是否可用
+    if (typeof Chart === 'undefined' && typeof window.Chart === 'undefined') {
+        console.error('Chart.js 未正确加载');
+        return;
+    }
+    
+    const ChartConstructor = window.Chart || Chart;
+    critTypeChart = new ChartConstructor(ctx, {
         type: 'doughnut',
         data: {
             labels: ['会心伤害', '会意伤害', '白字伤害', '擦伤伤害'],
@@ -8093,8 +8107,15 @@ function initCritTypeChart() {
 function initSkillDamageChart() {
     const ctx = document.getElementById('skillDamageChart');
     if (!ctx) return;
-
-    skillDamageChart = new Chart(ctx, {
+    
+    // 检查Chart是否可用
+    if (typeof Chart === 'undefined' && typeof window.Chart === 'undefined') {
+        console.error('Chart.js 未正确加载');
+        return;
+    }
+    
+    const ChartConstructor = window.Chart || Chart;
+    skillDamageChart = new ChartConstructor(ctx, {
         type: 'bar',
         data: {
             labels: [],
@@ -8196,8 +8217,15 @@ function initSkillDamageChart() {
 function initStatusDamageChart() {
     const ctx = document.getElementById('statusDamageChart');
     if (!ctx) return;
-
-    statusDamageChart = new Chart(ctx, {
+    
+    // 检查Chart是否可用
+    if (typeof Chart === 'undefined' && typeof window.Chart === 'undefined') {
+        console.error('Chart.js 未正确加载');
+        return;
+    }
+    
+    const ChartConstructor = window.Chart || Chart;
+    statusDamageChart = new ChartConstructor(ctx, {
         type: 'bar',
         data: {
             labels: ['嗔焰状态', '普通状态'],
@@ -8615,7 +8643,7 @@ function getSkillActualDamage(skillName) {
 
         // 技能名称合并映射函数
         function mergeSkillName(originalSkillName) {
-            if (originalSkillName.match(/^红刀A[1-5]/) || originalSkillName === '红刀A2(1/2)' || originalSkillName === '红刀A4(5/7)') {
+            if (originalSkillName.match(/^红刀A[1-5]/)) {
                 return '红刀';
             }
             if (originalSkillName.match(/^白刀A[1-4]/)) {
@@ -8672,7 +8700,7 @@ function updateSkillDamageChart() {
     // 技能名称合并映射函数
     function mergeSkillName(skillName) {
         // 红刀A1-A5合并为"红刀"
-        if (skillName.match(/^红刀A[1-5]/) || skillName === '红刀A2(1/2)' || skillName === '红刀A4(5/7)') {
+        if (skillName.match(/^红刀A[1-5]/)) {
             return '红刀';
         }
         // 白刀A1-A4合并为"白刀"
@@ -8951,8 +8979,8 @@ function updateElementalStatsFromBreakBamboo() {
     // 计算属攻穿透：最小破竹攻击值 * 0.0673，最大值为22
     const elementalPenetrationFromBreakBamboo = Math.min(breakBambooMinValue * 0.0673, 22);
     
-    // 计算属攻伤害加成：最小破竹攻击值 * 0.0337，最大值为9
-    const elementalDamageFromBreakBamboo = Math.min(breakBambooMinValue * 0.0337, 9);
+    // 计算属攻伤害加成：最小破竹攻击值 * 0.0337，最大值为11
+    const elementalDamageFromBreakBamboo = Math.min(breakBambooMinValue * 0.0337, 11);
     
     // 计算泥鱼心法加成
     const niyuCheckbox = document.getElementById('diy-niyu');
@@ -8970,7 +8998,7 @@ function updateElementalStatsFromBreakBamboo() {
     elementalPenetrationInput.dispatchEvent(new Event('input', { bubbles: true }));
     elementalDamageInput.dispatchEvent(new Event('input', { bubbles: true }));
     
-    console.log(`属攻计算: 破竹攻击${breakBambooMinValue} → 属穿${elementalPenetrationFromBreakBamboo.toFixed(1)}(最大22) + 泥鱼${niyuBonus} = ${finalElementalPenetration.toFixed(1)}, 属伤${elementalDamageFromBreakBamboo.toFixed(1)}(最大9)`);
+    console.log(`属攻计算: 破竹攻击${breakBambooMinValue} → 属穿${elementalPenetrationFromBreakBamboo.toFixed(1)}(最大22) + 泥鱼${niyuBonus} = ${finalElementalPenetration.toFixed(1)}, 属伤${elementalDamageFromBreakBamboo.toFixed(1)}(最大11)`);
 }
 
 // DIY页联动：敏模块第一个文本框每+1 → 最小外功+0.264，会心率+0.0305；仅在[0,127]有效，下降回退
@@ -10487,7 +10515,7 @@ function updateCritRateFromAllSources() {
         if (minCalculated1) {
             const minCalc1 = parseFloat(minCalculated1.value) || 0;
             const minSteps = Math.min(Math.max(minCalc1, 0), 127);
-            minModuleLinkageBonus = Math.min(minSteps * 0.0305, 2.1); // 敏模块联动会心率加成，最大值为2.1
+            minModuleLinkageBonus = minSteps * 0.0305; // 敏模块联动会心率加成，无最大值限制
         }
         
         // 计算新的会心率值（基础值 + 会心计算结果 + 敏第三个计算结果 + 装备加成 + 弓箭加成 + 心法加成 + 敏模块联动加成）
@@ -11313,12 +11341,26 @@ function createValidationHandler(attackName, minInput, maxInput) {
     };
 }
 
-// 强制设置BOSS防御为96级BOSS(405)
+// 强制设置BOSS防御为96级BOSS(407)
 function validateAndFixBossDefense() {
     try {
         const bossDefenseSelect = document.getElementById('boss-defense');
         if (bossDefenseSelect) {
-            bossDefenseSelect.value = '405';
+            // 确保下拉框有正确的选项
+            if (bossDefenseSelect.options.length === 0) {
+                console.warn('BOSS防御下拉框没有选项，跳过设置');
+                return;
+            }
+            
+            // 强制设置为407
+            bossDefenseSelect.value = '407';
+            
+            // 触发change事件，确保其他监听器能正确响应
+            bossDefenseSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            
+            console.log('BOSS防御已设置为407');
+        } else {
+            console.error('找不到BOSS防御下拉框元素');
         }
     } catch (error) {
         console.error('设置BOSS防御时发生错误:', error);
@@ -11634,19 +11676,19 @@ function clearSecondPanelDisplay() {
 // 获取毕业伤害值
 function getGraduationDamage() {
     if (currentDamageMode === 'custom') {
-        return parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3138065;
+        return parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
     } else if (currentDamageMode === 'puwu_lao1') {
-        return 2191649;
+        return 2293803;
     } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
-        return 3080124;
+        return 3227036;
     } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
-        return 3018586;
+        return 3190110;
     } else if (currentDamageMode && currentDamageMode.indexOf('duanshi') !== -1) {
-        return 3138065;
+        return 3267719;
     } else if (currentDamageMode && currentDamageMode.indexOf('yishui') !== -1) {
-        return 3082418;
+        return 3250948;
     } else {
-        return 3138065;
+        return 3267719;
     }
 }
 

@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>破破破破破竹风</title>
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="stylesheet" href="game-styled.css">
@@ -26,9 +26,9 @@
       <!-- MathJax 数学公式渲染库（CDN） -->
       <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"></script>
       <!-- Chart.js 图表库（CDN） -->
-      <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <style>
-        /* 移动端响应式设计 */
+        /* 移动端优化 - 不影响PC端 */
         @media (max-width: 768px) {
             /* 整体布局调整 */
             body {
@@ -267,6 +267,26 @@
                 min-height: 44px;
                 min-width: 44px;
                 touch-action: manipulation;
+            }
+            
+            /* 防止iOS输入框缩放 */
+            input[type="text"],
+            input[type="number"],
+            input[type="email"],
+            input[type="password"],
+            select,
+            textarea {
+                font-size: 16px !important;
+                -webkit-appearance: none;
+                border-radius: 6px;
+            }
+            
+            /* 移动端安全区域适配 */
+            body {
+                padding-top: env(safe-area-inset-top);
+                padding-bottom: env(safe-area-inset-bottom);
+                padding-left: env(safe-area-inset-left);
+                padding-right: env(safe-area-inset-right);
             }
             
             /* 输入框触摸优化 */
@@ -771,6 +791,146 @@
             }
         }
         
+        /* 更精细的移动端断点优化 */
+        @media (max-width: 374px) {
+            /* 超小屏手机优化 */
+            body {
+                font-size: 12px;
+                padding: 4px;
+            }
+            
+            .container {
+                padding: 4px;
+            }
+            
+            .tab-nav button {
+                padding: 8px 10px;
+                font-size: 11px;
+            }
+            
+            .input-row input,
+            .input-row select {
+                font-size: 16px;
+                padding: 8px 10px;
+                min-height: 40px;
+            }
+            
+            .action-btn {
+                padding: 8px 12px;
+                font-size: 12px;
+                min-height: 40px;
+            }
+            
+            .table-container table {
+                min-width: 500px;
+                font-size: 10px;
+            }
+            
+            th, td {
+                padding: 4px 2px;
+                font-size: 10px;
+            }
+        }
+        
+        @media (min-width: 375px) and (max-width: 413px) {
+            /* 小屏手机优化 */
+            body {
+                font-size: 13px;
+            }
+            
+            .tab-nav button {
+                padding: 10px 12px;
+                font-size: 12px;
+            }
+            
+            .input-row input,
+            .input-row select {
+                font-size: 16px;
+                padding: 10px 12px;
+            }
+            
+            .action-btn {
+                padding: 10px 14px;
+                font-size: 13px;
+            }
+            
+            .table-container table {
+                min-width: 550px;
+                font-size: 11px;
+            }
+        }
+        
+        @media (min-width: 414px) and (max-width: 767px) {
+            /* 中屏手机优化 */
+            body {
+                font-size: 14px;
+            }
+            
+            .tab-nav {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+            
+            .tab-nav button {
+                flex: 1;
+                min-width: 100px;
+                padding: 12px 16px;
+                font-size: 14px;
+            }
+            
+            .input-row {
+                flex-direction: row;
+                align-items: center;
+            }
+            
+            .input-row label {
+                width: 120px;
+                margin-bottom: 0;
+            }
+            
+            .input-row input,
+            .input-row select {
+                flex: 1;
+                max-width: 200px;
+                font-size: 16px;
+            }
+            
+            .action-btn {
+                padding: 12px 16px;
+                font-size: 14px;
+            }
+            
+            .table-container table {
+                min-width: 700px;
+                font-size: 13px;
+            }
+        }
+        
+        /* 移动端浏览器特殊优化 */
+        @media (max-width: 768px) {
+            /* 微信浏览器优化 */
+            .wechat-browser .container {
+                padding-bottom: 20px;
+            }
+            
+            /* iOS Safari优化 */
+            .ios-safari .table-container {
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            /* Android Chrome优化 */
+            .android-chrome .action-btn {
+                touch-action: manipulation;
+            }
+            
+            /* UC浏览器优化 */
+            .uc-browser input,
+            .uc-browser select {
+                -webkit-appearance: none;
+                border-radius: 0;
+            }
+        }
+        
     </style>
     </head>
 <body>
@@ -956,7 +1116,7 @@
                         <div class="input-row" style="padding: 2px 0;">
                             <label for="boss-defense">BOSS防御:</label>
                             <select id="boss-defense" class="select-input enhanced-select">
-                                <option value="405" selected>96级BOSS</option>
+                                <option value="407" selected>96级BOSS</option>
                             </select>
                         </div>
                         <div class="input-row" style="padding: 2px 0;">
@@ -1024,7 +1184,7 @@
                 <div class="panel-section" style="width: 33.33%;">
                     <h3>说明</h3>
                     <div style="padding: 10px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; color: #856404; font-size: 14px; text-align: center;">
-                        <strong>参考了Violetta和yoka两位大佬的表格，然后稍微加了点功能。纯AI写的，可能有些潜在问题，仅供参考。</strong>
+                        <strong>参考了Violetta和yoka两位大佬的表格，然后稍微加了点功能。AI自动堆叠的，可能有些潜在问题，仅供参考。</strong>
                     </div>
                     
                     <!-- 词条毕业度对比表格 -->
@@ -1163,7 +1323,7 @@
                                         <i class="config-icon">🎯</i>
                                         毕业伤害
                                     </label>
-                                    <input type="number" id="custom-graduation-damage" value="3138065" min="0" step="1000" class="config-input graduation-input">
+                                    <input type="number" id="custom-graduation-damage" value="3267719" min="0" step="1000" class="config-input graduation-input">
                                 </div>
                                 
                                 <div class="config-item">
@@ -1932,6 +2092,106 @@
 
     </div>
     
-    <script src="script.js?t=202510170205"></script>
+    <script src="script.js?t=202510250130"></script>
+    
+    <!-- 移动端优化JavaScript -->
+    <script>
+        // 移动端优化 - 不影响PC端
+        (function() {
+            'use strict';
+            
+            // 检测移动端
+            function isMobile() {
+                return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            }
+            
+            // 检测浏览器类型
+            function detectBrowser() {
+                const ua = navigator.userAgent.toLowerCase();
+                const isWeChat = /micromessenger/i.test(ua);
+                const isUC = /ucbrowser/i.test(ua);
+                const isSafari = /safari/i.test(ua) && !/chrome/i.test(ua);
+                const isChrome = /chrome/i.test(ua) && !/edge/i.test(ua);
+                const isIOS = /iphone|ipad|ipod/i.test(ua);
+                const isAndroid = /android/i.test(ua);
+                
+                return { isWeChat, isUC, isSafari, isChrome, isIOS, isAndroid };
+            }
+            
+            // 只在移动端执行
+            if (isMobile()) {
+                const browser = detectBrowser();
+                
+                // 添加浏览器类名
+                if (browser.isWeChat) document.body.classList.add('wechat-browser');
+                if (browser.isUC) document.body.classList.add('uc-browser');
+                if (browser.isSafari) document.body.classList.add('ios-safari');
+                if (browser.isChrome) document.body.classList.add('android-chrome');
+                if (browser.isIOS) document.body.classList.add('ios-device');
+                if (browser.isAndroid) document.body.classList.add('android-device');
+                
+                // 防止双击缩放
+                let lastTouchEnd = 0;
+                document.addEventListener('touchend', function(event) {
+                    const now = (new Date()).getTime();
+                    if (now - lastTouchEnd <= 300) {
+                        event.preventDefault();
+                    }
+                    lastTouchEnd = now;
+                }, false);
+                
+                // 优化触摸反馈
+                const touchElements = document.querySelectorAll('button, .action-btn, .tab-button, input, select');
+                touchElements.forEach(element => {
+                    element.addEventListener('touchstart', function() {
+                        this.style.transform = 'scale(0.95)';
+                        this.style.transition = 'transform 0.1s ease';
+                    });
+                    
+                    element.addEventListener('touchend', function() {
+                        this.style.transform = 'scale(1)';
+                    });
+                    
+                    element.addEventListener('touchcancel', function() {
+                        this.style.transform = 'scale(1)';
+                    });
+                });
+                
+                // 防止输入框缩放
+                const inputs = document.querySelectorAll('input, select, textarea');
+                inputs.forEach(input => {
+                    input.addEventListener('focus', function() {
+                        if (window.innerWidth < 768) {
+                            document.querySelector('meta[name="viewport"]').setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+                        }
+                    });
+                    
+                    input.addEventListener('blur', function() {
+                        if (window.innerWidth < 768) {
+                            document.querySelector('meta[name="viewport"]').setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
+                        }
+                    });
+                });
+                
+                // 优化滚动性能
+                const scrollContainers = document.querySelectorAll('.table-container');
+                scrollContainers.forEach(container => {
+                    container.style.webkitOverflowScrolling = 'touch';
+                    container.style.scrollBehavior = 'smooth';
+                });
+                
+                // 处理屏幕旋转
+                let orientationTimeout;
+                window.addEventListener('orientationchange', function() {
+                    clearTimeout(orientationTimeout);
+                    orientationTimeout = setTimeout(function() {
+                        window.dispatchEvent(new Event('resize'));
+                    }, 100);
+                });
+                
+                console.log('移动端优化已启用');
+            }
+        })();
+    </script>
     </body>
 </html>
