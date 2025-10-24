@@ -6,6 +6,9 @@
     <title>破破破破破竹风</title>
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="stylesheet" href="game-styled.css">
+    <!-- 资源预加载优化 -->
+    <link rel="preload" href="script.js" as="script">
+    <link rel="preload" href="game-styled.css" as="style">
     <!-- MathJax LaTeX渲染库 -->
     <script>
         MathJax = {
@@ -16,17 +19,27 @@
                 processEnvironments: true
             },
             chtml: {
-                fontURL: 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2'
+                fontURL: './'
             },
             options: {
                 skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
             }
         };
     </script>
-      <!-- MathJax 数学公式渲染库（CDN） -->
-      <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"></script>
-      <!-- Chart.js 图表库（CDN） -->
-      <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+      <!-- MathJax 数学公式渲染库（本地引用） -->
+      <script id="MathJax-script" async src="./mathjax.js"></script>
+      <!-- Chart.js 图表库（本地引用） -->
+      <script async src="./chart.min.js"></script>
+      <!-- 加载优化脚本 -->
+      <script>
+        // 确保外部库加载完成后再执行主脚本
+        window.addEventListener('load', function() {
+          // 检查外部库是否加载完成
+          if (typeof MathJax !== 'undefined' && typeof Chart !== 'undefined') {
+            console.log('所有外部库加载完成');
+          }
+        });
+      </script>
     <style>
         /* 移动端优化 - 不影响PC端 */
         @media (max-width: 768px) {
@@ -2092,7 +2105,7 @@
 
     </div>
     
-    <script src="script.js?t=202510250130"></script>
+    <script src="script.js?t=202510250330"></script>
     
     <!-- 移动端优化JavaScript -->
     <script>
