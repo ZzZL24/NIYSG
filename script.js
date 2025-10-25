@@ -3995,8 +3995,8 @@ function updateTraitGraduationTable(firstPanelDamage, secondPanelDamage) {
             // 自选模式：使用用户自定义的毕业伤害
             graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            // 普五老一：毕业伤害为2293803
-            graduationDamage = 2293803;
+            // 普五老一：毕业伤害为2310748
+            graduationDamage = 2310748;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
             // 燕归断石：按需求设置毕业伤害
             graduationDamage = 3227036;
@@ -4051,7 +4051,7 @@ function calculateLargeExternalGraduation(firstPanelDamage) {
         if (currentDamageMode === 'custom') {
             graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2293803;
+            graduationDamage = 2310748;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
             graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
@@ -4153,7 +4153,7 @@ function calculateSmallExternalGraduation(firstPanelDamage) {
         if (currentDamageMode === 'custom') {
             graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2293803;
+            graduationDamage = 2310748;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
             graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
@@ -4260,7 +4260,7 @@ function calculateLargeBreakBambooGraduation(firstPanelDamage) {
         if (currentDamageMode === 'custom') {
             graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2293803;
+            graduationDamage = 2310748;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
             graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
@@ -4368,7 +4368,7 @@ function calculateSmallBreakBambooGraduation(firstPanelDamage) {
         if (currentDamageMode === 'custom') {
             graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2293803;
+            graduationDamage = 2310748;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
             graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
@@ -4476,7 +4476,7 @@ function calculateSmallBreakRockGraduation(firstPanelDamage) {
         if (currentDamageMode === 'custom') {
             graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2293803;
+            graduationDamage = 2310748;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
             graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
@@ -4584,7 +4584,7 @@ function calculatePrecisionGraduation(firstPanelDamage) {
         if (currentDamageMode === 'custom') {
             graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2293803;
+            graduationDamage = 2310748;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
             graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
@@ -4685,7 +4685,7 @@ function calculateCriticalGraduation(firstPanelDamage) {
         if (currentDamageMode === 'custom') {
             graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2293803;
+            graduationDamage = 2310748;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
             graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
@@ -4784,7 +4784,7 @@ function calculateIntentGraduation(firstPanelDamage) {
         if (currentDamageMode === 'custom') {
             graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2293803;
+            graduationDamage = 2310748;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
             graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
@@ -4883,7 +4883,7 @@ function calculateJingGraduation(firstPanelDamage) {
         if (currentDamageMode === 'custom') {
             graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2293803;
+            graduationDamage = 2310748;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
             graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
@@ -4985,7 +4985,7 @@ function calculateMinGraduation(firstPanelDamage) {
         if (currentDamageMode === 'custom') {
             graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2293803;
+            graduationDamage = 2310748;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
             graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
@@ -5089,7 +5089,7 @@ function calculateShiGraduation(firstPanelDamage) {
         if (currentDamageMode === 'custom') {
             graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2293803;
+            graduationDamage = 2310748;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
             graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
@@ -5193,7 +5193,7 @@ function calculateShengbiaoGraduation(firstPanelDamage) {
         if (currentDamageMode === 'custom') {
             graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2293803;
+            graduationDamage = 2310748;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
             graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
@@ -5308,7 +5308,7 @@ function calculateShuangdaoGraduation(firstPanelDamage) {
         if (currentDamageMode === 'custom') {
             graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2293803;
+            graduationDamage = 2310748;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
             graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
@@ -5423,7 +5423,7 @@ function calculateQuanwuxueGraduation(firstPanelDamage) {
         if (currentDamageMode === 'custom') {
             graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2293803;
+            graduationDamage = 2310748;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
             graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
@@ -5538,7 +5538,7 @@ function calculateShoulingGraduation(firstPanelDamage) {
         if (currentDamageMode === 'custom') {
             graduationDamage = parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
         } else if (currentDamageMode === 'puwu_lao1') {
-            graduationDamage = 2293803;
+            graduationDamage = 2310748;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
             graduationDamage = 3227036;
         } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
@@ -6066,8 +6066,8 @@ function updateDamageStatsDisplay(graduationDamage, expectedDamage, simulationDa
         const customGraduationDamage = document.getElementById('custom-graduation-damage');
         fixedGraduationDamage = customGraduationDamage ? parseFloat(customGraduationDamage.value) || 3267719 : 3267719;
     } else if (mode === 'puwu_lao1') {
-        // 普五老一：毕业伤害为2293803
-        fixedGraduationDamage = 2293803;
+        // 普五老一：毕业伤害为2310748
+        fixedGraduationDamage = 2310748;
     } else if (mode && mode.indexOf('yangui_duanshi') !== -1) {
         // 燕归断石：按需求设置毕业伤害
         fixedGraduationDamage = 3227036;
@@ -11678,7 +11678,7 @@ function getGraduationDamage() {
     if (currentDamageMode === 'custom') {
         return parseFloat(document.getElementById('custom-graduation-damage')?.value) || 3267719;
     } else if (currentDamageMode === 'puwu_lao1') {
-        return 2293803;
+        return 2310748;
     } else if (currentDamageMode && currentDamageMode.indexOf('yangui_duanshi') !== -1) {
         return 3227036;
     } else if (currentDamageMode && currentDamageMode.indexOf('yangui_yishui') !== -1) {
